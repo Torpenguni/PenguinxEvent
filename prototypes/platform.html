@@ -353,8 +353,8 @@ const ROLE={
 const NAV=[
  {id:"dash",  ic:"◧", t:"ภาพรวม",     m:null},
  {id:"sales", ic:"◐", t:"การขาย",     tabs:[
-    ["board","บอร์ดท่อการขาย","deal"],["deals","ดีลทั้งหมด","deal"],
-    ["perf","ผลงานเซลล์","deal"]]},
+    ["mon","ภาพรวมการขาย","deal"],["board","บอร์ด","deal"],
+    ["grid","ตารางทำงาน","deal"],["perf","ผลงานเซลล์","deal"]]},
  {id:"plan",  ic:"▦", t:"ผังบูธ",     tabs:[
     ["map","ผัง","floorplan"],["pkg","แพ็กเกจและราคา","price"]]},
  {id:"money", ic:"₿", t:"เงิน",       tabs:[
@@ -384,8 +384,9 @@ function curTab(n){
 }
 const PAGE={
  "dash":pDash,
+ "sales:mon":pSalesMon,
  "sales:board":()=>{salesView="board";pSales()},
- "sales:deals":()=>{salesView="table";pSales()},
+ "sales:grid":pGrid,
  "sales:perf":pPerf,
  "plan:map":pPlan, "plan:pkg":pPkg,
  "money:pnl":pPnl, "money:target":pTarget, "money:income":pBudget, "money:cost":pCost,
@@ -1600,6 +1601,220 @@ function bindBoard(){
       const d=DEALS.find(x=>x.id===dragId); if(!d)return;
       if(d.stage!==col.dataset.stage){d.stage=col.dataset.stage; pSales()}
     });
+  });
+}
+
+
+/* ---------- ภาพรวมการขาย ---------- */
+/* น้ำหนักตามขั้น ใช้ประมาณยอดที่น่าจะปิดได้จริง ไม่ใช่ยอดท่อดิบ */
+const PROB={lead:.1,booking:.3,quoted:.5,confirmed:.8,billed:.9,paid:1,lost:0};
+function pSalesMon(){
+  const list=DEALS.filter(mine);
+  const open=list.filter(d=>!["paid","lost"].includes(d.stage));
+  const pipe=open.reduce((s,d)=>s+d.list,0);
+  const weighted=open.reduce((s,d)=>s+d.list*(PROB[d.stage]||0),0);
+  const won=list.filter(d=>d.stage==="paid").reduce((s,d)=>s+d.list,0);
+  const todo=open.filter(d=>overdue(d)||noNext(d)||isStale(d));
+  const seeMoney=can("budget")!=="none"||ROLE[role].scope==="all";
+
+  let h='<div class="cards">'+
+   card(list.length,"ดีลที่ดูแล",ROLE[role].scope==="own"?"เฉพาะของคุณ":"ทั้งทีม","--line2")+
+   card(open.length,"ยังไม่ปิด","--s-booked")+
+   card(f(pipe),"มูลค่าในท่อ","--s-deposit")+
+   card(f(weighted),"คาดว่าจะปิดได้","ถ่วงน้ำหนักตามขั้น","--accent")+
+   card(f(won),"ปิดได้แล้ว","--s-paid")+
+   card(todo.length,"ต้องแตะวันนี้",todo.filter(overdue).length+" เลยนัด","--risk")+
+   '</div>';
+
+  // มูลค่าตามขั้น
+  const byStage=STAGES.filter(x=>x[0]!=="lost").map(x=>({
+    l:x[1],c:cv(x[2]),n:list.filter(d=>d.stage===x[0]).length,
+    v:list.filter(d=>d.stage===x[0]).reduce((s,d)=>s+d.list,0)}));
+  const mx=Math.max(...byStage.map(x=>x.v))||1;
+  h+='<h2 class="sec">ท่อการขายตามมูลค่า</h2><div class="w"><div class="body">'+
+   byStage.map(x=>'<div style="display:flex;align-items:center;gap:12px;margin-bottom:9px">'+
+     '<span style="width:110px;font-size:13.5px;flex:0 0 auto">'+x.l+'</span>'+
+     '<div style="flex:1;height:22px;background:var(--line);border-radius:6px;overflow:hidden">'+
+       '<div style="width:'+(x.v/mx*100)+'%;height:100%;background:'+x.c+'"></div></div>'+
+     '<span style="width:56px;text-align:right;font-size:13px;color:var(--ink2)">'+x.n+' ดีล</span>'+
+     '<span style="width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">'+
+       f(x.v)+'</span></div>').join("")+
+   '</div></div>';
+
+  // เซลล์แต่ละคนถืออะไรอยู่
+  if(ROLE[role].scope==="all"){
+    const reps=[...new Set(list.map(d=>d.sales||"—"))].map(n=>{
+      const g=list.filter(d=>(d.sales||"—")===n);
+      const o=g.filter(d=>!["paid","lost"].includes(d.stage));
+      return {n,deals:g.length,open:o.length,pipe:o.reduce((s,d)=>s+d.list,0),
+        w:o.reduce((s,d)=>s+d.list*(PROB[d.stage]||0),0),
+        todo:o.filter(d=>overdue(d)||noNext(d)||isStale(d)).length};
+    }).sort((a,b)=>b.pipe-a.pipe);
+    h+='<h2 class="sec">เซลล์แต่ละคนถืออะไรอยู่</h2><div class="tw"><table><thead><tr>'+
+     '<th>เซลล์</th><th class="num">ดีล</th><th class="num">ยังไม่ปิด</th>'+
+     '<th class="num">มูลค่าในท่อ</th><th class="num">คาดว่าจะปิดได้</th>'+
+     '<th class="num">ต้องแตะ</th></tr></thead><tbody>'+
+     reps.map(r=>'<tr><td><span style="display:flex;gap:9px;align-items:center">'+
+       avatar(r.n,26)+'<b>'+esc(r.n)+'</b></span></td>'+
+      '<td class="num">'+r.deals+'</td><td class="num">'+r.open+'</td>'+
+      '<td class="num">'+f(r.pipe)+'</td><td class="num">'+f(r.w)+'</td>'+
+      '<td class="num" style="color:'+(r.todo?cv("--risk"):"inherit")+'">'+r.todo+'</td></tr>').join("")+
+     '</tbody></table></div>';
+  }
+
+  h+='<h2 class="sec">ต้องแตะก่อน</h2>';
+  h+=todo.length?'<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>ขั้นตอน</th>'+
+    '<th>เซลล์</th><th class="num">มูลค่า</th><th>เหตุผล</th></tr></thead><tbody>'+
+    todo.slice(0,15).map(d=>{const l=lastAct(d);
+      const why=overdue(d)?'<span style="color:var(--risk)">เลยนัด '+daysAgo(d.nextDate)+' วัน</span>'
+        :noNext(d)?'<span style="color:var(--warn)">ยังไม่มีนัดถัดไป</span>'
+        :l?'<span style="color:var(--warn)">เงียบ '+daysAgo(l.date)+' วัน</span>'
+        :'<span style="color:var(--warn)">ยังไม่เคยบันทึกการติดต่อ</span>';
+      return '<tr data-d="'+d.id+'" style="cursor:pointer"><td><b>'+esc(d.co)+'</b></td>'+
+       '<td><span class="pill" style="background:'+stCol(d.stage)+'">'+stName(d.stage)+'</span></td>'+
+       '<td>'+esc(d.sales||"—")+'</td><td class="num">'+f(d.list)+'</td>'+
+       '<td>'+why+'</td></tr>'}).join("")+'</tbody></table></div>'
+    +(todo.length>15?'<p class="rdonly">แสดง 15 จาก '+todo.length+' รายการ ดูครบในตารางทำงาน</p>':'')
+   :'<div class="note"><p>ไม่มีอะไรค้าง</p></div>';
+
+  h+='<h2 class="sec">อ่านตัวเลขนี้ยังไง</h2><div class="note">'+
+   '<p><b>มูลค่าในท่อ</b> คือรวมทุกดีลที่ยังไม่ปิด ซึ่งมองโลกสวยเกินจริงเสมอ '+
+   '<b>คาดว่าจะปิดได้</b> ถ่วงน้ำหนักตามขั้นแล้ว — ยังไม่ติดต่อคิด 10% จองไว้ 30% '+
+   'ส่งใบเสนอราคา 50% ปิดได้ 80% วางบิล 90% ตัวหลังใช้วางแผนได้จริงกว่า</p>'+
+   '<p><b>น้ำหนักพวกนี้ยังเป็นค่าตั้งต้น</b> ของจริงต้องดูจากสถิติว่าดีลที่ถึงขั้นส่งใบเสนอราคา '+
+   'ปิดได้จริงกี่เปอร์เซ็นต์ ซึ่งต้องเก็บ <code>deal.won_at</code> ครบหนึ่งฤดูขายก่อน</p></div>';
+  $("#page").innerHTML=h;
+  $("#page").querySelectorAll("[data-d]").forEach(tr=>
+    tr.addEventListener("click",()=>openDeal(+tr.dataset.d)));
+}
+
+/* ---------- ตารางทำงาน แก้ในช่องได้ เพิ่มดีลได้ ---------- */
+let gRep="", gStage="", gPkg="", gQ="";
+function pGrid(){
+  const wr=can("deal")==="write";
+  let list=DEALS.filter(mine);
+  const q2=gQ.trim().toLowerCase();
+  list=list.filter(d=>(!gRep||(d.sales||"—")===gRep)&&(!gStage||d.stage===gStage)
+    &&(!gPkg||d.pkg===gPkg)&&(!q2||(d.co||"").toLowerCase().includes(q2)));
+  const own=EV.tasks.filter(t=>t.by==="exhibitor");
+
+  let h='<div class="bar2">'+
+   '<input type="search" id="gq" placeholder="ค้นชื่อลูกค้า" value="'+esc(gQ)+'">'+
+   (ROLE[role].scope==="all"?'<select id="grep"><option value="">ทุกเซลล์</option>'+
+     REPS.filter(r=>r.active).map(r=>'<option value="'+esc(r.name)+'"'+
+       (gRep===r.name?" selected":"")+'>'+esc(r.name)+'</option>').join("")+'</select>':'')+
+   '<select id="gst"><option value="">ทุกขั้น</option>'+STAGES.map(x=>
+     '<option value="'+x[0]+'"'+(gStage===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+'</select>'+
+   '<select id="gpk"><option value="">ทุกแพ็กเกจ</option>'+Object.keys(EV.packages||{}).map(k=>
+     '<option value="'+esc(k)+'"'+(gPkg===k?" selected":"")+'>'+esc(k)+'</option>').join("")+'</select>'+
+   ((gRep||gStage||gPkg||gQ)?'<button class="act" id="gclr" style="padding:9px 14px">ล้าง</button>':'')+
+   '<span style="margin-left:auto;font-size:13px;color:var(--ink2);align-self:center">'+
+   list.length+' ดีล · '+f(list.reduce((s,d)=>s+d.list,0))+'</span></div>';
+
+  h+='<div class="tw" style="max-height:66vh;overflow:auto"><table style="min-width:1180px">'+
+   '<thead><tr><th style="width:210px">ลูกค้า</th><th style="width:150px">แพ็กเกจ</th>'+
+   '<th style="width:130px">บูธ</th><th class="num" style="width:110px">มูลค่า</th>'+
+   '<th style="width:140px">ขั้นตอน</th><th style="width:120px">เซลล์</th>'+
+   '<th style="width:190px">นัดถัดไป</th><th style="width:120px">งานผู้ออกบูธ</th>'+
+   (wr?'<th style="width:52px"></th>':'')+'</tr></thead><tbody>'+
+   list.map(d=>{
+     const done=own.filter(t=>d.tasks[t.code]).length;
+     const cell=(v,f2,ph)=>wr?'<span contenteditable="plaintext-only" data-g="'+d.id+
+       '" data-gf="'+f2+'" data-ph="'+esc(ph||"")+'">'+esc(v||"")+'</span>':esc(v||"—");
+     return '<tr><td><span style="display:flex;gap:8px;align-items:center">'+logoTile(d.co,24)+
+       cell(d.co,"co","ชื่อลูกค้า")+'</span></td>'+
+      '<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="pkg">'+
+        '<option value="">—</option>'+Object.keys(EV.packages||{}).map(k=>
+        '<option value="'+esc(k)+'"'+(d.pkg===k?" selected":"")+'>'+esc(k)+'</option>').join("")+
+        '</select>':esc(d.pkg||"—"))+'</td>'+
+      '<td style="font-size:12.5px;color:var(--ink2)">'+esc(d.booths.slice(0,3).join(", "))+
+        (d.booths.length>3?" +"+(d.booths.length-3):"")+'</td>'+
+      '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-g="'+d.id+
+        '" data-gf="list">'+f(d.list)+'</span>':f(d.list))+'</td>'+
+      '<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="stage">'+STAGES.map(x=>
+        '<option value="'+x[0]+'"'+(d.stage===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
+        '</select>':stName(d.stage))+'</td>'+
+      '<td>'+(wr&&ROLE[role].scope==="all"?'<select class="cell" data-g="'+d.id+'" data-gf="sales">'+
+        REPS.filter(r=>r.active).map(r=>'<option value="'+esc(r.name)+'"'+
+        (d.sales===r.name?" selected":"")+'>'+esc(r.name)+'</option>').join("")+'</select>'
+        :esc(d.sales||"—"))+'</td>'+
+      '<td>'+cell(d.next,"next","ยังไม่มีนัด")+
+        (d.nextDate?'<br><small style="color:'+(overdue(d)?cv("--risk"):"var(--ink3)")+'">'+
+          esc(d.nextDate)+'</small>':'')+'</td>'+
+      '<td><div style="display:flex;align-items:center;gap:7px"><div class="prog" style="min-width:52px">'+
+        '<i style="width:'+(done/own.length*100)+'%;background:'+cv("--ok")+'"></i></div>'+
+        '<span style="font-size:12px;color:var(--ink2)">'+done+'/'+own.length+'</span></div></td>'+
+      (wr?'<td><button class="rowdel" data-gx="'+d.id+'">×</button></td>':'')+'</tr>'}).join("")+
+   '</tbody></table></div>';
+
+  if(wr)h+='<div class="addbar">'+
+   '<input id="newco" placeholder="ชื่อลูกค้าใหม่" style="flex:0 0 220px;padding:9px 12px;'+
+     'border:1px solid var(--line2);border-radius:8px;background:var(--card);color:var(--ink)">'+
+   '<select id="newpk"><option value="">เลือกแพ็กเกจ</option>'+
+     Object.keys(EV.packages||{}).map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join("")+
+     '</select>'+
+   '<button class="act go" id="gadd" style="padding:9px 18px">เพิ่มดีล</button>'+
+   '<span style="font-size:13px;color:var(--ink2);align-self:center">'+
+   'ดีลใหม่เริ่มที่ขั้น "ยังไม่ติดต่อ" ผูกบูธทีหลังได้จากหน้าผัง</span></div>';
+
+  h+='<h2 class="sec">ตารางนี้ต่างจากบอร์ดยังไง</h2><div class="note">'+
+   '<p><b>บอร์ดไว้ดูว่าดีลกองอยู่ขั้นไหน ตารางนี้ไว้ทำงานทีละหลายรายการ</b> '+
+   'คลิกช่องไหนก็พิมพ์ทับได้ทันที ทั้งชื่อลูกค้า มูลค่า ขั้นตอน เซลล์เจ้าของ และนัดถัดไป</p>'+
+   '<p><b>คอลัมน์งานผู้ออกบูธเชื่อมสองเรื่องเข้าด้วยกัน</b> ปิดดีลแล้วยังไม่จบ '+
+   'ยังต้องเก็บโลโก้ ฟอร์ม และรายชื่อคนประจำบูธอีก '+
+   'เซลล์เห็นได้เลยว่าลูกค้าตัวเองเก็บครบยัง ไม่ต้องข้ามไปอีกเมนู</p></div>';
+
+  $("#page").innerHTML=h;
+  const P=$("#page");
+  P.querySelector("#gq").addEventListener("input",e=>{gQ=e.target.value;pGrid();
+    const el=$("#gq"); if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}});
+  const gr=P.querySelector("#grep");
+  if(gr)gr.addEventListener("change",e=>{gRep=e.target.value;pGrid()});
+  P.querySelector("#gst").addEventListener("change",e=>{gStage=e.target.value;pGrid()});
+  P.querySelector("#gpk").addEventListener("change",e=>{gPkg=e.target.value;pGrid()});
+  const gc=P.querySelector("#gclr");
+  if(gc)gc.addEventListener("click",()=>{gRep=gStage=gPkg=gQ="";pGrid()});
+
+  P.querySelectorAll("[contenteditable][data-g]").forEach(el=>{
+    el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}});
+    el.addEventListener("blur",()=>{
+      const d=DEALS.find(x=>x.id===+el.dataset.g); if(!d)return;
+      const f2=el.dataset.gf, t=el.textContent.trim();
+      if(f2==="list"){const v=+(t.replace(/[^0-9]/g,"")); if(v)d.list=v;}
+      else if(f2==="next"){ d.next=t||null; if(t&&!d.nextDate)d.nextDate=ymd(new Date()); }
+      else if(t)d[f2]=t;
+      pGrid();
+    });
+  });
+  P.querySelectorAll("select.cell[data-g]").forEach(el=>el.addEventListener("change",()=>{
+    const d=DEALS.find(x=>x.id===+el.dataset.g); if(!d)return;
+    const f2=el.dataset.gf;
+    d[f2]=el.value||null;
+    if(f2==="sales")B.forEach(b=>{if(d.booths.includes(b.code))b.sales=el.value});
+    if(f2==="pkg"){const pk=(EV.packages||{})[el.value];
+      if(pk&&!d.booths.length)d.list=pk.price;}
+    pGrid();
+  }));
+  P.querySelectorAll("[data-gx]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.armed){
+      const i=DEALS.findIndex(x=>x.id===+b.dataset.gx);
+      if(i>=0){const d=DEALS[i];
+        B.forEach(x=>{if(d.booths.includes(x.code)){x.st="free";x.co=null;x.sales=null}});
+        DEALS.splice(i,1);}
+      pGrid(); return}
+    b.dataset.armed="1"; b.textContent="ลบ?"; b.style.color=cv("--risk");
+    setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent="×";b.style.color=""}},4000);
+  }));
+  const ga=P.querySelector("#gadd");
+  if(ga)ga.addEventListener("click",()=>{
+    const co=P.querySelector("#newco").value.trim();
+    if(!co){P.querySelector("#newco").focus();return}
+    const pk=P.querySelector("#newpk").value;
+    const tasks={}; EV.tasks.forEach(t=>tasks[t.code]=false);
+    DEALS.push({id:Math.max(0,...DEALS.map(d=>d.id))+1, co, sales:me, pkg:pk||null,
+      booths:[], list:pk?(EV.packages[pk].price||0):0, st:"booked", stage:"lead",
+      contact:null, phone:null, form:false, tasks, acts:[], next:null, nextDate:null});
+    gQ=""; pGrid();
   });
 }
 
