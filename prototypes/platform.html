@@ -448,29 +448,148 @@ function pBudget(){
 }
 
 /* ---------- เวที ---------- */
-function pStage(){
-  const T0=560,T1=1330,PX=1.1,H=(T1-T0)*PX;
-  const SG=["TRC Main Stage","SUPER Stage","Food Solution Workshop"];
-  const K={keynote:"--accent",panel:"--s-deposit",talk:"--s-deposit",workshop:"--risk",
-   ceremony:"--warn",networking:"--s-booked",break:"--ink3",registration:"--ink3"};
+const SG=["TRC Main Stage","SUPER Stage","Food Solution Workshop"];
+const SKIND={keynote:"Keynote",panel:"Panel Talk",talk:"บรรยาย",workshop:"Workshop",
+ ceremony:"พิธีการ",networking:"Networking",break:"พัก",registration:"ลงทะเบียน"};
+const SCOL={keynote:"--accent",panel:"--s-deposit",talk:"--s-deposit",workshop:"--risk",
+ ceremony:"--warn",networking:"--s-booked",break:"--ink3",registration:"--ink3"};
+let stg=null, sview="table";
+function pStage(){ stg===null?stageList():stageOne() }
+
+function stageList(){
+  $("#page").innerHTML='<h2 class="sec">เลือกเวที</h2><div class="cards">'+
+   SG.map((g,i)=>{
+     const all=SES.filter(s=>s.stage===g);
+     const real=all.filter(s=>["talk","keynote","panel","workshop"].includes(s.kind));
+     const ppl=new Set(); all.forEach(s=>s.people.forEach(p=>ppl.add(p.n)));
+     const bad=real.filter(s=>!s.title||!s.cf||!s.people.length).length;
+     return '<button class="c" data-g="'+i+'" style="--t:'+cv("--accent")+
+      ';cursor:pointer;text-align:left;font:inherit;color:inherit">'+
+      '<b style="font-size:17px;line-height:1.35">'+g+'</b>'+
+      '<span>'+all.length+' ช่วง · '+real.length+' ช่วงที่มีเนื้อหา · '+ppl.size+' คน</span>'+
+      '<small style="color:'+(bad?cv("--risk"):cv("--ok"))+'">'+
+       (bad?bad+" ช่วงยังไม่พร้อม":"ครบทุกช่วง")+'</small></button>'}).join("")+'</div>'+
+   '<h2 class="sec">ทั้งสามเวทีพร้อมกัน</h2>'+timelineHTML(1)+
+   '<div style="margin-top:10px"><div class="seg">'+[1,2,3].map(d=>
+    '<button data-d="'+d+'" aria-pressed="'+(day===d)+'">วัน '+d+'</button>').join("")+'</div></div>';
+  $("#page").querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{stg=+b.dataset.g;pStage()}));
+  bindDay(()=>{ $("#page").innerHTML=""; pStage() });
+}
+
+function timelineHTML(){
+  const T0=560,T1=1330,PX=1.05,H=(T1-T0)*PX;
   const hh=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
-  let h='<div class="bar2"><div class="seg">'+[1,2,3].map(d=>
-    '<button data-d="'+d+'" aria-pressed="'+(day===d)+'">วัน '+d+'</button>').join("")+'</div>'+
-   '<span style="font-size:13px;color:var(--ink2)">137 ช่วง · 3 เวที · สปีกเกอร์ 102 คน</span></div>'+
-   '<div class="pw" style="padding:0"><div class="tlh"><div>เวลา</div>'+SG.map(s=>'<div>'+s+'</div>').join("")+'</div>'+
-   '<div class="tl" style="height:'+H+'px"><div class="gut" style="height:'+H+'px">';
+  let h='<div class="pw" style="padding:0"><div class="tlh"><div>เวลา</div>'+
+   SG.map(s=>'<div>'+s+'</div>').join("")+'</div><div class="tl" style="height:'+H+'px">'+
+   '<div class="gut" style="height:'+H+'px">';
   for(let m=Math.ceil(T0/60)*60;m<=T1;m+=60)h+='<div class="hr" style="top:'+((m-T0)*PX-7)+'px">'+hh(m)+'</div>';
   h+='</div>';
-  SG.forEach(st=>{h+='<div class="col" style="height:'+H+'px">';
-    SES.filter(s=>s.day===day&&s.stage===st).forEach(s=>{
-      const top=(s.a-T0)*PX,ht=Math.max(20,(s.b-s.a)*PX-3);
-      const bad=["talk","keynote","panel","workshop"].includes(s.kind)&&(!s.title||!s.cf||!s.people.length);
-      h+='<button class="ev" style="top:'+top+'px;height:'+ht+'px;background:'+cv(K[s.kind]||"--ink3")+'">'+
-        '<span class="t">'+s.time+'</span><span class="n">'+(bad?"● ":"")+esc(s.title||"—")+'</span></button>';
-    });h+='</div>'});
-  h+='</div></div>';
-  $("#page").innerHTML=h;
-  $("#page").querySelectorAll("[data-d]").forEach(b=>b.addEventListener("click",()=>{day=+b.dataset.d;pStage()}));
+  SG.forEach(g=>{h+='<div class="col" style="height:'+H+'px">';
+    SES.filter(s=>s.day===day&&s.stage===g).forEach(s=>{
+      const top=(s.a-T0)*PX,ht=Math.max(18,(s.b-s.a)*PX-3);
+      h+='<button class="ev" style="top:'+top+'px;height:'+ht+'px;background:'+cv(SCOL[s.kind]||"--ink3")+'">'+
+       '<span class="t">'+s.time+'</span><span class="n">'+esc(s.title||"—")+'</span></button>'});
+    h+='</div>'});
+  return h+'</div></div>';
+}
+
+function stageOne(){
+  const g=SG[stg], rows=SES.filter(s=>s.stage===g&&s.day===day);
+  const real=rows.filter(s=>["talk","keynote","panel","workshop"].includes(s.kind));
+  $("#page").innerHTML='<div class="bar2">'+
+   '<button class="act" id="back">← ทุกเวที</button>'+
+   '<b style="font-size:16px">'+esc(g)+'</b>'+
+   '<div class="seg">'+[1,2,3].map(d=>'<button data-d="'+d+'" aria-pressed="'+(day===d)+
+     '">วัน '+d+'</button>').join("")+'</div>'+
+   '<span class="sp" style="flex:1"></span>'+
+   '<div class="seg"><button data-v="table" aria-pressed="'+(sview==="table")+'">ตาราง</button>'+
+   '<button data-v="time" aria-pressed="'+(sview==="time")+'">ไทม์ไลน์</button></div></div>'+
+   '<div class="cards" style="margin-bottom:14px">'+
+    card(rows.length,"ช่วงในวันนี้","--line2")+
+    card(real.length,"ช่วงที่มีเนื้อหา","--accent")+
+    card(real.filter(s=>!s.people.length).length,"ยังไม่มีสปีกเกอร์","--risk")+
+    card(real.filter(s=>s.title&&!s.cf).length,"หัวข้อยังไม่ยืนยัน","--warn")+'</div>'+
+   (sview==="table"?sheet(rows):oneTimeline(g));
+  $("#back").addEventListener("click",()=>{stg=null;pStage()});
+  bindDay(pStage);
+  $("#page").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>{sview=b.dataset.v;pStage()}));
+}
+function bindDay(fn){
+  $("#page").querySelectorAll("[data-d]").forEach(b=>b.addEventListener("click",()=>{day=+b.dataset.d;fn()}));
+}
+function oneTimeline(g){
+  const T0=560,T1=1330,PX=1.3,H=(T1-T0)*PX;
+  const hh=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+  let h='<div class="pw" style="padding:0"><div class="tlh" style="grid-template-columns:56px 1fr;min-width:420px">'+
+   '<div>เวลา</div><div>'+esc(g)+'</div></div>'+
+   '<div class="tl" style="height:'+H+'px;grid-template-columns:56px 1fr;min-width:420px">'+
+   '<div class="gut" style="height:'+H+'px">';
+  for(let m=Math.ceil(T0/60)*60;m<=T1;m+=60)h+='<div class="hr" style="top:'+((m-T0)*PX-7)+'px">'+hh(m)+'</div>';
+  h+='</div><div class="col" style="height:'+H+'px">';
+  SES.filter(s=>s.day===day&&s.stage===g).forEach(s=>{
+    const top=(s.a-T0)*PX,ht=Math.max(20,(s.b-s.a)*PX-3);
+    const who=s.people.map(p=>p.n).join(", ");
+    h+='<button class="ev" style="top:'+top+'px;height:'+ht+'px;background:'+cv(SCOL[s.kind]||"--ink3")+'">'+
+     '<span class="t">'+s.time+' · '+(s.min||"")+' นาที</span><span class="n">'+esc(s.title||"—")+'</span>'+
+     (who&&ht>52?'<span class="t" style="display:block;margin-top:2px">'+esc(who)+'</span>':'')+'</button>'});
+  return h+'</div></div></div>';
+}
+
+/* ตารางแบบชีต ช่องระดับช่วงถูก merge เมื่อมีหลายสปีกเกอร์ เหมือนที่ทีมทำในชีต */
+function sheet(rows){
+  const yn=v=>v?'<span style="color:var(--ok);font-weight:700">TRUE</span>':
+                '<span style="color:var(--ink3)">FALSE</span>';
+  const stp=v=>{if(!v)return '<span style="color:var(--ink3)">—</span>';
+    const c=v==="Confirm"?"--ok":v==="Maybe not"?"--risk":"--warn";
+    return '<span class="pill" style="background:'+cv(c)+'">'+esc(v)+'</span>'};
+  let body="";
+  rows.forEach(s=>{
+    const need=["talk","keynote","panel","workshop"].includes(s.kind);
+    const ppl=s.people.length?s.people:[null];
+    const n=ppl.length;
+    ppl.forEach((p,i)=>{
+      const span=i===0?' rowspan="'+n+'"':"";
+      body+='<tr>';
+      if(i===0)body+=
+        '<td'+span+' class="num">'+(s.no||"")+'</td>'+
+        '<td'+span+' class="num" style="white-space:nowrap">'+esc(s.time)+'</td>'+
+        '<td'+span+' class="num">'+(s.min||"")+'</td>'+
+        '<td'+span+'><span class="dot" style="background:'+cv(SCOL[s.kind]||"--ink3")+'"></span>'+
+          (SKIND[s.kind]||s.kind)+'</td>'+
+        '<td'+span+' style="min-width:250px">'+(s.title?'<b>'+esc(s.title)+'</b>':
+          '<span style="color:var(--risk)">— ยังไม่มีหัวข้อ —</span>')+'</td>'+
+        '<td'+span+' class="num">'+yn(s.cf)+'</td>';
+      body+=
+        '<td>'+(p?esc(p.n):(need?'<span style="color:var(--risk)">ยังไม่มีสปีกเกอร์</span>':
+          '<span style="color:var(--ink3)">—</span>'))+'</td>'+
+        '<td style="color:var(--ink2)">'+(p&&p.real?esc(p.real):"—")+'</td>'+
+        '<td style="color:var(--ink2);min-width:170px">'+(p&&p.pos?esc(p.pos):"—")+'</td>'+
+        '<td>'+(p?stp(p.st):"")+'</td>'+
+        '<td style="color:var(--ink2)">'+(p&&p.contact?esc(p.contact):
+          (p?'<span style="color:var(--risk)">ไม่มีเบอร์</span>':'<span style="color:var(--ink3)">—</span>'))+'</td>';
+      if(i===0)body+=
+        '<td'+span+' style="color:var(--ink2)">'+(s.mod?esc(s.mod):"—")+'</td>'+
+        '<td'+span+' class="num">'+yn(s.lock)+'</td>'+
+        '<td'+span+' style="color:var(--ink2)">'+
+          (s.people.find(x=>x&&x.coord)?esc(s.people.find(x=>x.coord).coord):"—")+'</td>'+
+        '<td'+span+'>'+(s.people.find(x=>x&&x.slides)?'<span style="color:var(--ok)">มีแล้ว</span>':
+          (need?'<span style="color:var(--warn)">ยังไม่ได้</span>':'<span style="color:var(--ink3)">—</span>'))+'</td>';
+      body+='</tr>';
+    });
+  });
+  return '<div class="tw" style="max-height:70vh;overflow:auto"><table style="min-width:1500px">'+
+   '<thead><tr>'+
+   ['Que','เวลา','นาที','รูปแบบ','หัวข้อ','CF หัวข้อ','Speaker (ชื่อเล่น)','ชื่อจริง',
+    'ตำแหน่ง','Status SPK','Contact','MOD','ล็อคเวลา','คนประสานงาน','Slides']
+   .map((h,i)=>'<th'+([0,1,2,5,12].includes(i)?' class="num"':'')+'>'+h+'</th>').join("")+
+   '</tr></thead><tbody>'+body+'</tbody></table></div>'+
+   '<h2 class="sec">ทำไมตารางนี้ถึงหน้าตาเหมือนชีตเดิม</h2><div class="note">'+
+   '<p>คอลัมน์เรียงตามชีต Agenda ที่ทีมใช้อยู่ และช่องระดับช่วง เช่น เวลา หัวข้อ MOD '+
+   'ถูก merge ลงมาเมื่อช่วงนั้นมีสปีกเกอร์หลายคน เหมือนที่ทีมทำในชีตทุกวันนี้ '+
+   'จะได้ไม่ต้องเรียนวิธีอ่านใหม่</p>'+
+   '<p><b>ต่างกันตรงที่</b> ในชีต การ merge ทำให้ค้นและนับไม่ได้ '+
+   'ที่นี่ merge เป็นแค่การแสดงผล ข้อมูลจริงอยู่ในตาราง <code>session_person</code> '+
+   'เลยตอบได้ว่าคนนี้ขึ้นกี่รอบ ชนเวลากันมั้ย และใครยังไม่ส่งสไลด์</p></div>';
 }
 
 /* ---------- ผู้ออกบูธ ---------- */
