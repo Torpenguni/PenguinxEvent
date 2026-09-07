@@ -367,6 +367,12 @@ create table budget_line (
   name        text not null,
   sort        int not null default 0,
 
+  -- บรรทัดรายได้ประกาศว่าตัวเองกินยอดมาจากไหน
+  -- ตั้งเป็น auto แล้ว ac_total จะถูกคำนวณจากดีลจริง ไม่ต้องกรอกมือ
+  source_kind text not null default 'manual' check (source_kind in
+                ('manual','booth_type','addon','package','ticket')),
+  source_ref  text,                     -- รหัส booth_type / addon / ชื่อแพ็กเกจ
+
   -- ชีตใช้สองคูณ เช่น 40 ห้อง x 3 วัน x 900 บาท เก็บโครงเดิมไว้
   fc_qty      numeric(12,2), fc_unit text,
   fc_qty2     numeric(12,2), fc_unit2 text,
@@ -503,5 +509,73 @@ create table audit_log (
   at         timestamptz not null default now()
 );
 create index audit_entity_idx on audit_log (entity, entity_id, at desc);
+
+-- ---------------------------------------------------------------- มุมมองที่คำนวณเอง
+--
+-- Feasibility ไม่ควรเป็นไฟล์ที่ต้องไปกรอกตาม แต่ควรเป็นผลลัพธ์ของการขาย
+-- สามมุมมองนี้แทนคอลัมน์ Actual ที่ทุกวันนี้กรอกมือ
+
+-- มูลค่าต่อดีล แยกสามตัวที่ชีตยุบเป็นช่องเดียว
+create view v_deal_value as
+select d.id as deal_id, d.event_id, d.brand_id, d.company_id,
+       d.owner_id, d.agent_id, d.status, d.settlement,
+       d.list_total,
+       d.deal_total                                   as contracted,
+       coalesce(p.received, 0)                        as received,
+       d.deal_total - coalesce(p.received, 0)         as outstanding,
+       case when d.list_total > 0
+            then round((1 - d.deal_total / d.list_total) * 100, 1)
+       end                                            as discount_pct
+from deal d
+left join lateral (
+  select sum(amount) filter (where paid_at is not null and kind <> 'refund')
+       - coalesce(sum(amount) filter (where paid_at is not null and kind = 'refund'), 0)
+         as received
+  from payment where deal_id = d.id
+) p on true;
+
+-- ยอดตามแพ็กเกจ ใช้เติมฝั่งรายได้ของ Feasibility
+-- นับเฉพาะดีลที่ยังไม่ตายและไม่ใช่บูธแลกของ ส่วน barter แยกไปดูต่างหาก
+create view v_income_by_type as
+select b.event_id,
+       bt.code                                as booth_type,
+       count(*)                               as booths_held,
+       sum(di.list_unit_price * di.qty)       as list_value,
+       sum(di.amount)                         as contracted,
+       sum(di.amount * coalesce(r.paid_ratio, 0)) as received
+from deal_item di
+join booth b   on b.id = di.booth_id
+join booth_type bt on bt.id = b.booth_type_id
+join deal d    on d.id = di.deal_id
+left join lateral (
+  select case when d.deal_total > 0
+         then least(1, coalesce(sum(amount) filter (where paid_at is not null), 0)
+                       / d.deal_total)
+         end as paid_ratio
+  from payment where deal_id = d.id
+) r on true
+where d.status in ('booking','quoted','confirmed','billed','paid')
+group by b.event_id, bt.code;
+
+-- ความคืบหน้าของงาน เทียบแผนกับของจริง
+create view v_event_pace as
+select e.id as event_id, e.code, e.name,
+       (select count(*) from booth where event_id = e.id
+          and status = 'available')                    as booths_available,
+       (select count(*) from booth where event_id = e.id
+          and status in ('held','contracted','deposit_paid','paid')) as booths_held,
+       (select coalesce(sum(fc_total), 0) from budget_line bl
+          join budget_category bc on bc.id = bl.category_id
+         where bl.event_id = e.id and bc.side = 'income')  as income_forecast,
+       (select coalesce(sum(contracted), 0) from v_deal_value
+         where event_id = e.id
+           and status in ('booking','quoted','confirmed','billed','paid'))
+                                                          as income_contracted,
+       (select coalesce(sum(received), 0) from v_deal_value
+         where event_id = e.id)                           as cash_received,
+       (select coalesce(sum(ac_total), 0) from budget_line bl
+          join budget_category bc on bc.id = bl.category_id
+         where bl.event_id = e.id and bc.side = 'expense') as expense_actual
+from event e;
 
 commit;
