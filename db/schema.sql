@@ -4,16 +4,152 @@
 
 begin;
 
+-- ---------------------------------------------------------------- สิทธิ์
+
+create table role (
+  code  text primary key,
+  name  text not null,
+  sort  int not null default 0
+);
+
+insert into role (code, name, sort) values
+  ('admin',      'ผู้ดูแลระบบ',   1),
+  ('exec',       'ผู้บริหาร',      2),
+  ('finance',    'บัญชีการเงิน',   3),
+  ('sales_lead', 'หัวหน้าเซลล์',   4),
+  ('sales',      'เซลล์',          5),
+  ('marketing',  'การตลาด',        6),
+  ('operations', 'ปฏิบัติการ',     7),
+  ('viewer',     'ดูอย่างเดียว',   8);
+
+-- สิทธิ์เก็บเป็นข้อมูล ไม่ฝังในโค้ด จะได้แก้ได้โดยไม่ต้องขึ้นระบบใหม่
+create table role_permission (
+  role   text not null references role (code) on delete cascade,
+  module text not null check (module in
+           ('floorplan','deal','price','document','payment','budget',
+            'stage','marketing','exhibitor','movein','user','audit')),
+  level  text not null check (level in ('none','read','write','approve')),
+  -- เห็นเฉพาะของตัวเอง หรือเห็นทั้งงาน ใช้กับ deal เป็นหลัก
+  scope  text not null default 'all' check (scope in ('own','all')),
+  primary key (role, module)
+);
+
+insert into role_permission (role, module, level, scope) values
+  -- ผู้ดูแลระบบ
+  ('admin','floorplan','write','all'),  ('admin','deal','write','all'),
+  ('admin','price','approve','all'),    ('admin','document','write','all'),
+  ('admin','payment','write','all'),    ('admin','budget','write','all'),
+  ('admin','stage','write','all'),      ('admin','marketing','write','all'),
+  ('admin','exhibitor','write','all'),  ('admin','movein','write','all'),
+  ('admin','user','write','all'),       ('admin','audit','read','all'),
+
+  -- ผู้บริหาร เห็นทุกอย่างแต่ไม่แก้
+  ('exec','floorplan','read','all'),    ('exec','deal','read','all'),
+  ('exec','price','approve','all'),     ('exec','document','read','all'),
+  ('exec','payment','read','all'),      ('exec','budget','read','all'),
+  ('exec','stage','read','all'),        ('exec','marketing','read','all'),
+  ('exec','exhibitor','read','all'),    ('exec','movein','read','all'),
+  ('exec','user','none','all'),         ('exec','audit','read','all'),
+
+  -- บัญชีการเงิน เจ้าของเอกสารและตัวเลข แต่ไม่ย้ายบูธ
+  ('finance','floorplan','read','all'), ('finance','deal','read','all'),
+  ('finance','price','read','all'),     ('finance','document','write','all'),
+  ('finance','payment','write','all'),  ('finance','budget','write','all'),
+  ('finance','stage','none','all'),     ('finance','marketing','none','all'),
+  ('finance','exhibitor','read','all'), ('finance','movein','none','all'),
+  ('finance','user','none','all'),      ('finance','audit','read','all'),
+
+  -- หัวหน้าเซลล์ เห็นดีลทุกคน อนุมัติส่วนลดได้ แต่ยังไม่เห็นงบทั้งงาน
+  ('sales_lead','floorplan','write','all'), ('sales_lead','deal','write','all'),
+  ('sales_lead','price','approve','all'),   ('sales_lead','document','write','all'),
+  ('sales_lead','payment','read','all'),    ('sales_lead','budget','none','all'),
+  ('sales_lead','stage','read','all'),      ('sales_lead','marketing','read','all'),
+  ('sales_lead','exhibitor','read','all'),  ('sales_lead','movein','none','all'),
+  ('sales_lead','user','none','all'),       ('sales_lead','audit','none','all'),
+
+  -- เซลล์ จองบูธและดูแลดีลของตัวเอง ไม่เห็น Feasibility
+  ('sales','floorplan','write','all'),  ('sales','deal','write','own'),
+  ('sales','price','read','all'),       ('sales','document','write','own'),
+  ('sales','payment','read','own'),     ('sales','budget','none','all'),
+  ('sales','stage','read','all'),       ('sales','marketing','none','all'),
+  ('sales','exhibitor','read','own'),   ('sales','movein','none','all'),
+  ('sales','user','none','all'),        ('sales','audit','none','all'),
+
+  -- การตลาด
+  ('marketing','floorplan','read','all'), ('marketing','deal','read','all'),
+  ('marketing','price','none','all'),     ('marketing','document','none','all'),
+  ('marketing','payment','none','all'),   ('marketing','budget','none','all'),
+  ('marketing','stage','write','all'),    ('marketing','marketing','write','all'),
+  ('marketing','exhibitor','read','all'), ('marketing','movein','none','all'),
+  ('marketing','user','none','all'),      ('marketing','audit','none','all'),
+
+  -- ปฏิบัติการ ดูแลผู้ออกบูธและงานก่อสร้าง
+  ('operations','floorplan','write','all'), ('operations','deal','read','all'),
+  ('operations','price','none','all'),      ('operations','document','none','all'),
+  ('operations','payment','none','all'),    ('operations','budget','none','all'),
+  ('operations','stage','write','all'),     ('operations','marketing','none','all'),
+  ('operations','exhibitor','write','all'), ('operations','movein','write','all'),
+  ('operations','user','none','all'),       ('operations','audit','none','all'),
+
+  -- ดูอย่างเดียว
+  ('viewer','floorplan','read','all'),  ('viewer','deal','none','all'),
+  ('viewer','price','none','all'),      ('viewer','document','none','all'),
+  ('viewer','payment','none','all'),    ('viewer','budget','none','all'),
+  ('viewer','stage','read','all'),      ('viewer','marketing','none','all'),
+  ('viewer','exhibitor','none','all'),  ('viewer','movein','none','all'),
+  ('viewer','user','none','all'),       ('viewer','audit','none','all');
+
 -- ---------------------------------------------------------------- คน & องค์กร
 
 create table app_user (
   id          bigserial primary key,
   email       text not null unique,
   name        text not null,
-  role        text not null check (role in
-                ('admin','sales','sales_lead','marketing','operations','finance','viewer')),
+  role        text not null references role (code),
   active      boolean not null default true,
+
+  -- เข้าระบบด้วยคำเชิญเท่านั้น ไม่มีหน้าสมัครเอง เพราะเป็นระบบภายใน
+  password_hash text,
+  invited_by  bigint references app_user,
+  invited_at  timestamptz,
+  activated_at timestamptz,
+  last_login_at timestamptz,
+  must_change_password boolean not null default true,
+
   created_at  timestamptz not null default now()
+);
+
+-- ล็อกอินหนึ่งครั้ง หนึ่งแถว เพิกถอนได้รายเครื่อง
+create table auth_session (
+  id          bigserial primary key,
+  user_id     bigint not null references app_user on delete cascade,
+  token_hash  text not null unique,       -- เก็บแฮช ไม่เก็บ token
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz not null,
+  last_seen_at timestamptz,
+  ip          inet,
+  user_agent  text,
+  revoked_at  timestamptz
+);
+create index auth_session_user_idx on auth_session (user_id)
+  where revoked_at is null;
+
+-- กันเดารหัสผ่าน
+create table login_attempt (
+  id         bigserial primary key,
+  email      text not null,
+  ip         inet,
+  ok         boolean not null,
+  at         timestamptz not null default now()
+);
+create index login_attempt_idx on login_attempt (email, at desc);
+
+-- ถ้าคนคนเดียวสิทธิ์ไม่เท่ากันในแต่ละงาน
+create table user_event (
+  user_id  bigint not null references app_user on delete cascade,
+  event_id bigint not null references event on delete cascade,
+  role     text references role (code),   -- ทับ role หลักเฉพาะงานนี้
+  primary key (user_id, event_id)
 );
 
 create table company (

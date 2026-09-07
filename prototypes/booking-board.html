@@ -1,0 +1,388 @@
+<title>ผังจองบูธ Restech</title>
+<style>
+:root{--paper:#F5F6F2;--card:#FFF;--ink:#191D1A;--ink2:#4E564F;--line:#E0E2DA;--line2:#CDD1C6;
+--accent:#0E5C4A;--soft:#E4EFE9;
+--s-free:#D8DCD3;--s-booked:#D08A0A;--s-deposit:#3E7BC4;--s-paid:#2F9E62;--s-block:#9AA093;
+--risk:#C2412D;--sh:0 1px 2px rgba(25,29,26,.05),0 8px 24px -18px rgba(25,29,26,.35)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#12150F;--card:#1B1F19;--ink:#EDEFE8;--ink2:#A3AB9F;
+--line:#2C3129;--line2:#3C4239;--accent:#63C9A8;--soft:#1D2A24;
+--s-free:#333930;--s-booked:#E0A63A;--s-deposit:#6FA3E0;--s-paid:#4FBE7F;--s-block:#4A5046;
+--risk:#E27563;--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.8)}}
+:root[data-theme="dark"]{--paper:#12150F;--card:#1B1F19;--ink:#EDEFE8;--ink2:#A3AB9F;
+--line:#2C3129;--line2:#3C4239;--accent:#63C9A8;--soft:#1D2A24;
+--s-free:#333930;--s-booked:#E0A63A;--s-deposit:#6FA3E0;--s-paid:#4FBE7F;--s-block:#4A5046;
+--risk:#E27563;--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.8)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;
+font-family:"IBM Plex Sans Thai","Noto Sans Thai",-apple-system,"Sukhumvit Set","Helvetica Neue",Thonburi,Arial,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:48px 20px 90px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 12px}
+h1{font-size:clamp(26px,4.2vw,38px);line-height:1.25;margin:0 0 12px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.lede{font-size:17px;color:var(--ink2);margin:0 0 24px;max-width:66ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:12px;margin:0 0 22px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px;box-shadow:var(--sh);
+border-top:3px solid var(--c,var(--line2))}
+.stat b{display:block;font-size:24px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--ink2)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+.bar label{font-size:14px;color:var(--ink2)}
+select,input[type=text],input[type=search]{padding:9px 12px;border:1px solid var(--line2);border-radius:8px;
+background:var(--card);color:var(--ink);font:inherit;font-size:15px}
+select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=search]{flex:1;min-width:180px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink2)}
+.legend i{width:13px;height:13px;border-radius:3px;display:block}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.planwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--sh)}
+svg{display:block;min-width:760px;width:100%;height:auto}
+.bt{cursor:pointer}
+.bt rect{stroke:#fff;stroke-width:.09}
+.bt:hover rect{stroke:var(--ink);stroke-width:.22}
+.bt.sel rect{stroke:var(--ink);stroke-width:.3}
+.bt.dim{opacity:.15}
+.bt text{pointer-events:none;font-weight:600}
+.q{pointer-events:none;font-weight:700;fill:#fff}
+.area rect{fill:var(--line);opacity:.5}
+.area text{fill:var(--ink2);font-weight:600;pointer-events:none}
+.side{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;box-shadow:var(--sh);
+position:sticky;top:16px}
+.side h3{margin:0 0 2px;font-size:19px;font-weight:700;line-height:1.35}
+.side .sub{margin:0 0 14px;color:var(--ink2);font-size:13.5px}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:600;color:#fff}
+.kv{display:grid;grid-template-columns:88px 1fr;gap:6px 12px;margin:0 0 14px;font-size:14.5px}
+.kv dt{color:var(--ink2);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;padding-top:3px}
+.kv dd{margin:0;font-variant-numeric:tabular-nums}
+.acts{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+button.act{border:1px solid var(--line2);background:var(--card);color:var(--ink);font:inherit;font-size:14.5px;
+padding:10px 14px;border-radius:8px;cursor:pointer;text-align:left}
+button.act:hover{border-color:var(--accent)}
+button.act.go{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+button.act.warn{color:var(--risk);border-color:var(--risk)}
+button.act:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.qlist{margin:12px 0 0;padding:0;list-style:none;border-top:1px solid var(--line);padding-top:10px}
+.qlist li{display:flex;gap:10px;align-items:baseline;font-size:14px;padding:4px 0}
+.qlist b{font-variant-numeric:tabular-nums;color:var(--accent);min-width:38px}
+.empty{color:var(--ink2);font-size:15px;margin:0}
+h2{font-size:13px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--ink2);
+margin:44px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:var(--sh)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);background:var(--soft)}
+tbody tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{background:var(--soft);border:1px solid var(--line2);border-left:4px solid var(--accent);border-radius:8px;padding:18px 22px}
+.note p{margin:0 0 10px}.note p:last-child{margin:0}
+ul.plain{margin:0;padding-left:20px}ul.plain li{margin-bottom:8px}ul.plain li:last-child{margin:0}
+footer{margin-top:46px;padding-top:20px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink2)}
+code{background:var(--soft);padding:2px 6px;border-radius:4px;font-size:12.5px;color:var(--accent)}
+</style><div class="wrap">
+<p class="eyebrow">penguinxevent · ผังขายบูธ</p>
+<h1>ผังเต็ม 181 บูธ กดจองได้ คิวรันเอง</h1>
+<p class="lede">ผังและรายชื่อลูกค้าดึงจากชีตที่ส่งมา เลือกว่าคุณเป็นเซลล์คนไหน
+แล้วกดบูธเพื่อจอง เลื่อนสถานะ หรือเข้าคิว บูธที่มีคนถืออยู่แล้วจะต่อคิวให้อัตโนมัติ
+พอคนแรกยกเลิก คิวถัดไปขึ้นมาแทนทันที</p>
+<div class="stats" id="stats"></div>
+<div class="bar" style="padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--sh)">
+  <label for="role"><b>เข้าระบบเป็น</b></label>
+  <select id="role">
+    <option value="sales">เซลล์</option>
+    <option value="sales_lead">หัวหน้าเซลล์</option>
+    <option value="finance">บัญชีการเงิน</option>
+    <option value="exec">ผู้บริหาร</option>
+    <option value="operations">ปฏิบัติการ</option>
+  </select>
+  <span id="perm" style="font-size:13.5px;color:var(--ink2)"></span>
+</div>
+<div class="bar">
+  <label for="who">เซลล์</label>
+  <select id="who"></select>
+  <input type="search" id="q" placeholder="ค้นรหัสบูธ หรือ ชื่อบริษัท" aria-label="ค้นหา">
+</div>
+<div class="legend" id="legend"></div>
+<div class="grid2">
+  <div class="planwrap"><svg id="plan" role="img" aria-label="ผังบูธ"></svg></div>
+  <aside class="side" id="side"><p class="empty">กดบูธบนผังเพื่อจองหรือดูสถานะ</p></aside>
+</div>
+
+
+<div id="budgetblock">
+<h2>Feasibility — วิ่งเองจากผังด้านบน</h2>
+<div class="bar" style="margin-bottom:12px">
+  <label for="dep">มัดจำ</label>
+  <select id="dep">
+    <option value="50">50% (มาตรฐาน)</option>
+    <option value="30">30%</option>
+    <option value="100">100%</option>
+  </select>
+  <span style="font-size:13.5px;color:var(--ink2)">เปลี่ยนแล้วตัวเลขเงินเข้าคำนวณใหม่ทันที</span>
+</div>
+<div class="tablewrap"><table id="fs">
+<thead><tr><th>แพ็กเกจ</th><th>บูธ</th><th>ถือไว้</th><th>ราคาตั้งรวม</th>
+<th>ปิดได้</th><th>เงินเข้าแล้ว</th><th>ค้างรับ</th></tr></thead>
+<tbody></tbody><tfoot></tfoot></table></div>
+
+<h2>ช่องว่างที่หน้านี้เปิดให้เห็น</h2>
+<div class="note">
+<p><b>ชีต Feasibility มีคอลัมน์ Actual ช่องเดียว</b> แต่คำว่า "จริง" มีสามความหมายที่ไม่เท่ากันเลย —
+ปิดการขายได้เท่าไหร่ · เงินเข้าบัญชีแล้วเท่าไหร่ · ยังค้างรับอีกเท่าไหร่
+สามตัวนี้ต่างกันมากตอนกลางฤดูขาย ซึ่งเป็นตอนที่ต้องใช้ตัวเลขตัดสินใจพอดี</p>
+<p><b>หน้านี้ยังคิดที่ราคาตั้ง</b> เพราะชีตผังไม่ได้เก็บราคาต่อดีล
+ของจริงปี 2026 ขายได้ต่ำกว่าราคาตั้ง 36% โดยเฉลี่ย และไม่เท่ากันสักชั้น —
+Title 0% · Gold 54% · Silver 23% ตัวเลขในตารางนี้จึงเป็นเพดาน ไม่ใช่ตัวเลขที่จะได้จริง
+ช่อง <code>deal_item.unit_price</code> คู่กับ <code>list_unit_price</code> คือที่ที่ปิดช่องว่างนี้</p>
+<p><b>ที่ยังไม่ผูก</b> — ฝั่งรายจ่ายทั้งหมด ค่าสถานที่ เวที การตลาด ทีมงาน
+ยังเป็นตัวเลขที่ต้องกรอกในตาราง <code>budget_line</code> ไม่ได้วิ่งเองจากผัง
+มีแต่ฝั่งรายได้ที่วิ่งได้ เพราะมันมาจากบูธโดยตรง</p>
+</div>
+
+</div>
+<div id="denied" hidden></div>
+<h2>คิวที่รออยู่ทั้งงาน</h2>
+<div class="tablewrap"><table id="qt">
+<thead><tr><th>บูธ</th><th>คิว</th><th>ลูกค้า</th><th>เซลล์</th></tr></thead>
+<tbody><tr><td colspan="4" style="color:var(--ink2)">ยังไม่มีคิว — ลองกดบูธที่มีคนถืออยู่แล้วดู</td></tr></tbody></table></div>
+
+<h2>ทำไมคิวถึงสำคัญกว่าที่คิด</h2>
+<div class="note">
+<p><b>วันนี้คิวอยู่ในหัวเซลล์</b> พอลูกค้ารายแรกไม่จ่ายมัดจำตามกำหนด
+ต้องนึกเองว่าใครเคยถามบูธนี้ไว้ ถ้าคนนั้นลาออกหรือลืม บูธก็กลับไปเป็นบูธว่างเปล่า ๆ</p>
+<p><b>คิวยังเป็นข้อมูลตั้งราคา</b> บูธที่มีคนต่อคิวสามเจ้าคือบูธที่ตั้งราคาต่ำไป
+ส่วนบูธที่ไม่มีใครถามเลยทั้งฤดูขายคือบูธที่ต้องลดราคาหรือย้ายตำแหน่ง
+ปีหน้าตั้งราคาจากตัวเลขนี้ได้ แทนที่จะปรับตามความรู้สึก</p>
+<p><b>และคิวคือเหตุผลที่การจองต้องมีวันหมดอายุ</b> ถ้าไม่มีวันหมดอายุ คิวไม่มีวันได้คิว</p>
+</div>
+
+<h2>ที่หน้านี้ยังไม่จริง</h2>
+<ul class="plain">
+<li><b>ไม่บันทึก</b> — รีเฟรชแล้วกลับไปเหมือนเดิม ของจริงเก็บลง <code>booth</code> <code>deal</code> <code>booth_queue</code> พร้อม audit log</li>
+<li><b>สถานะเริ่มต้นเป็นการเดา</b> — ชีตไม่มีคอลัมน์มัดจำหรือจ่ายครบ ผมไล่จาก Final กับ ส่งฟอร์มที่ 5 มาเป็นสามระดับ ต้องให้ทีมยืนยันก่อนใช้จริง</li>
+<li><b>ยังไม่มีวันหมดอายุการจอง</b> — ของจริงต้องนับถอยหลังและปล่อยคืนเองเมื่อไม่จ่ายมัดจำตามกำหนด</li>
+<li><b>จับคู่ผังกับลิสต์ได้ 124 จาก 181 บูธ</b> — ที่เหลือรหัสในลิสต์เขียนคนละแบบกับในผัง เช่น ช่วง <code>B31-B33</code> กับ <code>B31, B33</code></li>
+</ul>
+
+<footer>ที่มา · ผังและรายชื่อลูกค้าจากชีตที่ส่งมา แท็บที่ชื่อลูกค้าครบที่สุด ·
+ราคาตั้งจากแพ็กเกจในชีตงบ · โครงข้อมูลอยู่ใน <code>db/schema.sql</code></footer>
+</div><script>
+const DATA={"booths": [{"code": "O1", "name": "HQ/R H-Quarter Roasters", "zone": "O", "x": 9, "y": 6, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "O2", "name": "MISAKI", "zone": "O", "x": 10, "y": 6, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "O3", "name": "Coway", "zone": "O", "x": 11, "y": 6, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "O4", "name": "Cool Coffee", "zone": "O", "x": 12, "y": 6, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "O6", "name": "AIA", "zone": "O", "x": 13, "y": 6, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "O13-O14", "name": "Yuedpao", "zone": "O", "x": 17, "y": 6, "w": 2, "h": 1, "food": false, "st": "paid", "co": "Yuedpao", "sales": "Free", "pkg": "Equipment", "product": "ขายปลีกเสื้อยืด / รับผลิตเสื้อยืด", "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "O15-O16", "name": "Expert Printing", "zone": "O", "x": 19, "y": 6, "w": 2, "h": 1, "food": false, "st": "paid", "co": "Expert Printing", "sales": "Free", "pkg": "Equipment", "product": "Printing", "contact": "คุณกวาง", "phone": "089-1993639", "email": "Maiyaiinkjet@gmail.com", "form": true, "board": true, "list": 50000}, {"code": "O17", "name": "บูธประกัน", "zone": "O", "x": 21, "y": 6, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Torpenguin", "sales": "Free", "pkg": "Equipment", "product": null, "contact": "Torpenguin", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "O18", "name": "A Icann", "zone": "O", "x": 22, "y": 6, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Torpenguin", "sales": "Free", "pkg": "Equipment", "product": null, "contact": "Torpenguin", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "O19", "name": "รับเหมาพี่เดียร์", "zone": "O", "x": 25, "y": 6, "w": 1, "h": 1, "food": false, "st": "paid", "co": "รับเหมาพี่เดียร์", "sales": "Free", "pkg": "Equipment", "product": "รับเหมาก่อสร้าง", "contact": "คุณเดียร์", "phone": "094-3647829", "email": null, "form": false, "board": true, "list": 50000}, {"code": "O20-O21", "name": "Flat12x", "zone": "O", "x": 26, "y": 6, "w": 2, "h": 1, "food": false, "st": "paid", "co": "Flat12x", "sales": "Free", "pkg": "Equipment", "product": null, "contact": "คุณจุล", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "O22", "name": "Barichtae", "zone": "O", "x": 28, "y": 6, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Pro Plugin", "sales": "Free", "pkg": "Equipment", "product": null, "contact": "คุณเอ้ก", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "O23", "name": "Jame500", "zone": "O", "x": 29, "y": 6, "w": 1, "h": 1, "food": false, "st": "paid", "co": "James500", "sales": "Free", "pkg": "Equipment", "product": null, "contact": "พี่เจมส์", "phone": "0645954494", "email": null, "form": false, "board": true, "list": 50000}, {"code": "O24", "name": "RBA", "zone": "O", "x": 30, "y": 6, "w": 1, "h": 1, "food": false, "st": "paid", "co": "RBA", "sales": "Free", "pkg": "Equipment", "product": null, "contact": "Torpenguin", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "O25", "name": "Hey! Coffee", "zone": "O", "x": 31, "y": 6, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Hey! Coffee", "sales": "Snoox", "pkg": "Cafe", "product": "ร้านกาแฟ", "contact": "คุณมุก", "phone": "098-1616536", "email": "operationmgr.bean@gmail.com", "form": false, "board": true, "list": 23000}, {"code": "O7", "name": "วางตู้แช่", "zone": "O", "x": 15, "y": 7, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "O11-O12", "name": "บูรพาพรอสเพอร์", "zone": "O", "x": 16, "y": 7, "w": 1, "h": 2, "food": false, "st": "paid", "co": "RMBA", "sales": "Free", "pkg": "Equipment", "product": null, "contact": "Torpenguin", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "O8", "name": "BAMA", "zone": "O", "x": 15, "y": 8, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "B23-B24", "name": "Unilever", "zone": "B", "x": 3, "y": 10, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C23", "name": "เตี๋ยวเรือยุดยา", "zone": "C", "x": 6, "y": 10, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C24", "name": "Triva", "zone": "C", "x": 7, "y": 10, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "D23-D24", "name": "แอนดาฟาร์ม", "zone": "D", "x": 9, "y": 10, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E23-E24", "name": "Bakery Treasury", "zone": "E", "x": 12, "y": 10, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F23", "name": "Papa Snacks", "zone": "F", "x": 15, "y": 10, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F24", "name": "JAP", "zone": "F", "x": 16, "y": 10, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Just Green", "sales": "Snoox", "pkg": "Martech", "product": null, "contact": "ผิง", "phone": "935645595", "email": null, "form": false, "board": true, "list": 50000}, {"code": "G23", "name": "Marketing I Can", "zone": "G", "x": 18, "y": 10, "w": 1, "h": 1, "food": false, "st": "booked", "co": "Marketing I Can", "sales": "สสว", "pkg": "Martech", "product": null, "contact": "คุณปัญ", "phone": "0865002844", "email": null, "form": false, "board": true, "list": 50000}, {"code": "G24", "name": "PIF Vending Machine", "zone": "G", "x": 19, "y": 10, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Go Connext", "sales": "Snoox", "pkg": "Martech", "product": "ERP HERO", "contact": "คุณเมย์", "phone": "088-809-0910", "email": null, "form": false, "board": true, "list": 50000}, {"code": "H23", "name": "Doozey Online", "zone": "H", "x": 21, "y": 10, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Doozey Online", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณกี๋", "phone": "0968295951", "email": null, "form": false, "board": true, "list": 50000}, {"code": "H22,H24", "name": "LMWN", "zone": "H", "x": 22, "y": 10, "w": 1, "h": 2, "food": false, "st": "deposit", "co": "LMWN", "sales": "Snoox", "pkg": "Silver Sponsor", "product": null, "contact": "คุณออฟ", "phone": "0633246535", "email": null, "form": false, "board": true, "list": 200000}, {"code": "J21,J23", "name": "Bing way", "zone": "J", "x": 27, "y": 10, "w": 1, "h": 2, "food": false, "st": "deposit", "co": "ซิตี้ ไอซ์ / Bingway", "sales": "Snoox", "pkg": "Restech", "product": "เปลี่ยนน้ำให้กลายเป็นเงิน กับ เครื่องทำบิงซูอัตโนมัติ Bingway เครื่องทำบิงซูนวัตกรรมเกาหลี / ทำบิงซู ใช้บิงเว", "contact": "คุณมิน", "phone": "061 456 7480", "email": "Minauto2015@gmail.com", "form": false, "board": true, "list": 50000}, {"code": "J22,J24", "name": "Dezpax", "zone": "J", "x": 28, "y": 10, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Dezpax", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณภรันยา", "phone": "094-9146241", "email": null, "form": true, "board": true, "list": 50000}, {"code": "K23", "name": "Spa Office", "zone": "K", "x": 30, "y": 10, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Spa Office Supplies", "sales": "TK", "pkg": "Restech", "product": "จอ LED, Digital Signage", "contact": "คุณอ้อ", "phone": "081 497 0944", "email": "klaonapha@spa-offiec.com", "form": true, "board": true, "list": 50000}, {"code": "K24", "name": "ลีด ไซเอนท์", "zone": "K", "x": 31, "y": 10, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "ลีด ไซเอนท์", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "ศรีวรรณ", "phone": "092-9164554", "email": null, "form": false, "board": true, "list": 50000}, {"code": "L21,L23", "name": "Greenery", "zone": "L", "x": 33, "y": 10, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Greenery", "sales": "Free", "pkg": "Restech", "product": null, "contact": "คุณปลา", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "L22,L24", "name": "Harv Furniture", "zone": "L", "x": 34, "y": 10, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Harv Furniture", "sales": "Free", "pkg": "Restech", "product": null, "contact": "คุณเชียร์", "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "M23", "name": "Bistodio", "zone": "M", "x": 36, "y": 10, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Bistodio", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณสแตมป์", "phone": "0968949442", "email": null, "form": false, "board": true, "list": 50000}, {"code": "M22,M24", "name": "YT Enginerring", "zone": "M", "x": 37, "y": 10, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "N13-N14", "name": "Anna Coffee+Pacamara", "zone": "N", "x": 39, "y": 10, "w": 1, "h": 2, "food": true, "st": "deposit", "co": "Anna Coffee +Pacamara", "sales": "Jomjam", "pkg": "Food", "product": null, "contact": "คุณเท็น", "phone": null, "email": null, "form": false, "board": true, "list": 23000}, {"code": "A11", "name": "GOODZILLA", "zone": "A", "x": 1, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "B17, B19, B21", "name": "โซ สมาร์ท เทค จำกัด", "zone": "B", "x": 3, "y": 11, "w": 1, "h": 3, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "B22", "name": "Mad", "zone": "B", "x": 4, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C21", "name": "kaspy", "zone": "C", "x": 6, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C22", "name": "ตำนานสมุย", "zone": "C", "x": 7, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "D21", "name": "ซูชินะ", "zone": "D", "x": 9, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "D22", "name": "ณ เจริญกรุง", "zone": "D", "x": 10, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E21", "name": "RIN INTERFOOD", "zone": "E", "x": 12, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E22", "name": "Top Business", "zone": "E", "x": 13, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F19,F21", "name": "Royal Ice cream", "zone": "F", "x": 15, "y": 11, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F22", "name": "Botio", "zone": "F", "x": 16, "y": 11, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Botio.io", "sales": "Free", "pkg": "Martech", "product": null, "contact": "คุณป๋วย", "phone": "0864229351", "email": null, "form": true, "board": true, "list": 50000}, {"code": "G21", "name": "29art", "zone": "G", "x": 18, "y": 11, "w": 1, "h": 1, "food": false, "st": "paid", "co": "ตี๋โอ", "sales": "Free", "pkg": "Martech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "K19,   K21", "name": "Raas Pal", "zone": "K", "x": 30, "y": 11, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Eminent Air", "sales": "Free", "pkg": "Restech", "product": null, "contact": "คุณหมวย", "phone": "0922846879", "email": null, "form": true, "board": true, "list": 50000}, {"code": "K22", "name": "OT plus", "zone": "K", "x": 31, "y": 11, "w": 1, "h": 1, "food": false, "st": "paid", "co": "USS Sign", "sales": "Free", "pkg": "Restech", "product": null, "contact": "คุณแม็ก", "phone": "0634169286", "email": null, "form": false, "board": true, "list": 50000}, {"code": "M21", "name": "Laoban mala", "zone": "M", "x": 36, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C13", "name": null, "zone": "C", "x": 42, "y": 11, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "A10", "name": "PTT OR", "zone": "A", "x": 1, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "B20", "name": "น้าเน็กเก็กฮวย", "zone": "B", "x": 4, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C19", "name": "Horo next gen", "zone": "C", "x": 6, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C20", "name": "Healthy Drinks", "zone": "C", "x": 7, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "D17-D20", "name": "S&N Food", "zone": "D", "x": 9, "y": 12, "w": 2, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E19", "name": "เถ้าแก่น้อย", "zone": "E", "x": 12, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E20", "name": "ซูชินินจา", "zone": "E", "x": 13, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F20", "name": "หัวปลา", "zone": "F", "x": 16, "y": 12, "w": 1, "h": 1, "food": false, "st": "paid", "co": "หัวปลา", "sales": "P'Nok", "pkg": "Martech", "product": null, "contact": null, "phone": null, "email": null, "form": true, "board": true, "list": 50000}, {"code": "G19", "name": "Adasoft", "zone": "G", "x": 18, "y": 12, "w": 1, "h": 1, "food": false, "st": "paid", "co": "ตี๋โอ", "sales": "Free", "pkg": "Martech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "G20", "name": "Anymind", "zone": "G", "x": 19, "y": 12, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Anymind", "sales": "Free", "pkg": "Martech", "product": null, "contact": "หลินฟ่ง", "phone": "098-654-2889", "email": "pimummara@anymindgroup.co", "form": true, "board": true, "list": 50000}, {"code": "H19", "name": "ยิ่งเจริญ เฟรชเมท", "zone": "H", "x": 21, "y": 12, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "KSI Solution", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณปิยะเดช", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "H18,H20", "name": "BSC", "zone": "H", "x": 22, "y": 12, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Silver Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 200000}, {"code": "J17,J19", "name": "Easy Restaurant", "zone": "J", "x": 27, "y": 12, "w": 1, "h": 2, "food": false, "st": "booked", "co": "Easy Restaurant", "sales": null, "pkg": "Silver Sponsor", "product": null, "contact": "คุณหญิง", "phone": "062-4254854", "email": null, "form": false, "board": false, "list": 200000}, {"code": "J20", "name": "Next Innovation", "zone": "J", "x": 28, "y": 12, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Next Innovation", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณทัศนี", "phone": "081 830 3915", "email": null, "form": true, "board": true, "list": 50000}, {"code": "K20", "name": "Cobiz-19", "zone": "K", "x": 31, "y": 12, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Cobiz-19", "sales": "Free", "pkg": "Restech", "product": null, "contact": "พรรวี ดำรงค์ศรีสกุล", "phone": "083-2588588", "email": "ales@cobiz19.co.th", "form": true, "board": true, "list": 50000}, {"code": "L19", "name": "Ready", "zone": "L", "x": 33, "y": 12, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "We Drink", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "L20", "name": "กระทิงแดง", "zone": "L", "x": 34, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "M19", "name": "Longbeach", "zone": "M", "x": 36, "y": 12, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "เครื่องใช้ไฟฟ้าอัจฉริยะ", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "M20", "name": "ธรรมธุรกิจ (ยักษ์กะโจร)", "zone": "M", "x": 37, "y": 12, "w": 1, "h": 1, "food": false, "st": "paid", "co": "ธรรมธุรกิจ", "sales": "Free", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": true, "board": true, "list": 50000}, {"code": "N12", "name": "Home bakery", "zone": "N", "x": 39, "y": 12, "w": 1, "h": 1, "food": true, "st": "free", "co": null, "sales": null, "pkg": "Food", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 23000}, {"code": "C11", "name": null, "zone": "C", "x": 42, "y": 12, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "A9", "name": "Sinthorn", "zone": "A", "x": 1, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "B18", "name": "ไก่ว้าว", "zone": "B", "x": 4, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C17", "name": "KHALUMSUM", "zone": "C", "x": 6, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "C18", "name": "โจ๊กสยาม", "zone": "C", "x": 7, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E17", "name": "อร่อยเอาเรื่อง", "zone": "E", "x": 12, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E18", "name": "Crumbs", "zone": "E", "x": 13, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F17-F18", "name": "TYSON", "zone": "F", "x": 15, "y": 13, "w": 2, "h": 1, "food": false, "st": "paid", "co": "TYSON", "sales": "Snoox", "pkg": "Martech", "product": "ไทสัน ไก่ปรุงสุกแช่แข็งพร้อมทาน", "contact": null, "phone": null, "email": "Jareeporn.Leevilaikulratt@tyson.com", "form": true, "board": true, "list": 50000}, {"code": "G17", "name": "Papaya POS", "zone": "G", "x": 18, "y": 13, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Papaya POS", "sales": "Snoox", "pkg": "Martech", "product": "โปรแกรม pos ระบบจัดการออเดอร์ร้านอาหาร", "contact": "คุณแบงค์", "phone": "0944524665", "email": null, "form": true, "board": true, "list": 50000}, {"code": "G18", "name": "Betask", "zone": "G", "x": 19, "y": 13, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Betask", "sales": "TK", "pkg": "Martech", "product": "ผู้ให้บริการติดตั้งระบบจองคิว, ระบบสมาชิกสะสมแต้ม", "contact": "คุณเบิร์ด", "phone": "084 455 5055", "email": "sittichai.vgrouphonda@gmail.com", "form": true, "board": true, "list": 50000}, {"code": "H17", "name": "Synature", "zone": "H", "x": 21, "y": 13, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Synature", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณดา", "phone": "086 316 9322", "email": null, "form": true, "board": true, "list": 50000}, {"code": "J18", "name": "T2P", "zone": "J", "x": 28, "y": 13, "w": 1, "h": 1, "food": false, "st": "paid", "co": "T2P / ดีพบล็อค", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณไปป์", "phone": "0832598803", "email": null, "form": true, "board": true, "list": 50000}, {"code": "K17", "name": "MIUI", "zone": "K", "x": 30, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "K18", "name": "Hungry Hub", "zone": "K", "x": 31, "y": 13, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Hungry Hub", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณซาร่า", "phone": "0883549489", "email": "sara@hungryhub.com", "form": false, "board": true, "list": 50000}, {"code": "L17-L18", "name": "System Pro", "zone": "L", "x": 33, "y": 13, "w": 2, "h": 1, "food": false, "st": "deposit", "co": "Systempro", "sales": "Jomjam", "pkg": "Restech", "product": "ขายปลีกเครื่องใช้ไฟฟ้าชนิดในครัวเรือน", "contact": "คุณเจตนรินทร์", "phone": "094 625 6546", "email": "jatnarin07@gmail.com", "form": false, "board": true, "list": 50000}, {"code": "M17", "name": "Go Connext", "zone": "M", "x": 36, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": "Snoox", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "M18", "name": "Freshket", "zone": "M", "x": 37, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": "Snoox", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "N11", "name": "ครัวเมืองตรัง", "zone": "N", "x": 39, "y": 13, "w": 1, "h": 1, "food": true, "st": "deposit", "co": "ครัวเมืองตรัง", "sales": "Jomjam", "pkg": "Food", "product": "ร้านข้าวแกง", "contact": "คุณออย", "phone": null, "email": null, "form": false, "board": true, "list": 23000}, {"code": "K13-K15", "name": null, "zone": "K", "x": 42, "y": 13, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Gold Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 400000}, {"code": "N10", "name": "เดมี่โจ", "zone": "N", "x": 39, "y": 14, "w": 1, "h": 1, "food": true, "st": "paid", "co": "เดมี่โจว", "sales": "Jomjam", "pkg": "Food", "product": "ร้านอาหารอเมริกัน โฮมเมด", "contact": "คุณโจ", "phone": "064 353 9563", "email": null, "form": true, "board": true, "list": 23000}, {"code": "G5", "name": "PEAK", "zone": "G", "x": 42, "y": 14, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "PEAK", "sales": "TK", "pkg": "Martech", "product": "ระบบบัญชีออนไลน์", "contact": "เฮเลน", "phone": "099 626 4666", "email": "sasiwimol.ch@peakengine.com", "form": false, "board": true, "list": 50000}, {"code": "C15-C16", "name": "Abbra", "zone": "C", "x": 6, "y": 15, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E15", "name": "บริษัท ซีวิค อโกรเทค จำกัด", "zone": "E", "x": 12, "y": 15, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E16", "name": "Meat Avatar", "zone": "E", "x": 13, "y": 15, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F15", "name": "Beard Papa\"s", "zone": "F", "x": 15, "y": 15, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F14,F16", "name": "ไก่ปันสุข", "zone": "F", "x": 16, "y": 15, "w": 1, "h": 2, "food": false, "st": "paid", "co": "ไก่ปันสุข", "sales": "Snoox", "pkg": "Equipment", "product": "ผลิตภัณฑ์ไก่สดและไก่ปรุงสุกแช่แข็ง", "contact": null, "phone": null, "email": "Jareeporn.Leevilaikulratt@tyson.com", "form": true, "board": true, "list": 50000}, {"code": "G15", "name": "Plant Cons.", "zone": "G", "x": 18, "y": 15, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Plant Consultant", "sales": "Snoox", "pkg": "Martech", "product": null, "contact": "คุณรุ่งฤดี", "phone": "091-8132476", "email": null, "form": false, "board": true, "list": 50000}, {"code": "G16", "name": "Thunder  Solution", "zone": "G", "x": 19, "y": 15, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Thunder Solution", "sales": "TK", "pkg": "Martech", "product": "ระบบตรวจสอบสลิป", "contact": "คุณนุ๊ก", "phone": "080 404 7028", "email": "marketing@thunder.in.th", "form": false, "board": true, "list": 50000}, {"code": "H13, H15", "name": "Choco", "zone": "H", "x": 21, "y": 15, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Choco", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณเนย", "phone": "092-1977098", "email": null, "form": true, "board": true, "list": 50000}, {"code": "H14,H16", "name": "Thai Steward", "zone": "H", "x": 22, "y": 15, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Thai Steward", "sales": "Snoox", "pkg": "Silver Sponsor", "product": null, "contact": "คุณอัน", "phone": "0645851916", "email": null, "form": true, "board": true, "list": 200000}, {"code": "I13,I15", "name": "บรรจงคิด", "zone": "I", "x": 24, "y": 15, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Gold Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 400000}, {"code": "I14, I16", "name": "Gensurv", "zone": "I", "x": 25, "y": 15, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Gold Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 400000}, {"code": "J13,J15", "name": "Food Market Hub", "zone": "J", "x": 27, "y": 15, "w": 1, "h": 2, "food": false, "st": "deposit", "co": "Food Market Hub", "sales": "P'Nok", "pkg": "Silver Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 200000}, {"code": "J14,J16", "name": "Streamwash", "zone": "J", "x": 28, "y": 15, "w": 1, "h": 2, "food": false, "st": "deposit", "co": "Streamwash", "sales": "Snoox", "pkg": "Gold Sponsor", "product": "เครื่องล้างจานอัติโนมัติ", "contact": "พี่นิชา", "phone": "094-904-4333", "email": null, "form": false, "board": true, "list": 400000}, {"code": "K13,K15", "name": "Lark", "zone": "K", "x": 30, "y": 15, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Gold Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 400000}, {"code": "K14,K16", "name": "Eminent Air (ไมjเอาโครงสร้าง)", "zone": "K", "x": 31, "y": 15, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Gold Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 400000}, {"code": "L13,L15", "name": "So Smart Tech", "zone": "L", "x": 33, "y": 15, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Gold Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 400000}, {"code": "L16", "name": "ลูกชิ้นยืนกินบุรีรัมย์", "zone": "L", "x": 34, "y": 15, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "ลูกชิ้นยืนกิน บุรีรัมย์", "sales": "Jomjam", "pkg": "Restech", "product": null, "contact": "คุณออย", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "N9", "name": "เกี๊ยวทอดนางฟ้า", "zone": "N", "x": 39, "y": 15, "w": 1, "h": 1, "food": true, "st": "deposit", "co": "เกี๊ยวทอดนางฟ้า", "sales": "Jomjam", "pkg": "Food", "product": null, "contact": "คุณออย", "phone": null, "email": null, "form": false, "board": true, "list": 23000}, {"code": "L9,L11", "name": null, "zone": "L", "x": 42, "y": 15, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Gold Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 400000}, {"code": "C14", "name": "Fresh Me", "zone": "C", "x": 7, "y": 16, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E13", "name": "KAPRAO KHUNCHANG", "zone": "E", "x": 12, "y": 16, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E14", "name": "Galjak", "zone": "E", "x": 13, "y": 16, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F13", "name": "ไก่ยอครูสภาพ", "zone": "F", "x": 15, "y": 16, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "G13", "name": "Wei Tai Guo", "zone": "G", "x": 18, "y": 16, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Wei Tai Guo", "sales": "Free", "pkg": "Martech", "product": null, "contact": "คุณวา", "phone": "094-4929461​", "email": "waruneekanganapokin@gmail.com​", "form": false, "board": true, "list": 50000}, {"code": "G14", "name": "AIYA", "zone": "G", "x": 19, "y": 16, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "AIYA", "sales": "Jomjam", "pkg": "Martech", "product": null, "contact": "คุณมุก", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "L14", "name": "168 coffee", "zone": "L", "x": 34, "y": 16, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "168 Coffee", "sales": "Jomjam", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "N6-N8", "name": "มากมิตร คิชเช่น", "zone": "N", "x": 39, "y": 16, "w": 1, "h": 3, "food": true, "st": "paid", "co": "มากมิตร คิทเช่น", "sales": "Free", "pkg": "Food", "product": null, "contact": "กอล์ฟ", "phone": "0863251121", "email": null, "form": true, "board": true, "list": 23000}, {"code": "J7,J8", "name": "Go Whole Sale", "zone": "J", "x": 42, "y": 16, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Go Whole Sale", "sales": "P'Nok", "pkg": "Platinum Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 700000}, {"code": "C10, C12", "name": "CP", "zone": "C", "x": 7, "y": 17, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E9,E11", "name": "Sun Valley", "zone": "E", "x": 12, "y": 17, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E12", "name": "Minkki", "zone": "E", "x": 13, "y": 17, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F11", "name": "Future skill", "zone": "F", "x": 15, "y": 17, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "G11", "name": "PAM", "zone": "G", "x": 18, "y": 17, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Martech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "G12", "name": "Snappix", "zone": "G", "x": 19, "y": 17, "w": 1, "h": 1, "food": false, "st": "paid", "co": "29art Studio", "sales": "Free", "pkg": "Martech", "product": "ออกแบบภาพประกอบ ตกแต่งร้านอาหาร", "contact": "พ่อน้องพัท", "phone": "0990293593", "email": null, "form": false, "board": true, "list": 50000}, {"code": "H11", "name": "KENBAIKI", "zone": "H", "x": 21, "y": 17, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Hub Kitchenware", "sales": "Snoox", "pkg": "Restech", "product": "เครื่องซีลฝาแก้ว อุปกรณ์ เครื่องใช้ต่างๆในร้านอาหาร", "contact": "สรวิชญ์ (เครป)", "phone": "0992429794", "email": null, "form": false, "board": true, "list": 50000}, {"code": "H10,H12", "name": "Hato Hub", "zone": "H", "x": 22, "y": 17, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Hato Hub / อินดี้ดิช", "sales": "Snoox", "pkg": "Restech", "product": "ระบบจัดการร้านอาหารและดูแลลูกค้าอย่างครบวงจร ด้วยระบบ CRM", "contact": "คุณนาน่า", "phone": "081-152-2695", "email": null, "form": true, "board": true, "list": 50000}, {"code": "I11", "name": "Day work", "zone": "I", "x": 24, "y": 17, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "I12", "name": "iLaw Asia", "zone": "I", "x": 25, "y": 17, "w": 1, "h": 1, "food": false, "st": "paid", "co": "iLaw Asia", "sales": "Free", "pkg": "Restech", "product": null, "contact": "คุณโก้", "phone": "0821605636", "email": null, "form": true, "board": true, "list": 50000}, {"code": "J11", "name": "อุทยานวิทย์", "zone": "J", "x": 27, "y": 17, "w": 1, "h": 1, "food": false, "st": "paid", "co": "อุทยานวิทยาศาสตร์", "sales": "Free", "pkg": "Restech", "product": "องกรค์ตัวแทนวิจัยผลิตภัณฑ์", "contact": "คุณยิม ยศรวี ชาจีนทึก", "phone": "06-2351-7895", "email": "otrawee@sut.ac.th", "form": false, "board": true, "list": 50000}, {"code": "J10,J12", "name": "Funcrowd", "zone": "J", "x": 28, "y": 17, "w": 1, "h": 2, "food": false, "st": "paid", "co": "Funcrowd", "sales": "TK", "pkg": "Silver Sponsor", "product": "บริการให้คำแนะนำปรึกษาธุรกิจ, ระบบ Digital CRM Platform", "contact": "คุณอ้อ", "phone": "096 982 6353", "email": "waraporn.t@funcrowd.co.th​", "form": true, "board": true, "list": 200000}, {"code": "K9-K12", "name": "Pepsi", "zone": "K", "x": 30, "y": 17, "w": 2, "h": 2, "food": false, "st": "paid", "co": "Pepsi", "sales": "Snoox", "pkg": "Platinum Sponsor", "product": null, "contact": "วิทยา", "phone": "081 889 9994", "email": null, "form": true, "board": true, "list": 700000}, {"code": "L12", "name": "Maxie by Maxfresh", "zone": "L", "x": 34, "y": 17, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Maxie by Maxfresh", "sales": "Free", "pkg": "Restech", "product": null, "contact": "คุณวา", "phone": "094-4929461​", "email": "waruneekanganapokin@gmail.com​", "form": true, "board": true, "list": 50000}, {"code": "C9", "name": "ร่ำรวยเย็นตาโฟ", "zone": "C", "x": 6, "y": 18, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E10", "name": "Heng Pang Pua", "zone": "E", "x": 13, "y": 18, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F9", "name": "Buds Icescream", "zone": "F", "x": 15, "y": 18, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F10", "name": "Qash up", "zone": "F", "x": 16, "y": 18, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Qash up", "sales": "Snoox", "pkg": "Martech", "product": null, "contact": "คุณธงทอง", "phone": "084 270 2000", "email": null, "form": true, "board": true, "list": 50000}, {"code": "G9", "name": "อันดามันพัฒนา", "zone": "G", "x": 18, "y": 18, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Adasoft", "sales": "Snoox", "pkg": "Martech", "product": null, "contact": "จุ๊กจิ๊ก", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "G10", "name": "Designally", "zone": "G", "x": 19, "y": 18, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Designally", "sales": "Jomjam", "pkg": "Martech", "product": "Creative Design Agency ผู้เชี่ยวชาญด้านการสร้างแบรนด์ พร้อมสนับสนุนทุกการเติบโตของแบรนด์คุณอย่างมืออาชีพ", "contact": "คุณผิง", "phone": "065 005 5993", "email": "clients@designally.co arupat.y@designally.co", "form": false, "board": true, "list": 50000}, {"code": "H09", "name": "Hub Kitchenware", "zone": "H", "x": 21, "y": 18, "w": 1, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "I9", "name": "Teachmebiz", "zone": "I", "x": 24, "y": 18, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Teachmebiz", "sales": "TK", "pkg": "Restech", "product": "ระบบจัดการคู่มือการทำงาน SOP", "contact": "คุณชา", "phone": "083 664 8461", "email": "char@studist.co.th", "form": true, "board": true, "list": 50000}, {"code": "I10", "name": "DD Transport", "zone": "I", "x": 25, "y": 18, "w": 1, "h": 1, "food": false, "st": "paid", "co": "DD Transport", "sales": "Jomjam", "pkg": "Restech", "product": null, "contact": "คุณฝ้าย", "phone": "0922540977", "email": null, "form": true, "board": true, "list": 50000}, {"code": "J9", "name": "Entech", "zone": "J", "x": 27, "y": 18, "w": 1, "h": 1, "food": false, "st": "paid", "co": "Entech", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": true, "board": true, "list": 50000}, {"code": "L10", "name": "Seniorsoft", "zone": "L", "x": 34, "y": 18, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Seniorsoft", "sales": "P'Nok", "pkg": "Restech", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "N5", "name": "เจ้อ้วน", "zone": "N", "x": 39, "y": 19, "w": 1, "h": 1, "food": true, "st": "paid", "co": "เจ้อ้วน", "sales": "Free", "pkg": "Food", "product": null, "contact": "โอ๋ ธรรศบดินทร์ โพธิ์หิรัญ", "phone": "096-696-5056", "email": "Thusbaudin.pho.nyj@gmail.com", "form": false, "board": true, "list": 23000}, {"code": "C7-C8", "name": "Advance Vending", "zone": "C", "x": 6, "y": 20, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "T1", "name": "Makro", "zone": "T", "x": 9, "y": 20, "w": 2, "h": 5, "food": false, "st": "deposit", "co": "Betagro", "sales": "P'Nok", "pkg": "Title Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 1500000}, {"code": "E7-E8", "name": "Naeki Go", "zone": "E", "x": 12, "y": 20, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F5,F7", "name": "BR Group", "zone": "F", "x": 15, "y": 20, "w": 1, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F6,F8", "name": "Luandry Bar", "zone": "F", "x": 16, "y": 20, "w": 1, "h": 2, "food": false, "st": "deposit", "co": "Laundry Bar", "sales": "Snoox", "pkg": "Martech", "product": "ร้านสะดวกซัก", "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "G7", "name": "Hawkin", "zone": "G", "x": 18, "y": 20, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Floc", "sales": "Snoox", "pkg": "Martech", "product": null, "contact": "เกด", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "G6,G8", "name": "GPOS by Sunmi", "zone": "G", "x": 19, "y": 20, "w": 1, "h": 2, "food": false, "st": "deposit", "co": "Sunmi", "sales": "Jomjam", "pkg": "Martech", "product": null, "contact": null, "phone": "0902306996 ไอซ์ 0897920532 กานต์   ผู้ดูแลที่งาน 0995599356 เจ", "email": "pusanisa@sunmith.com jay@sunmith.com", "form": false, "board": true, "list": 50000}, {"code": "H7", "name": "Ideo tech", "zone": "H", "x": 21, "y": 20, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Ideo tech", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณขิง", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "H8", "name": "Appoint", "zone": "H", "x": 22, "y": 20, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Appointment", "sales": "Jomjam", "pkg": "Restech", "product": null, "contact": "คุณไอซ์", "phone": "086-166-9595", "email": "info@aappoint.me", "form": false, "board": true, "list": 50000}, {"code": "I5-I8", "name": "Fastwork", "zone": "I", "x": 24, "y": 20, "w": 2, "h": 2, "food": false, "st": "paid", "co": "Fastwork", "sales": "Free", "pkg": "Restech", "product": null, "contact": "ศาริณี", "phone": "094-5654563", "email": null, "form": true, "board": true, "list": 50000}, {"code": "J7-J8", "name": "Torpenguin (พรมเทาดำ)", "zone": "J", "x": 27, "y": 20, "w": 2, "h": 1, "food": false, "st": "deposit", "co": "Go Whole Sale", "sales": "P'Nok", "pkg": "Platinum Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 700000}, {"code": "L5-L8", "name": "Go Whole Sale", "zone": "L", "x": 33, "y": 20, "w": 2, "h": 2, "food": false, "st": "deposit", "co": "Go Whole Sale", "sales": "P'Nok", "pkg": "Platinum Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 700000}, {"code": "N4", "name": "ครัวลุงแถม", "zone": "N", "x": 39, "y": 20, "w": 1, "h": 1, "food": true, "st": "deposit", "co": "ซันหลิน", "sales": "Jomjam", "pkg": "Food", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 23000}, {"code": "C5-C6", "name": "Synova", "zone": "C", "x": 6, "y": 21, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E5-E6", "name": "Torpenguin (พรมเทาดำ)", "zone": "E", "x": 12, "y": 21, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "H5-H6", "name": "Super Coconut (ลงไฟ)", "zone": "H", "x": 21, "y": 21, "w": 2, "h": 1, "food": false, "st": "paid", "co": "Super Coconut", "sales": "Snoox", "pkg": "Restech", "product": "โปรแกรม pos ระบบจัดการออเดอร์ร้านอาหาร", "contact": "คุณเจ", "phone": "082-3558558", "email": null, "form": true, "board": true, "list": 50000}, {"code": "J5-J6", "name": "RMBA (พรมเทาดำ)", "zone": "J", "x": 27, "y": 21, "w": 2, "h": 1, "food": false, "st": "deposit", "co": "Go Whole Sale", "sales": "P'Nok", "pkg": "Platinum Sponsor", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": true, "list": 700000}, {"code": "N3", "name": "ไร่รื่นรมณ์", "zone": "N", "x": 39, "y": 21, "w": 1, "h": 1, "food": true, "st": "free", "co": null, "sales": null, "pkg": "Food", "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 23000}, {"code": "N2", "name": "Chicken out", "zone": "N", "x": 39, "y": 22, "w": 1, "h": 1, "food": true, "st": "booked", "co": "ชิกเก้นเอ้าท์", "sales": "Coke", "pkg": "Food", "product": null, "contact": "คุณบีม", "phone": "081-640-5500", "email": null, "form": true, "board": true, "list": 23000}, {"code": "C1-C4", "name": "A-MAX", "zone": "C", "x": 6, "y": 23, "w": 2, "h": 2, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "E3-E4", "name": "จุดถ่ายรูป (พรมแดง)", "zone": "E", "x": 12, "y": 23, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F1-F3", "name": "Krungsri", "zone": "F", "x": 15, "y": 23, "w": 1, "h": 2, "food": false, "st": "paid", "co": "GSB", "sales": "Free", "pkg": "Banking/Fintech", "product": "ธนาคารให้สินเชื่อ", "contact": "คุณกิ๊ก", "phone": "0649245369", "email": null, "form": true, "board": true, "list": 50000}, {"code": "F4", "name": "SME D BANK", "zone": "F", "x": 16, "y": 23, "w": 1, "h": 1, "food": false, "st": "paid", "co": "SME D BANK", "sales": "Free", "pkg": "Banking/Fintech", "product": "ธนาคารให้สินเชื่อ", "contact": "คุณพิ้งกี้", "phone": "0869855255", "email": "kanokphorn.l@smebank.co.th", "form": true, "board": true, "list": 50000}, {"code": "I3", "name": "Q-CHANG", "zone": "I", "x": 24, "y": 23, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "คิวช่าง", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณเน็ท", "phone": "081 454 7935", "email": null, "form": false, "board": true, "list": 50000}, {"code": "I4", "name": "Trumkin", "zone": "I", "x": 25, "y": 23, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "Creatus", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณเบล", "phone": null, "email": null, "form": false, "board": true, "list": 50000}, {"code": "J1-J4", "name": "Pattana Intercool", "zone": "J", "x": 27, "y": 23, "w": 2, "h": 2, "food": false, "st": "booked", "co": "Pattana Intercool", "sales": "Snoox", "pkg": "Platinum Sponsor", "product": null, "contact": "คุณเอก", "phone": null, "email": null, "form": false, "board": true, "list": 700000}, {"code": "L1-L4", "name": "Lenotre", "zone": "L", "x": 33, "y": 23, "w": 2, "h": 2, "food": false, "st": "paid", "co": "Lenotre", "sales": "Free", "pkg": "Platinum Sponsor", "product": "โรงเรียนสอนทำขนม", "contact": "คุณแคท", "phone": null, "email": null, "form": false, "board": true, "list": 700000}, {"code": "N1", "name": "WAGRill BBQ•STEAK", "zone": "N", "x": 39, "y": 23, "w": 1, "h": 1, "food": true, "st": "booked", "co": "Pepsi", "sales": "Snoox", "pkg": "Food", "product": null, "contact": "วิทยา", "phone": "081 889 9994", "email": null, "form": true, "board": true, "list": 23000}, {"code": "E1-E2", "name": "Otteri", "zone": "E", "x": 12, "y": 24, "w": 2, "h": 1, "food": false, "st": "free", "co": null, "sales": null, "pkg": null, "product": null, "contact": null, "phone": null, "email": null, "form": false, "board": false, "list": 50000}, {"code": "F2", "name": "GSB", "zone": "F", "x": 16, "y": 24, "w": 1, "h": 1, "food": false, "st": "paid", "co": "GSB", "sales": "Free", "pkg": "Banking/Fintech", "product": "ธนาคารให้สินเชื่อ", "contact": "คุณกิ๊ก", "phone": "0649245369", "email": null, "form": true, "board": true, "list": 50000}, {"code": "I1", "name": "SENTINEL  SOLUTIONS", "zone": "I", "x": 24, "y": 24, "w": 1, "h": 1, "food": false, "st": "deposit", "co": "SENTINEL SOLUTION", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณบรีส", "phone": "0946811777", "email": null, "form": false, "board": true, "list": 50000}, {"code": "I2", "name": "ISSA", "zone": "I", "x": 25, "y": 24, "w": 1, "h": 1, "food": false, "st": "booked", "co": "ISSA", "sales": "Snoox", "pkg": "Restech", "product": null, "contact": "คุณแคท", "phone": "094-319-3507", "email": null, "form": true, "board": true, "list": 50000}], "areas": [{"name": "MAIN STAGE \"RESTECH STAGE\"", "x": 33, "y": 0, "w": 7, "h": 9}, {"name": "ยังไม่คอนเฟิร์ม", "x": 24, "y": 1, "w": 1, "h": 1}, {"name": "SHARING STAGE \"ตั้งตัว STAGE\"", "x": 1, "y": 2, "w": 7, "h": 7}, {"name": "บูธฟรี", "x": 19, "y": 2, "w": 1, "h": 1}, {"name": "บูธโครง System", "x": 24, "y": 2, "w": 1, "h": 1}, {"name": "Food innopolis", "x": 19, "y": 3, "w": 1, "h": 1}, {"name": "บูธพื้นที่เปล่า 100% (ไม่มีปลั๊กไฟ,พรม)", "x": 24, "y": 3, "w": 1, "h": 1}, {"name": "Snappix", "x": 19, "y": 4, "w": 1, "h": 1}, {"name": "บูธพื้นที่เปล่า 50% (มีปลั๊กไฟ,พรม)", "x": 24, "y": 4, "w": 1, "h": 1}, {"name": "จุดล้างจาน", "x": 14, "y": 6, "w": 1, "h": 1}, {"name": "Eating Area", "x": 9, "y": 8, "w": 5, "h": 1}, {"name": "Eating Area", "x": 18, "y": 8, "w": 6, "h": 1}, {"name": "Eating Area", "x": 25, "y": 8, "w": 7, "h": 1}, {"name": "ENT.", "x": 1, "y": 9, "w": 1, "h": 2}, {"name": "FUTURE RESTAURANT (พรมเทาดำ)", "x": 24, "y": 10, "w": 2, "h": 4}, {"name": "เก้าอี้ 2 ตัว", "x": 43, "y": 11, "w": 1, "h": 1}, {"name": "คิดเงินค่าโครง", "x": 43, "y": 12, "w": 1, "h": 1}, {"name": "ค่ิดเงิน", "x": 43, "y": 13, "w": 1, "h": 1}, {"name": "Hybity", "x": 43, "y": 14, "w": 1, "h": 1}, {"name": "ททท.", "x": 1, "y": 15, "w": 4, "h": 4}, {"name": "PITCHING STAGE (พรมเทาดำ)", "x": 9, "y": 15, "w": 2, "h": 4}, {"name": "Eating Area", "x": 36, "y": 15, "w": 2, "h": 4}, {"name": "ค่าพรม", "x": 43, "y": 15, "w": 1, "h": 1}, {"name": "ไม่คิดตัง", "x": 43, "y": 17, "w": 1, "h": 1}, {"name": "เก้าอี้ 6", "x": 43, "y": 18, "w": 1, "h": 1}, {"name": "ENT.", "x": 1, "y": 19, "w": 1, "h": 1}, {"name": "มากมิตร คิชเช่น", "x": 35, "y": 19, "w": 1, "h": 1}, {"name": "ททท.", "x": 1, "y": 20, "w": 4, "h": 5}, {"name": "TITLE SPONSOR Betagro", "x": 30, "y": 20, "w": 2, "h": 5}, {"name": "Eating Area", "x": 36, "y": 20, "w": 2, "h": 5}, {"name": "Business Matching Lounge By Letter52", "x": 18, "y": 23, "w": 5, "h": 2}, {"name": "จุดล้างจาน", "x": 39, "y": 24, "w": 1, "h": 1}, {"name": "ENT.", "x": 1, "y": 25, "w": 1, "h": 1}, {"name": "MAIN ENTRANCE", "x": 8, "y": 26, "w": 4, "h": 1}, {"name": "MAIN ENTRANCE", "x": 29, "y": 26, "w": 4, "h": 1}], "sales": ["Snoox", "Jomjam", "TK", "P'Nok"]};
+const ST={free:{l:"ว่าง",c:"--s-free",t:"var(--ink)"},booked:{l:"จองแล้ว",c:"--s-booked",t:"#fff"},
+ deposit:{l:"มัดจำแล้ว",c:"--s-deposit",t:"#fff"},paid:{l:"จ่ายครบ",c:"--s-paid",t:"#fff"},
+ block:{l:"ไม่ขาย",c:"--s-block",t:"#fff"}};
+const NEXT={free:"booked",booked:"deposit",deposit:"paid"};
+const B=DATA.booths, AR=DATA.areas, SALES=DATA.sales;
+const Q={};                       // รหัสบูธ -> [{co,sales}]
+let sel=null,q="",me=SALES[0];
+const cv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const baht=n=>n==null?"—":n.toLocaleString("th-TH")+" บาท";
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const NS="http://www.w3.org/2000/svg";
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+const svg=document.getElementById("plan");
+const X0=Math.min(...B.concat(AR).map(o=>o.x))-1, Y0=Math.min(...B.concat(AR).map(o=>o.y))-1;
+const X1=Math.max(...B.concat(AR).map(o=>o.x+o.w))+1, Y1=Math.max(...B.concat(AR).map(o=>o.y+o.h))+1;
+svg.setAttribute("viewBox",`${X0} ${Y0} ${X1-X0} ${Y1-Y0}`);
+function draw(){
+  svg.textContent="";
+  AR.forEach(a=>{
+    const g=el("g",{class:"area"}),cx=a.x+a.w/2,cy=a.y+a.h/2,vert=a.h>a.w*1.4;
+    g.appendChild(el("rect",{x:a.x,y:a.y,width:a.w,height:a.h,rx:.2}));
+    const span=vert?a.h:a.w, fs=Math.min(vert?a.w*.5:.62,.7);
+    const max=Math.max(4,Math.floor(span/(fs*.6)));
+    const t=el("text",{x:cx,y:cy+fs*.35,"text-anchor":"middle","font-size":fs});
+    if(vert)t.setAttribute("transform",`rotate(-90 ${cx} ${cy})`);
+    t.textContent=a.name.length>max?a.name.slice(0,max-1)+"…":a.name;
+    g.appendChild(t);svg.appendChild(g);
+  });
+  B.forEach(b=>{
+    const s=ST[b.st],g=el("g",{class:"bt"+(sel===b.code?" sel":""),tabindex:0,role:"button"});
+    g.dataset.code=b.code;
+    g.setAttribute("aria-label",b.code+" "+s.l+(b.co?" "+b.co:""));
+    g.appendChild(el("rect",{x:b.x+.06,y:b.y+.06,width:b.w-.12,height:b.h-.12,rx:.18,fill:cv(s.c)}));
+    const cx=b.x+b.w/2,cy=b.y+b.h/2,narrow=b.w<1.3;
+    const c=el("text",{x:cx,y:cy+(b.h>1.6&&b.co?-.02:.2),"text-anchor":"middle",
+      "font-size":narrow?.42:.5,fill:s.t});
+    if(narrow)c.setAttribute("transform",`rotate(-90 ${cx} ${cy})`);
+    c.textContent=b.code;g.appendChild(c);
+    if(b.co&&b.h>1.6&&!narrow){
+      const max=Math.max(4,Math.floor((b.w-.2)/.26));
+      const n=el("text",{x:cx,y:cy+.52,"text-anchor":"middle","font-size":.4,fill:s.t,opacity:.9});
+      n.textContent=b.co.length>max?b.co.slice(0,max-1)+"…":b.co;g.appendChild(n);
+    }
+    const qn=(Q[b.code]||[]).length;
+    if(qn){
+      g.appendChild(el("circle",{cx:b.x+b.w-.3,cy:b.y+.32,r:.28,fill:cv("--risk")}));
+      const t=el("text",{x:b.x+b.w-.3,y:b.y+.46,"text-anchor":"middle","font-size":.38,class:"q"});
+      t.textContent=qn;g.appendChild(t);
+    }
+    g.addEventListener("click",()=>pick(b.code));
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick(b.code)}});
+    svg.appendChild(g);
+  });
+  filter();
+}
+function filter(){
+  const s=q.trim().toLowerCase();
+  svg.querySelectorAll(".bt").forEach(g=>{
+    const b=B.find(x=>x.code===g.dataset.code);
+    const hit=!s||b.code.toLowerCase().includes(s)||(b.co||"").toLowerCase().includes(s);
+    g.classList.toggle("dim",!hit);
+  });
+}
+function pick(code){sel=code;render();draw()}
+function render(){
+  const side=document.getElementById("side");
+  if(!sel){side.innerHTML='<p class="empty">กดบูธบนผังเพื่อจองหรือดูสถานะ</p>';return}
+  const b=B.find(x=>x.code===sel),s=ST[b.st],qs=Q[b.code]||[];
+  const mine=!b.sales||b.sales===me||PERM[role].scope==="all";
+  const wr=can("floorplan")==="write";
+  let h='<h3>'+esc(b.code)+'</h3><p class="sub">'+
+   '<span class="pill" style="background:'+cv(s.c)+';color:'+s.t+'">'+s.l+'</span>'+
+   (b.pkg?' · '+esc(b.pkg):'')+' · '+b.w+'x'+b.h+' หน่วยผัง</p><dl class="kv">'+
+   '<dt>ลูกค้า</dt><dd>'+(b.co?(mine?esc(b.co):'<span style="color:var(--ink2)">ดีลของเซลล์คนอื่น</span>'):'<span style="color:var(--ink2)">ยังไม่มี</span>')+'</dd>'+
+   (b.sales?'<dt>เซลล์</dt><dd>'+esc(b.sales)+'</dd>':'')+
+   (b.contact&&mine?'<dt>ผู้ติดต่อ</dt><dd>'+esc(b.contact)+(b.phone?'<br>'+esc(b.phone):'')+'</dd>':'')+
+   '<dt>ราคาตั้ง</dt><dd>'+baht(b.list)+'</dd></dl><div class="acts">';
+  if(!wr){
+    h+='<p style="color:var(--ink2);font-size:14px;margin:0">บทบาทนี้ดูได้อย่างเดียว แก้ผังไม่ได้</p>';
+  }else if(b.st==="free"){
+    h+='<input type="text" id="cust" placeholder="ชื่อลูกค้า" style="width:100%">'+
+       '<button class="act go" data-a="book">จองบูธนี้ในชื่อ '+esc(me)+'</button>';
+  }else if(!mine){
+    h+='<p style="color:var(--ink2);font-size:14px;margin:0 0 8px">บูธนี้เป็นดีลของ '+esc(b.sales)+' คุณแก้สถานะไม่ได้</p>'+
+       '<input type="text" id="cust" placeholder="ชื่อลูกค้าที่จะต่อคิว" style="width:100%">'+
+       '<button class="act" data-a="queue">ต่อคิวบูธนี้</button>';
+  }else{
+    if(NEXT[b.st])h+='<button class="act go" data-a="next">เลื่อนเป็น '+ST[NEXT[b.st]].l+'</button>';
+    h+='<input type="text" id="cust" placeholder="ชื่อลูกค้าที่จะต่อคิว" style="width:100%">'+
+       '<button class="act" data-a="queue">ต่อคิวบูธนี้</button>'+
+       '<button class="act warn" data-a="release">ยกเลิก แล้วเลื่อนคิวถัดไปขึ้นมา</button>';
+  }
+  h+='</div>';
+  if(qs.length){
+    h+='<ul class="qlist">'+qs.map((x,i)=>'<li><b>Que '+(i+1)+'</b><span>'+esc(x.co)+
+      ' <small style="color:var(--ink2)">· '+esc(x.sales)+'</small></span></li>').join("")+'</ul>';
+  }
+  side.innerHTML=h;
+  side.querySelectorAll("[data-a]").forEach(btn=>btn.addEventListener("click",()=>act(btn.dataset.a)));
+}
+function act(a){
+  const b=B.find(x=>x.code===sel);
+  const inp=document.getElementById("cust");
+  const name=inp?inp.value.trim():"";
+  if(a==="book"){
+    if(!name){inp.focus();inp.placeholder="ใส่ชื่อลูกค้าก่อน";return}
+    b.st="booked";b.co=name;b.sales=me;
+  }else if(a==="next"){
+    b.st=NEXT[b.st]||b.st;
+  }else if(a==="queue"){
+    if(!name){inp.focus();inp.placeholder="ใส่ชื่อลูกค้าก่อน";return}
+    (Q[b.code]=Q[b.code]||[]).push({co:name,sales:me});
+  }else if(a==="release"){
+    const qs=Q[b.code]||[];
+    if(qs.length){const nx=qs.shift();b.st="booked";b.co=nx.co;b.sales=nx.sales;
+      if(!qs.length)delete Q[b.code];}
+    else{b.st="free";b.co=null;b.sales=null;}
+  }
+  stats();queueTable();if(can("budget")!=="none")budget();render();draw();
+}
+function stats(){
+  const c=k=>B.filter(x=>x.st===k).length;
+  const rev=B.filter(x=>x.st!=="free").reduce((s,x)=>s+(x.list||0),0);
+  document.getElementById("stats").innerHTML=[
+   [B.length,"บูธทั้งหมด","--line2"],[c("free"),"ว่าง","--s-free"],
+   [c("booked"),"จองแล้ว","--s-booked"],[c("deposit"),"มัดจำแล้ว","--s-deposit"],
+   [c("paid"),"จ่ายครบ","--s-paid"],
+   [Object.values(Q).reduce((s,x)=>s+x.length,0),"คนรอคิว","--risk"],
+   [Math.round(rev/1e6*10)/10+" ล.","ราคาตั้งที่ถือไว้","--accent"]]
+   .map(([v,l,c])=>'<div class="stat" style="--c:'+cv(c)+'"><b>'+v+'</b><span>'+l+'</span></div>').join("");
+}
+function queueTable(){
+  const rows=[];
+  Object.keys(Q).forEach(code=>Q[code].forEach((x,i)=>rows.push([code,"Que "+(i+1),x.co,x.sales])));
+  document.querySelector("#qt tbody").innerHTML=rows.length
+   ?rows.map(r=>'<tr><td class="num">'+esc(r[0])+'</td><td class="num">'+r[1]+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>').join("")
+   :'<tr><td colspan="4" style="color:var(--ink2)">ยังไม่มีคิว — ลองกดบูธที่มีคนถืออยู่แล้วดู</td></tr>';
+}
+function legend(){
+  document.getElementById("legend").innerHTML=["free","booked","deposit","paid"].map(k=>
+   '<span><i style="background:'+cv(ST[k].c)+'"></i>'+ST[k].l+'</span>').join("")+
+   '<span><i style="background:'+cv("--risk")+';border-radius:99px"></i>ตัวเลขแดง = จำนวนคนรอคิว</span>';
+}
+const who=document.getElementById("who");
+who.innerHTML=SALES.map(s=>'<option>'+esc(s)+'</option>').join("");
+who.addEventListener("change",e=>{me=e.target.value;render()});
+document.getElementById("q").addEventListener("input",e=>{q=e.target.value;filter()});
+matchMedia("(prefers-color-scheme:dark)").addEventListener("change",()=>{legend();draw()});
+stats();legend();draw();render();
+function budget(){
+  const dep=+document.getElementById("dep").value/100;
+  const g={};
+  B.forEach(b=>{
+    const k=b.pkg||"ยังไม่ระบุแพ็กเกจ";
+    const r=g[k]||(g[k]={n:0,held:0,list:0,con:0,got:0});
+    r.n++; r.list+=b.list||0;
+    if(b.st!=="free"){r.held++; r.con+=b.list||0;
+      r.got+=(b.list||0)*(b.st==="paid"?1:b.st==="deposit"?dep:0);}
+  });
+  const ORD=["Title Sponsor","Platinum Sponsor","Gold Sponsor","Silver Sponsor",
+             "Restech","Martech","Equipment","Cafe","Banking/Fintech","Food","ยังไม่ระบุแพ็กเกจ"];
+  const keys=Object.keys(g).sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b));
+  const f=n=>Math.round(n).toLocaleString("th-TH");
+  document.querySelector("#fs tbody").innerHTML=keys.map(k=>{
+    const r=g[k];
+    return '<tr><td>'+esc(k)+'</td><td class="num">'+r.n+'</td>'+
+     '<td class="num">'+r.held+'</td><td class="num">'+f(r.list)+'</td>'+
+     '<td class="num">'+f(r.con)+'</td>'+
+     '<td class="num" style="color:var(--s-paid);font-weight:600">'+f(r.got)+'</td>'+
+     '<td class="num" style="color:var(--s-booked)">'+f(r.con-r.got)+'</td></tr>';
+  }).join("");
+  const T=keys.reduce((a,k)=>{const r=g[k];a.n+=r.n;a.held+=r.held;a.list+=r.list;
+    a.con+=r.con;a.got+=r.got;return a},{n:0,held:0,list:0,con:0,got:0});
+  // ต้นทุนสร้างบูธจากชีตงบ shell scheme 2,500 (2x2 = 1,800) + กระแสไฟบูธ 750
+  const cost=B.filter(x=>x.st!=="free")
+    .reduce((s,x)=>s+((x.pkg==="Food"?1800:2500)+750),0);
+  document.querySelector("#fs tfoot").innerHTML=
+   '<tr style="font-weight:700;border-top:2px solid var(--line2)">'+
+   '<td>รวม</td><td class="num">'+T.n+'</td><td class="num">'+T.held+'</td>'+
+   '<td class="num">'+f(T.list)+'</td><td class="num">'+f(T.con)+'</td>'+
+   '<td class="num" style="color:var(--s-paid)">'+f(T.got)+'</td>'+
+   '<td class="num" style="color:var(--s-booked)">'+f(T.con-T.got)+'</td></tr>'+
+   '<tr><td colspan="4" style="color:var(--ink2)">ต้นทุนโครงสร้างบูธที่ขายไปแล้ว '+
+   '<small>(shell scheme + กระแสไฟบูธ ตามชีตงบ)</small></td>'+
+   '<td class="num" style="color:var(--risk)">-'+f(cost)+'</td>'+
+   '<td colspan="2"></td></tr>'+
+   '<tr style="font-weight:700"><td colspan="4">เหลือหลังหักต้นทุนบูธ ถ้าเก็บเงินครบ</td>'+
+   '<td class="num">'+f(T.con-cost)+'</td><td colspan="2"></td></tr>';
+}
+document.getElementById("dep").addEventListener("change",budget);
+budget();
+
+
+const PERM={
+ sales:      {floorplan:"write",deal:"write",budget:"none",scope:"own",  t:"จองบูธและดูแลดีลของตัวเองได้ · ไม่เห็น Feasibility"},
+ sales_lead: {floorplan:"write",deal:"write",budget:"none",scope:"all",  t:"เห็นดีลของเซลล์ทุกคน อนุมัติส่วนลดได้ · ยังไม่เห็น Feasibility"},
+ finance:    {floorplan:"read", deal:"read", budget:"write",scope:"all", t:"เห็นตัวเลขทั้งหมด · แก้ผังไม่ได้"},
+ exec:       {floorplan:"read", deal:"read", budget:"read", scope:"all", t:"อ่านได้ทุกอย่าง · แก้ไม่ได้"},
+ operations: {floorplan:"write",deal:"read", budget:"none",scope:"all",  t:"ดูแลผู้ออกบูธและงานก่อสร้าง · ไม่เห็นตัวเลขเงิน"}};
+let role="sales";
+function can(m){return PERM[role][m]}
+function applyRole(){
+  const p=PERM[role];
+  document.getElementById("perm").textContent=p.t;
+  const show=p.budget!=="none";
+  document.getElementById("budgetblock").hidden=!show;
+  const d=document.getElementById("denied");
+  d.hidden=show;
+  d.innerHTML=show?"":'<h2>Feasibility</h2><div class="note" style="border-left-color:var(--risk)">'+
+    '<p><b>บทบาทนี้ไม่มีสิทธิ์เข้าถึงงบประมาณ</b></p>'+
+    '<p>เซลล์เห็นราคาตั้งและดีลของตัวเอง แต่ไม่เห็นต้นทุน กำไร หรือยอดรวมทั้งงาน '+
+    'ในโครงข้อมูลคือตาราง <code>role_permission</code> แถว <code>(sales, budget, none)</code> '+
+    'สิทธิ์เก็บเป็นข้อมูล ไม่ได้ฝังในโค้ด แก้ได้โดยไม่ต้องขึ้นระบบใหม่</p></div>';
+  if(show)budget();
+  render();draw();
+}
+document.getElementById("role").addEventListener("change",e=>{role=e.target.value;applyRole()});
+applyRole();
+</script>
