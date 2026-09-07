@@ -1,12 +1,21 @@
 {
   "name": "penguinxevent",
   "private": true,
-  "workspaces": ["apps/api", "apps/web"],
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
   "scripts": {
     "dev": "concurrently -n api,web -c green,cyan \"npm -w apps/api run dev\" \"npm -w apps/web run dev\"",
     "db:reset": "psql \"$DATABASE_URL\" -f db/schema.sql -f db/seed.sql",
-    "start": "npm -w apps/api start"
+    "start": "npm -w apps/api start",
+    "build": "npm -w apps/web run build",
+    "heroku-postbuild": "npm -w apps/web run build"
   },
-  "devDependencies": { "concurrently": "^9.1.0" },
-  "engines": { "node": ">=20" }
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
