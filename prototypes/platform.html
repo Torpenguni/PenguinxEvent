@@ -92,7 +92,10 @@ border-top:3px solid var(--t,var(--line2))}
 .c small{display:block;font-size:11.5px;color:var(--ink3);margin-top:2px}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--card);box-shadow:var(--sh)}
 table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
-th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;
+overflow-wrap:break-word;word-break:normal}
+/* ตารางแบบชีต ล้นแล้วเลื่อนแนวนอน ไม่บีบคอลัมน์ */
+.tw table[style*="table-layout"] td,.tw table[style*="table-layout"] th{white-space:normal}
 thead th{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);background:var(--soft);
 position:sticky;top:0}
 tbody tr:last-child td{border-bottom:none}
@@ -791,7 +794,7 @@ function sheet(rows){
         '<td'+span+' class="num">'+(s.min||"")+'</td>'+
         '<td'+span+'><span class="dot" style="background:'+cv(SCOL[s.kind]||"--ink3")+'"></span>'+
           (SKIND[s.kind]||s.kind)+'</td>'+
-        '<td'+span+' style="min-width:250px">'+(s.title?'<b>'+esc(s.title)+'</b>':
+        '<td'+span+'>'+(s.title?'<b>'+esc(s.title)+'</b>':
           '<span style="color:var(--risk)">— ยังไม่มีหัวข้อ —</span>')+'</td>'+
         '<td'+span+' class="num">'+yn(s.cf)+'</td>';
       body+=
@@ -799,7 +802,7 @@ function sheet(rows){
           '<span>'+esc(p.n)+'</span></span>':(need?'<span style="color:var(--risk)">ยังไม่มีสปีกเกอร์</span>':
           '<span style="color:var(--ink3)">—</span>'))+'</td>'+
         '<td style="color:var(--ink2)">'+(p&&p.real?esc(p.real):"—")+'</td>'+
-        '<td style="color:var(--ink2);min-width:170px">'+(p&&p.pos?esc(p.pos):"—")+'</td>'+
+        '<td style="color:var(--ink2)">'+(p&&p.pos?esc(p.pos):"—")+'</td>'+
         '<td>'+(p?stp(p.st):"")+'</td>'+
         '<td style="color:var(--ink2)">'+(p&&p.contact?esc(p.contact):
           (p?'<span style="color:var(--risk)">ไม่มีเบอร์</span>':'<span style="color:var(--ink3)">—</span>'))+'</td>';
@@ -813,7 +816,12 @@ function sheet(rows){
       body+='</tr>';
     });
   });
-  return '<div class="tw" style="max-height:70vh;overflow:auto"><table style="min-width:1500px">'+
+  /* กว้างขั้นต่ำรายคอลัมน์ กันไม่ให้ภาษาไทยตกบรรทัดทีละคำ ล้นแล้วเลื่อนแนวนอนเอา */
+  const CW=[54,104,60,116,300,84,168,168,220,112,124,170,96,140,104];
+  const total=CW.reduce((a,b)=>a+b,0);
+  return '<div class="tw" style="max-height:74vh;overflow:auto">'+
+   '<table style="min-width:'+total+'px;table-layout:fixed">'+
+   '<colgroup>'+CW.map(w=>'<col style="width:'+w+'px">').join("")+'</colgroup>'+
    '<thead><tr>'+
    ['Que','เวลา','นาที','รูปแบบ','หัวข้อ','CF หัวข้อ','Speaker (ชื่อเล่น)','ชื่อจริง',
     'ตำแหน่ง','Status SPK','Contact','MOD','ล็อคเวลา','คนประสานงาน','Slides']
