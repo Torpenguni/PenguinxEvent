@@ -142,8 +142,11 @@ create table deal (
   company_id    bigint not null references company,
   owner_id      bigint references app_user,        -- เซลล์เจ้าของดีล
   kind          text not null check (kind in ('booth','sponsor','ticket','other')),
+  -- ชื่อสถานะตามผังกระบวนการขายที่ทีมเขียนไว้
+  -- lead -> booking -> quoted -> confirmed -> billed -> paid
   status        text not null default 'lead' check (status in
-                  ('lead','quoted','negotiating','contract_sent','won','lost','cancelled')),
+                  ('lead','booking','quoted','confirmed','billed','paid',
+                   'lost','cancelled')),
   lost_reason   text,
 
   -- แกนของเรื่อง ราคาตั้งกับราคาที่ขายได้จริง แยกกันเสมอ
@@ -159,6 +162,12 @@ create table deal (
   contract_sent_at  timestamptz,
   contract_signed_at timestamptz,
   won_at            timestamptz,
+
+  -- ของที่ต้องเก็บจากผู้ออกบูธ ชีตลิสต์ลูกค้าติดตามสามอย่างนี้อยู่แล้ว
+  key_product        text,
+  form_received      boolean not null default false,   -- ส่งฟอร์มแล้วหรือยัง
+  logo_url           text,
+  on_directory_board boolean not null default false,
 
   peak_contact_id   text,
   peak_quotation_id text,
@@ -213,6 +222,129 @@ create table sponsor_benefit (
   owner_id     bigint references app_user,
   evidence_url text
 );
+
+-- คิวรอบูธเดียวกัน ผังกระบวนการเขียนไว้เป็น Que 1 -> Que 2 -> Que 3,4,5
+-- บูธดีๆ มีคนอยากได้พร้อมกันหลายเจ้า วันนี้คิวอยู่ในหัวเซลล์
+-- พอคนแรกไม่จ่ายมัดจำตามกำหนด ต้องรู้ทันทีว่าโทรหาใครต่อ
+create table booth_queue (
+  id         bigserial primary key,
+  booth_id   bigint not null references booth on delete cascade,
+  deal_id    bigint not null references deal on delete cascade,
+  position   int not null,                -- 1 คือคนที่ถือสิทธิ์อยู่
+  status     text not null default 'waiting' check (status in
+               ('waiting','promoted','dropped','expired')),
+  created_at timestamptz not null default now(),
+  note       text,
+  unique (booth_id, deal_id)
+);
+create index booth_queue_idx on booth_queue (booth_id, position)
+  where status = 'waiting';
+
+-- เอกสารตามลำดับที่ทีมออกจริง
+-- ใบเสนอราคา -> ใบวางบิล -> ใบกำกับภาษี
+-- แยกจากตาราง payment เพราะหนึ่งใบวางบิลครอบได้หลายงวด
+create table document (
+  id         bigserial primary key,
+  deal_id    bigint not null references deal on delete cascade,
+  kind       text not null check (kind in
+               ('quotation','booking_form','billing_note','tax_invoice','receipt')),
+  number     text,                        -- เลขที่เอกสาร
+  issued_on  date,
+  due_on     date,
+  amount     numeric(14,2),
+  status     text not null default 'draft' check (status in
+               ('draft','issued','sent','paid','void')),
+  peak_id    text,                        -- เลขอ้างอิงฝั่ง PEAK
+  file_url   text,
+  created_by bigint references app_user,
+  created_at timestamptz not null default now()
+);
+create index document_deal_idx on document (deal_id, kind);
+
+-- ---------------------------------------------------------------- เวทีสัมมนา
+
+create table stage (
+  id       bigserial primary key,
+  event_id bigint not null references event on delete cascade,
+  code     text not null,               -- main, super, workshop, pitching
+  name     text not null,               -- TRC Main Stage, SUPER Stage
+  kind     text not null default 'talk'
+             check (kind in ('talk','workshop','pitching','demo')),
+  location text,                        -- ตำแหน่งในฮอลล์ ผูกกับผังได้ทีหลัง
+  capacity int,
+  sort     int not null default 0,
+  unique (event_id, code)
+);
+
+-- คนที่ขึ้นเวที สปีกเกอร์ ผู้ดำเนินรายการ พิธีกร ใช้ตารางเดียวกัน
+-- เพราะคนคนเดียวเป็นได้หลายบทบาทข้ามงาน
+create table person (
+  id         bigserial primary key,
+  nickname   text not null,             -- ชื่อที่ทีมใช้เรียก "พี่ต่อเพนกวิน"
+  name_th    text,                      -- ชื่อจริงสำหรับสไลด์และสูจิบัตร
+  name_en    text,
+  title      text,                      -- ตำแหน่ง
+  company    text,
+  phone      text,
+  email      text,
+  line_id    text,
+  photo_url  text,
+  logo_url   text,                      -- โลโก้แบรนด์ของสปีกเกอร์
+  company_id bigint references company on delete set null,
+  default_fee numeric(12,2),
+  note       text,
+  created_at timestamptz not null default now()
+);
+create index person_nickname_idx on person (nickname);
+
+create table session (
+  id         bigserial primary key,
+  event_id   bigint not null references event on delete cascade,
+  stage_id   bigint not null references stage on delete cascade,
+  day_no     int,
+  on_date    date,
+  starts_at  time,
+  ends_at    time,
+  minutes    int,
+  seq        int,                        -- เลข Session ของเวทีนั้นในวันนั้น
+  kind       text not null default 'talk' check (kind in
+               ('talk','keynote','panel','roundtable','workshop','demo','pitch',
+                'ceremony','open','close','break','networking','registration')),
+  title      text,
+  title_confirmed boolean not null default false,   -- คอลัมน์ CF ชื่อหัวข้อ
+  -- เวลาถูกล็อกแล้วหรือยัง แยกจากสถานะของสปีกเกอร์
+  -- ชีตแยกสองคอลัมน์นี้ไว้ เพราะตอบรับแล้วแต่ยังไม่ล็อกเวลาเป็นเรื่องปกติ
+  time_locked boolean not null default false,
+  -- session ที่ขายเป็นส่วนหนึ่งของแพ็กเกจสปอนเซอร์ ผูกกลับไปที่ดีล
+  deal_id    bigint references deal on delete set null,
+  slides_url text,
+  slides_received boolean not null default false,
+  remark     text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index session_stage_idx on session (stage_id, day_no, starts_at);
+create index session_deal_idx on session (deal_id) where deal_id is not null;
+
+-- หนึ่ง session มีได้หลายคน ชีตปี 2026 มี 32 จาก 137 session ที่เกินหนึ่งคน
+create table session_person (
+  id          bigserial primary key,
+  session_id  bigint not null references session on delete cascade,
+  person_id   bigint not null references person on delete restrict,
+  role        text not null check (role in ('speaker','moderator','mc','panelist')),
+  status      text not null default 'invited' check (status in
+                ('invited','maybe','confirmed','declined','cancelled','rejected')),
+  time_locked boolean not null default false,   -- ล็อคเวลาแยกรายคน
+  invited_at    date,
+  confirmed_at  date,
+  appointment_sent boolean not null default false,   -- คอลัมน์ แจ้งนัดหมาย
+  coordinator_id bigint references app_user,         -- คอลัมน์ คนประสานงาน
+  fee         numeric(12,2),
+  sort        int not null default 0,
+  note        text,
+  unique (session_id, person_id, role)
+);
+create index session_person_person_idx on session_person (person_id);
 
 -- ---------------------------------------------------------------- งบประมาณ
 
