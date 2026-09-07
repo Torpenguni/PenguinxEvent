@@ -158,6 +158,16 @@ width:70px;vertical-align:middle;margin-left:8px;overflow:hidden}
 .tree tr.add button{border:1px dashed var(--line2);background:none;color:var(--ink2);
 font:inherit;font-size:12.5px;padding:4px 11px;border-radius:7px;cursor:pointer}
 .tree tr.add button:hover{border-color:var(--accent);color:var(--accent)}
+/* ช่องที่แก้ได้ในต้นไม้ ต้องอยู่ในบรรทัดเดียวกับหัวข้อ ไม่ตกลงมา */
+.tree td [contenteditable]{display:inline-block;margin:0;padding:1px 6px}
+/* ทำให้เห็นชัดว่าช่องไหนคลิกแล้วพิมพ์ได้ */
+.ediT{border-bottom:1px dashed var(--line2)}
+.ediT:hover{border-bottom-color:var(--accent);background:var(--soft)}
+.ediT:focus{border-bottom-color:transparent}
+.edhint{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px;
+color:var(--ink2);margin:0 0 12px}
+.edhint i{display:inline-block;width:26px;border-bottom:1px dashed var(--line2);
+margin-right:6px;vertical-align:middle}
 
 /* บอร์ดท่อการขาย */
 .kb{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
@@ -1381,7 +1391,13 @@ function pPnl(){
     return '<span class="bar"><i style="width:'+p+'%;background:'+
       (a>b2?cv("--risk"):cv("--ok"))+'"></i></span>'};
 
-  h+='<h2 class="sec">งบกำไรขาดทุน</h2><div class="tw"><table class="tree" style="min-width:760px">'+
+  h+='<h2 class="sec">งบกำไรขาดทุน</h2>'+
+   (wr?'<p class="edhint"><span><i></i>ช่องที่มีเส้นประคือคลิกแล้วพิมพ์ทับได้</span>'+
+     '<span>กางถึงชั้นล่างสุดเพื่อแก้ยอด <b>ตามแผน</b> และ <b>ตอนนี้</b> รายบรรทัด</span>'+
+     '<span>Enter บันทึก · Esc ยกเลิก</span></p>'
+    :(pnlAll?'<p class="edhint">เลือก "เฉพาะ '+esc(EV.short)+'" ด้านบนเพื่อแก้ตัวเลขรายบรรทัด</p>'
+      :'<p class="edhint">บทบาท '+ROLE[role].n+' แก้ตัวเลขงบไม่ได้</p>'))+
+   '<div class="tw"><table class="tree" style="min-width:760px">'+
    '<thead><tr><th>รายการ</th><th class="num" style="width:150px">ตามแผน</th>'+
    '<th class="num" style="width:150px">ตอนนี้</th><th class="num" style="width:140px">ต่าง</th>'+
    '</tr></thead><tbody>';
@@ -1436,16 +1452,18 @@ function pPnl(){
         g.forEach(l=>{
           const i=(EV.budget||[]).indexOf(l);
           h+='<tr class="lv3"><td>'+caret("",false)+
-            (wr&&i>=0?'<span contenteditable="plaintext-only" data-pl="'+i+'" data-pf="name">'+
-              esc(l.name)+'</span>':esc(l.name))+
+            (wr&&i>=0?'<span class="ediT" contenteditable="plaintext-only" data-pl="'+i+
+              '" data-pf="name" title="คลิกเพื่อแก้ชื่อ">'+esc(l.name)+'</span>':esc(l.name))+
             (l.calc?' <small style="color:var(--ink3)">'+(l.qty||1)+
               (l.qty2?"×"+l.qty2:"")+"×"+f(l.price)+'</small>':'')+'</td>'+
-            '<td class="num">'+(wr&&i>=0&&!l.calc
-              ?'<span class="inl" contenteditable="plaintext-only" data-pl="'+i+'" data-pf="fc">'+
+            '<td class="num">'+(wr&&i>=0
+              ?'<span class="inl ediT" contenteditable="plaintext-only" data-pl="'+i+'" data-pf="fc" '+
+                'title="'+(l.calc?"คำนวณจากจำนวน พิมพ์ทับเพื่อใส่ยอดเอง":"คลิกเพื่อแก้ยอดตั้งงบ")+'">'+
                 f(lineTotal(l))+'</span>':f(lineTotal(l)))+'</td>'+
             '<td class="num">'+(wr&&i>=0
-              ?'<span class="inl" contenteditable="plaintext-only" data-pl="'+i+'" data-pf="ac">'+
-                (l.ac?f(l.ac):"")+'</span>':(l.ac?f(l.ac):"—"))+'</td>'+
+              ?'<span class="inl ediT" contenteditable="plaintext-only" data-pl="'+i+'" data-pf="ac" '+
+                'title="คลิกเพื่อใส่ยอดจ่ายจริง">'+(l.ac?f(l.ac):"—")+'</span>'
+              :(l.ac?f(l.ac):"—"))+'</td>'+
             sg(lineTotal(l)-(l.ac||0))+'</tr>';
         });
         if(wr)h+='<tr class="add lv3"><td colspan="4"><button data-pa="'+esc(c)+'|'+esc(sb)+
@@ -1499,12 +1517,15 @@ function pPnl(){
           .forEach(l=>open1["รายจ่าย›"+c+"›"+(l.sub||"— ไม่มีหมวดย่อย —")]=1);});}
     pPnl();});
   P.querySelectorAll("[data-pl]").forEach(el=>{
-    el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}});
+    el.addEventListener("focus",()=>{el.dataset.was=el.textContent});
+    el.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){e.preventDefault();el.blur()}
+      if(e.key==="Escape"){el.textContent=el.dataset.was||"";el.blur()}});
     el.addEventListener("blur",()=>{
       const l=EV.budget[+el.dataset.pl], fld=el.dataset.pf, t=el.textContent.trim();
       if(fld==="name"){ if(t)l.name=t; }
       else { const v=+(t.replace(/[^0-9.]/g,"")); l[fld]=v||null;
-             if(fld==="fc")l.calc=false;
+             if(fld==="fc"){l.calc=false;}
              if(fld==="ac"&&v&&(l.st||"planned")==="planned")l.st="paid"; }
       pPnl();});
   });
