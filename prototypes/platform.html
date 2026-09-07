@@ -81,6 +81,13 @@ background:var(--card);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 flex-wrap:wrap;align-items:center}nav.side .logo,.evsel,.navlab,.who{display:none}nav.side a{width:auto}}
 
 /* ---------- bits ---------- */
+.tabs{display:flex;gap:4px;margin:0 0 20px;border-bottom:1px solid var(--line);
+flex-wrap:wrap}
+.tabs button{border:0;background:none;color:var(--ink2);font:inherit;font-size:14.5px;
+padding:9px 15px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+border-radius:7px 7px 0 0}
+.tabs button:hover{color:var(--ink);background:var(--soft)}
+.tabs button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 h2.sec{font-size:12px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--ink2);
 margin:30px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line)}
 h2.sec:first-child{margin-top:0}
@@ -344,20 +351,50 @@ const ROLE={
  marketing:{n:"การตลาด",p:{price:"none",share:"none",floorplan:"read",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"read",user:"none"},scope:"all"},
  operations:{n:"ปฏิบัติการ",p:{price:"none",share:"write",floorplan:"write",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"write",user:"none"},scope:"all"}};
 const NAV=[
- {id:"dash",ic:"◧",t:"ภาพรวม",m:null},
- {id:"plan",ic:"▦",t:"ผังบูธ",m:"floorplan"},
- {id:"pkg",ic:"◫",t:"แพ็กเกจและราคา",m:"price"},
- {id:"deals",ic:"☰",t:"ดีลและลูกค้า",m:"deal"},
- {id:"sales",ic:"◐",t:"จัดการการขาย",m:"deal"},
- {id:"perf",ic:"▲",t:"ผลงานเซลล์",m:"deal"},
- {id:"target",ic:"◎",t:"เป้าและ run rate",m:"target"},
- {id:"pnl",ic:"◨",t:"P&L รวมทุกงาน",m:"budget"},
- {id:"budget",ic:"₿",t:"รายได้ตามแพ็กเกจ",m:"budget"},
- {id:"cost",ic:"▤",t:"งบรายจ่าย",m:"budget"},
- {id:"stage",ic:"◈",t:"เวที",m:"stage"},
- {id:"exhibitor",ic:"✓",t:"ดูแลผู้ออกบูธ",m:"exhibitor"},
- {id:"share",ic:"⇱",t:"แชร์งาน",m:"share"},
- {id:"users",ic:"⚿",t:"ผู้ใช้และสิทธิ์",m:"user"}];
+ {id:"dash",  ic:"◧", t:"ภาพรวม",     m:null},
+ {id:"sales", ic:"◐", t:"การขาย",     tabs:[
+    ["board","บอร์ดท่อการขาย","deal"],["deals","ดีลทั้งหมด","deal"],
+    ["perf","ผลงานเซลล์","deal"]]},
+ {id:"plan",  ic:"▦", t:"ผังบูธ",     tabs:[
+    ["map","ผัง","floorplan"],["pkg","แพ็กเกจและราคา","price"]]},
+ {id:"money", ic:"₿", t:"เงิน",       tabs:[
+    ["pnl","P&L","budget"],["target","เป้าและ run rate","target"],
+    ["income","รายได้ตามแพ็กเกจ","budget"],["cost","งบรายจ่าย","budget"]]},
+ {id:"stage", ic:"◈", t:"เวที",       m:"stage"},
+ {id:"exh",   ic:"✓", t:"ผู้ออกบูธ",  tabs:[
+    ["list","ติดตามงาน","exhibitor"],["portal","มุมมองผู้ออกบูธ","exhibitor"],
+    ["setup","ตั้งค่ารายการงาน","exhibitor"]]},
+ {id:"set",   ic:"⚿", t:"ตั้งค่า",    tabs:[
+    ["share","แชร์งาน","share"],["users","ผู้ใช้และสิทธิ์","user"]]},
+];
+/* แท็บที่บทบาทนี้เห็น ถ้าไม่เหลือสักแท็บก็ซ่อนเมนูทั้งอัน */
+function navTabs(n){
+  if(!n.tabs)return null;
+  return n.tabs.filter(t=>can(t[2])!=="none");
+}
+function navOK(n){
+  if(!n.tabs)return !n.m||can(n.m)!=="none";
+  return navTabs(n).length>0;
+}
+let tab={};
+function curTab(n){
+  const ts=navTabs(n); if(!ts)return null;
+  if(!tab[n.id]||!ts.some(t=>t[0]===tab[n.id]))tab[n.id]=ts[0][0];
+  return tab[n.id];
+}
+const PAGE={
+ "dash":pDash,
+ "sales:board":()=>{salesView="board";pSales()},
+ "sales:deals":()=>{salesView="table";pSales()},
+ "sales:perf":pPerf,
+ "plan:map":pPlan, "plan:pkg":pPkg,
+ "money:pnl":pPnl, "money:target":pTarget, "money:income":pBudget, "money:cost":pCost,
+ "stage":pStage,
+ "exh:list":()=>{exhView="team";pExh()},
+ "exh:portal":()=>{exhView="portal";pExh()},
+ "exh:setup":pTaskSetup,
+ "set:share":pShare, "set:users":pUsers,
+};
 const ST={free:{l:"ว่าง",c:"--s-free",t:"var(--ink)"},booked:{l:"จองแล้ว",c:"--s-booked",t:"#fff"},
  deposit:{l:"มัดจำแล้ว",c:"--s-deposit",t:"#fff"},paid:{l:"จ่ายครบ",c:"--s-paid",t:"#fff"}};
 const NEXT={free:"booked",booked:"deposit",deposit:"paid"};
@@ -369,7 +406,7 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 const f=n=>Math.round(n||0).toLocaleString("th-TH");
 const can=m=>m?ROLE[role].p[m]:"read";
 const mine=d=>ROLE[role].scope==="all"||!d.sales||d.sales===me;
-const $=s=>document.querySelector(s);
+const $=s=>(s==="#page"&&PAGEHOST)?PAGEHOST:document.querySelector(s);
 
 /* รูปแทนคนและโลโก้ สร้างจากชื่อ ใช้เป็นตัวยืนจนกว่าจะมีไฟล์จริง */
 const LOGO={};                       // ชื่อบริษัท -> dataURI ที่อัปโหลด
@@ -454,23 +491,40 @@ $("#rl2").innerHTML=Object.keys(ROLE).map(k=>'<option value="'+k+'">'+ROLE[k].n+
 $("#rl2").addEventListener("change",e=>{role=e.target.value;
   if(page!=="dash"&&can(NAV.find(n=>n.id===page).m)==="none")page="dash";
   draw()});
-function go(p){page=p;dealOpen=null;costOpen=null;exhOpen=null;
+function go(p){page=p;sel=null;dealOpen=null;costOpen=null;exhOpen=null;
   ["dealpanel","costpanel","exhpanel"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove()});
   draw()}
 function draw(){
   $("#rl2").value=role; $("#wn").textContent=me; $("#wr").textContent=ROLE[role].n;
-  $("#nav").innerHTML='<div class="navlab">งาน</div>'+NAV.map(n=>{
-    if(n.m&&can(n.m)==="none")return "";
-    const c=n.id==="deals"?DEALS.filter(mine).length:n.id==="plan"?B.filter(x=>x.st==="free").length:"";
-    return '<a class="'+(page===n.id?"on":"")+'" data-p="'+n.id+'"><span class="ic">'+n.ic+'</span>'+n.t+
-      (c!==""?'<span class="cnt">'+c+'</span>':'')+'</a>';
+  const vis=NAV.filter(navOK);
+  if(!vis.some(n=>n.id===page))page=vis[0].id;
+  $("#nav").innerHTML='<div class="navlab">งาน</div>'+vis.map(n=>{
+    const c=n.id==="sales"?DEALS.filter(mine).length
+      :n.id==="plan"?B.filter(x=>x.st==="free").length:"";
+    return '<a class="'+(page===n.id?"on":"")+'" data-p="'+n.id+'"><span class="ic">'+n.ic+
+      '</span>'+n.t+(c!==""?'<span class="cnt">'+c+'</span>':'')+'</a>';
   }).join("");
   $("#nav").querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>go(a.dataset.p)));
   const n=NAV.find(x=>x.id===page);
   $("#ttl").textContent=n.t;
-  if(n.m&&can(n.m)==="none"){$("#page").innerHTML=deny(n.t);return}
-  ({dash:pDash,plan:pPlan,pkg:pPkg,deals:pDeals,sales:pSales,perf:pPerf,target:pTarget,pnl:pPnl,budget:pBudget,cost:pCost,stage:pStage,exhibitor:pExh,share:pShare,users:pUsers}[page])();
+  const ts=navTabs(n), t=curTab(n);
+  const host=$("#page");
+  host.innerHTML = ts
+    ? '<div class="tabs">'+ts.map(x=>'<button data-tb="'+x[0]+'" aria-pressed="'+
+        (t===x[0])+'">'+x[1]+'</button>').join("")+'</div><div id="tabbody"></div>'
+    : '<div id="tabbody"></div>';
+  if(ts)host.querySelectorAll("[data-tb]").forEach(b=>b.addEventListener("click",()=>{
+    tab[n.id]=b.dataset.tb; draw();
+  }));
+  // ให้ฟังก์ชันเดิมเขียนลง #tabbody โดยไม่ต้องแก้ทุกอัน
+  const real=document.getElementById("tabbody");
+  const proxy={set innerHTML(v){real.innerHTML=v},get innerHTML(){return real.innerHTML},
+    querySelectorAll:(q)=>real.querySelectorAll(q),querySelector:(q)=>real.querySelector(q)};
+  PAGEHOST=proxy;
+  (PAGE[ts?page+":"+t:page]||pDash)();
+  PAGEHOST=null;
 }
+let PAGEHOST=null;
 function deny(t){return '<div class="deny"><h3>บทบาท '+ROLE[role].n+' ไม่มีสิทธิ์เข้าถึง '+esc(t)+'</h3>'+
  '<p>เมนูนี้ถูกซ่อนไว้ในแถบซ้ายด้วย ตามตาราง <code>role_permission</code></p>'+
  '<p>สิทธิ์เก็บเป็นข้อมูล ไม่ได้ฝังในโค้ด เปลี่ยนได้ทีละแถวโดยไม่ต้องขึ้นระบบใหม่</p></div>'}
@@ -1295,8 +1349,11 @@ function pPnl(){
   const allCats={};
   rows.forEach(r=>Object.keys(r.cats).forEach(c=>{const a=allCats[c]=allCats[c]||{plan:0,ac:0};
     a.plan+=r.cats[c].plan; a.ac+=r.cats[c].ac}));
+  const canPlan=can("budget")==="write"&&!pnlAll;
   Object.keys(allCats).forEach(c=>h+='<tr><td style="padding-left:30px;color:var(--ink2)">'+esc(c)+'</td>'+
-    money(allCats[c].plan)+money(allCats[c].ac)+sign(allCats[c].plan-allCats[c].ac)+'</tr>');
+    (canPlan?'<td class="num"><span class="inl" contenteditable="plaintext-only" data-cp="'+esc(c)+
+      '">'+f(allCats[c].plan)+'</span></td>':money(allCats[c].plan))+
+    money(allCats[c].ac)+sign(allCats[c].plan-allCats[c].ac)+'</tr>');
   h+='<tr><td style="padding-left:30px;color:var(--ink2)">ต้นทุนโครงสร้างบูธที่ขายแล้ว</td>'+
      '<td class="num">—</td>'+money(T.boothCost)+'<td class="num">—</td></tr>';
 
@@ -1330,6 +1387,8 @@ function pPnl(){
    'ถ้าควรอยู่ กำไรตามแผนจะติดลบทันที</p></div>';
 
   h+='<h2 class="sec">อ่านตัวเลขนี้ยังไง</h2><div class="note">'+
+   (can("budget")==="write"?'<p><b>แก้ตัวเลขตามแผนได้</b> คลิกที่ตัวเลขในคอลัมน์ "ตามแผน" '+
+     'ของแต่ละหมวดเพื่อแก้ ต้องเลือกดูทีละงานก่อน ไม่ใช่มุมมองรวมทุกงาน</p>':'')+
    '<p><b>ช่อง "ตามแผน" มาจากชีต Feasibility ตรง ๆ</b> รายได้คือเป้าหลังหักส่วนลด '+
    'รายจ่ายใช้บรรทัด TOTAL รายหมวดของชีต ส่วนรายการย่อย 93 บรรทัดอยู่ในหน้างบรายจ่าย</p>'+
    '<p><b>ช่อง "ตอนนี้" ยังไม่เท่ากับความจริงทั้งหมด</b> ฝั่งรายได้คิดที่ราคาตั้ง '+
@@ -1341,6 +1400,14 @@ function pPnl(){
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-a]").forEach(b=>b.addEventListener("click",()=>{
     pnlAll=b.dataset.a==="1"; pPnl();}));
+  $("#page").querySelectorAll("[data-cp]").forEach(el=>{
+    el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}});
+    el.addEventListener("blur",()=>{
+      const v=+(el.textContent.replace(/[^0-9]/g,""));
+      if(v){EV.catTotals=EV.catTotals||{}; EV.catTotals[el.dataset.cp]=v;}
+      pPnl();
+    });
+  });
   $("#dp3").addEventListener("change",e=>{dep=+e.target.value;pPnl()});
   $("#dlpnl").addEventListener("click",e=>{
     const out=[["รายการ","ตามแผน","ตอนนี้","ต่าง"],
@@ -1538,6 +1605,7 @@ function bindBoard(){
 
 /* ---------- ผลงานเซลล์ ---------- */
 let repPick="all";
+function canMove(){ return can("deal")==="write"&&ROLE[role].scope==="all" }
 function repStat(name){
   const g=DEALS.filter(d=>(d.sales||"—")===name);
   const open=g.filter(d=>!["paid","lost"].includes(d.stage));
@@ -1617,14 +1685,18 @@ function pPerf(){
     const r=rows[0];
     h+='<h2 class="sec">ดีลของ '+esc(r.name)+'</h2><div class="tw"><table><thead><tr>'+
      '<th>ลูกค้า</th><th>แพ็กเกจ</th><th>บูธ</th><th class="num">มูลค่า</th>'+
-     '<th>ขั้นตอน</th><th>นัดถัดไป</th></tr></thead><tbody>'+
+     '<th>ขั้นตอน</th><th>นัดถัดไป</th><th>ย้ายให้เซลล์</th></tr></thead><tbody>'+
      r.deals.slice().sort((a,b)=>b.list-a.list).map(d=>
       '<tr><td><b>'+esc(d.co)+'</b></td><td style="color:var(--ink2)">'+esc(d.pkg||"—")+'</td>'+
       '<td style="color:var(--ink2);font-size:12.5px">'+esc(d.booths.slice(0,4).join(", "))+'</td>'+
       '<td class="num">'+f(d.list)+'</td>'+
       '<td><span class="pill" style="background:'+stCol(d.stage)+'">'+stName(d.stage)+'</span></td>'+
       '<td style="color:'+(overdue(d)?cv("--risk"):"var(--ink2)")+'">'+
-        (d.next?esc(d.next)+" · "+esc(d.nextDate):"—")+'</td></tr>').join("")+
+        (d.next?esc(d.next)+" · "+esc(d.nextDate):"—")+'</td>'+
+      '<td>'+(canMove()?'<select class="cell" data-mv="'+d.id+'">'+
+        REPS.filter(r=>r.active).map(r=>'<option value="'+esc(r.name)+'"'+
+          (d.sales===r.name?" selected":"")+'>'+esc(r.name)+'</option>').join("")+'</select>'
+        :esc(d.sales||"—"))+'</td></tr>').join("")+
      '</tbody></table></div>';
   }
 
@@ -1638,6 +1710,12 @@ function pPerf(){
    'อยู่ในตารางล่างแทน ยังเห็นจำนวนบูธและมูลค่าตามราคาตั้งได้</p></div>';
 
   $("#page").innerHTML=h;
+  $("#page").querySelectorAll("[data-mv]").forEach(el=>el.addEventListener("change",()=>{
+    const d=DEALS.find(x=>x.id===+el.dataset.mv); if(!d)return;
+    d.sales=el.value;
+    B.forEach(b=>{if(d.booths.includes(b.code))b.sales=el.value});
+    pPerf();
+  }));
   const rp=$("#rp");
   if(rp)rp.addEventListener("change",e=>{repPick=e.target.value;pPerf()});
   const d4=$("#dp4");
@@ -2052,6 +2130,69 @@ function sheet(rows){
    '<p><b>ต่างกันตรงที่</b> ในชีต การ merge ทำให้ค้นและนับไม่ได้ '+
    'ที่นี่ merge เป็นแค่การแสดงผล ข้อมูลจริงอยู่ในตาราง <code>session_person</code> '+
    'เลยตอบได้ว่าคนนี้ขึ้นกี่รอบ ชนเวลากันมั้ย และใครยังไม่ส่งสไลด์</p></div>';
+}
+
+
+/* ตั้งค่ารายการงานที่ผู้ออกบูธต้องส่ง แก้ได้ทั้งชื่อ กำหนดส่ง และคนที่รับผิดชอบ */
+function pTaskSetup(){
+  const wr=can("exhibitor")==="write";
+  const T=EV.tasks;
+  let h=(wr?'<div class="note" style="margin-bottom:14px"><p>แก้ได้ในตารางเลย '+
+    '<b>กำหนดส่งนับถอยหลังจากวันงาน</b> ใส่ 30 แปลว่าต้องส่งก่อนงาน 30 วัน '+
+    'พอโคลนงานไปปีหน้า กำหนดส่งเลื่อนตามเอง</p></div>'
+   :'<div class="note" style="margin-bottom:14px"><p>บทบาทนี้ดูได้อย่างเดียว</p></div>');
+  h+='<div class="tw"><table><thead><tr><th>งาน</th><th class="num">ก่อนงานกี่วัน</th>'+
+   '<th>ใครทำ</th><th class="num">บังคับ</th><th class="num">ส่งแล้ว</th>'+(wr?'<th></th>':'')+
+   '</tr></thead><tbody>'+T.map((t,i)=>{
+     const n=DEALS.filter(d=>d.tasks[t.code]).length;
+     return '<tr><td>'+(wr?'<span contenteditable="plaintext-only" data-tl="'+i+'">'+
+       esc(t.label)+'</span>':esc(t.label))+
+       '<br><small style="color:var(--ink3)">'+esc(t.code)+' · กำหนด '+taskDue(EV,t)+'</small></td>'+
+     '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-td="'+i+'">'+
+       t.days+'</span>':t.days)+'</td>'+
+     '<td>'+(wr?'<select class="cell" data-tb2="'+i+'">'+
+       '<option value="exhibitor"'+(t.by==="exhibitor"?" selected":"")+'>ผู้ออกบูธ</option>'+
+       '<option value="organiser"'+(t.by==="organiser"?" selected":"")+'>ทีมเรา</option></select>'
+       :(t.by==="exhibitor"?"ผู้ออกบูธ":"ทีมเรา"))+'</td>'+
+     '<td class="num">'+(wr?'<button class="tog" data-tr="'+i+'">'+
+       (t.req?'<span style="color:var(--ok);font-weight:700">บังคับ</span>'
+             :'<span style="color:var(--ink3)">ไม่บังคับ</span>')+'</button>'
+       :(t.req?"บังคับ":"ไม่บังคับ"))+'</td>'+
+     '<td class="num">'+n+'/'+DEALS.length+'</td>'+
+     (wr?'<td><button class="rowdel" data-tx="'+i+'">ลบ</button></td>':'')+'</tr>'}).join("")+
+   '</tbody></table></div>'+
+   (wr?'<div class="addbar"><button id="taddb">+ เพิ่มรายการงาน</button></div>':'');
+  h+='<h2 class="sec">ที่มา</h2><div class="note">'+
+   '<p>รายการนี้แปลงมาจากชีต Exhibitor Manual 37 คอลัมน์ เหลือเฉพาะที่เป็นงานจริง '+
+   'ที่ต้องมีคนส่งของ ไม่ใช่ช่องบันทึกภายใน</p>'+
+   '<p>เปลี่ยน "ใครทำ" เป็นทีมเรา แล้วงานนั้นจะหายจากพอร์ทัลของผู้ออกบูธ '+
+   'ในสคีมาคือ <code>task_template.assigned_to</code></p></div>';
+  $("#page").innerHTML=h;
+  const P=$("#page");
+  P.querySelectorAll("[data-tl]").forEach(el=>el.addEventListener("blur",()=>{
+    const t=el.textContent.trim(); if(t)T[+el.dataset.tl].label=t; pTaskSetup();}));
+  P.querySelectorAll("[data-td]").forEach(el=>{
+    el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}});
+    el.addEventListener("blur",()=>{
+      const v=+(el.textContent.replace(/[^0-9]/g,"")); if(v)T[+el.dataset.td].days=v; pTaskSetup();});
+  });
+  P.querySelectorAll("[data-tb2]").forEach(el=>el.addEventListener("change",()=>{
+    T[+el.dataset.tb2].by=el.value; pTaskSetup();}));
+  P.querySelectorAll("[data-tr]").forEach(b=>b.addEventListener("click",()=>{
+    T[+b.dataset.tr].req=!T[+b.dataset.tr].req; pTaskSetup();}));
+  P.querySelectorAll("[data-tx]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.armed){const t=T.splice(+b.dataset.tx,1)[0];
+      DEALS.forEach(d=>delete d.tasks[t.code]); pTaskSetup(); return}
+    b.dataset.armed="1"; b.textContent="ยืนยันลบ?"; b.style.color=cv("--risk");
+    setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent="ลบ";b.style.color=""}},4000);
+  }));
+  const ab=P.querySelector("#taddb");
+  if(ab)ab.addEventListener("click",()=>{
+    const code="task"+(T.length+1);
+    T.push({code,label:"งานใหม่",phase:"asset",days:30,by:"exhibitor",req:false});
+    DEALS.forEach(d=>d.tasks[code]=false);
+    pTaskSetup();
+  });
 }
 
 /* ---------- ดูแลผู้ออกบูธ ---------- */
