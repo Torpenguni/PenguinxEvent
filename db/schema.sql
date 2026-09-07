@@ -140,7 +140,8 @@ create table deal (
   event_id      bigint not null references event on delete cascade,
   brand_id      bigint references event_brand on delete set null,
   company_id    bigint not null references company,
-  owner_id      bigint references app_user,        -- เซลล์เจ้าของดีล
+  owner_id      bigint references app_user,        -- เซลล์ในบริษัท
+  agent_id      bigint references sales_agent,     -- เซลล์นอก ถ้าขายผ่านเอเจนต์
   kind          text not null check (kind in ('booth','sponsor','ticket','other')),
   -- ชื่อสถานะตามผังกระบวนการขายที่ทีมเขียนไว้
   -- lead -> booking -> quoted -> confirmed -> billed -> paid
@@ -430,6 +431,8 @@ create table move_in (
   build_type     text check (build_type in ('shell_scheme','special_design','raw_space')),
   slot_start     timestamptz,
   slot_end       timestamptz,
+  fascia_name    text,                  -- ชื่อที่พิมพ์บนป้ายหัวบูธ
+  wall_note      text,                  -- เปิดผนังเชื่อมบูธข้างกันหรือไม่
   design_doc_url text,
   design_approved_at timestamptz,
   insurance_amount numeric(12,2),       -- ค่าประกันการตกแต่งตามขนาดพื้นที่
@@ -439,6 +442,52 @@ create table move_in (
   checked_out_at timestamptz,
   note           text
 );
+
+-- ---------------------------------------------------------------- ดูแลผู้ออกบูธ
+
+-- เซลล์นอกที่รับงานขายให้ ชีตแยกไว้ชัดว่าใครเป็นเอเจนต์ ใครเป็นคนใน
+-- เพราะคิดค่าคอมคนละแบบ และงบตั้ง Sales Agent Commission ไว้ 10-15%
+create table sales_agent (
+  id        bigserial primary key,
+  name      text not null unique,        -- Talk Event, Anster, พี่แคท
+  kind      text not null default 'agent'
+              check (kind in ('agent','inhouse','house')),
+  commission_rate numeric(5,2) not null default 0,
+  contact   text,
+  active    boolean not null default true
+);
+
+-- เช็กลิสต์ที่ต้องเก็บจากผู้ออกบูธทุกราย
+-- ชีต Exhibitor Manual ติดตาม 37 ช่องต่อหนึ่งบูธ ทำเป็นรายการแทนคอลัมน์
+-- เพราะแต่ละงานใช้ฟอร์มไม่เหมือนกัน และ IMPACT กับ BITEC คนละชุด
+create table task_template (
+  id       bigserial primary key,
+  event_id bigint not null references event on delete cascade,
+  code     text not null,                -- contact, line_group, manual, logo,
+                                         -- fascia_name, badge_ex, badge_con,
+                                         -- f6, f2, f3, design, insurance
+  label    text not null,
+  phase    text not null check (phase in ('onboard','asset','form','build')),
+  applies_to text check (applies_to in ('all','shell_scheme','raw_space')),
+  due_offset_days int,                   -- กี่วันก่อนวันเข้างาน
+  sort     int not null default 0,
+  unique (event_id, code)
+);
+
+create table exhibitor_task (
+  id          bigserial primary key,
+  deal_id     bigint not null references deal on delete cascade,
+  template_id bigint not null references task_template on delete cascade,
+  done        boolean not null default false,
+  done_at     timestamptz,
+  done_by     bigint references app_user,
+  due_date    date,
+  file_url    text,
+  note        text,
+  unique (deal_id, template_id)
+);
+create index exhibitor_task_open_idx on exhibitor_task (due_date)
+  where done = false;
 
 -- ---------------------------------------------------------------- ร่องรอย
 
