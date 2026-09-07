@@ -442,6 +442,8 @@ function pDash(){
    card(held,"ขายไปแล้ว",Math.round(held/B.length*100)+"% ของผัง","--s-paid")+
    card(B.filter(x=>x.st==="free").length,"ยังว่าง","--s-free")+
    card(qn,"คนรอคิว","--risk")+
+   card(warnBooths().length+overdueBooths().length,"บูธที่ต้องตามมัดจำ",
+     overdueBooths().length?overdueBooths().length+" บูธเลยกำหนดแล้ว":"","--risk")+
    (seeMoney?card(f(m.con),"ปิดได้ (บาท)","--accent")+card(f(m.got),"เงินเข้าแล้ว","--s-paid")+
     card(f(m.out),"ค้างรับ","--s-booked"):"")+
    '</div>';
@@ -461,9 +463,51 @@ const card=(v,l,s,c)=>{if(c===undefined){c=s;s=null}
   return '<div class="c" style="--t:'+cv(c)+'"><b>'+v+'</b><span>'+l+'</span>'+(s?'<small>'+s+'</small>':'')+'</div>'};
 const row=(a,b,c)=>'<tr><td>'+a+'</td><td class="num"><b>'+b+'</b></td><td style="color:var(--ink2)">'+c+'</td></tr>';
 
+
+/* ---------- กำหนดชำระมัดจำ ----------
+   เซลล์เลือกได้ 30 / 45 / 60 วันตอนจอง
+   เหลือ 7 วันขึ้นแดงเตือนให้ตาม เลยกำหนดแล้วปล่อยคิวถัดไปขึ้นมา */
+const HOLD_OPTS=[30,45,60];
+const WARN_DAYS=7;
+function addDays(n){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+n);return ymd(d)}
+function holdLeft(b){ return b.due?-daysAgo(b.due):null }   // บวก = เหลือกี่วัน
+function holdState(b){
+  if(b.st!=="booked")return null;                 // มัดจำแล้วไม่ต้องนับ
+  if(!b.due)return {k:"none",t:"ยังไม่กำหนดวันมัดจำ",c:"--warn"};
+  const n=holdLeft(b);
+  if(n<0)return {k:"over",t:"เลยกำหนดมัดจำ "+(-n)+" วัน",c:"--risk"};
+  if(n<=WARN_DAYS)return {k:"warn",t:"เหลืออีก "+n+" วันต้องมัดจำ",c:"--risk"};
+  return {k:"ok",t:"เหลืออีก "+n+" วัน",c:"--ink2"};
+}
+function overdueBooths(){ return B.filter(b=>{const s=holdState(b);return s&&s.k==="over"}) }
+function warnBooths(){ return B.filter(b=>{const s=holdState(b);return s&&(s.k==="warn"||s.k==="none")}) }
+function releaseExpired(){
+  let n=0;
+  overdueBooths().forEach(b=>{
+    const qs=Q[b.code]||[];
+    if(qs.length){const x=qs.shift(); b.co=x.co; b.sales=x.sales; b.due=addDays(30); b.hold=30;
+      if(!qs.length)delete Q[b.code];}
+    else {b.st="free"; b.co=null; b.sales=null; b.due=null; b.hold=null;}
+    n++;
+  });
+  return n;
+}
+
 /* ---------- ผังบูธ ---------- */
 function pPlan(){
-  $("#page").innerHTML='<div class="bar2">'+
+  const ovr=overdueBooths(), wrn=warnBooths();
+  $("#page").innerHTML=
+   (ovr.length||wrn.length?'<div class="note" style="margin-bottom:14px;border-left-color:'+
+     cv(ovr.length?"--risk":"--warn")+'"><p>'+
+     (ovr.length?'<b style="color:var(--risk)">เลยกำหนดมัดจำ '+ovr.length+' บูธ</b> — '+
+       esc(ovr.slice(0,6).map(b=>b.code).join(", "))+(ovr.length>6?" และอื่น ๆ":"")+
+       ' &nbsp;<button class="act" id="rel" style="display:inline-block;padding:5px 11px;font-size:13px">'+
+       'ปล่อยคืนและเลื่อนคิวขึ้น</button>':'')+
+     (ovr.length&&wrn.length?'<br>':'')+
+     (wrn.length?'<b style="color:var(--warn)">ใกล้ครบกำหนด '+wrn.length+' บูธ</b> — '+
+       esc(wrn.slice(0,6).map(b=>b.code).join(", "))+(wrn.length>6?" และอื่น ๆ":""):'')+
+     '</p></div>':'')+
+   '<div class="bar2">'+
    '<input type="search" id="q" placeholder="ค้นรหัสบูธ หรือ ชื่อบริษัท" value="'+esc(q)+'">'+
    '<div class="seg">'+["free","booked","deposit","paid"].map(k=>
      '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
@@ -471,6 +515,9 @@ function pPlan(){
    '<div class="planhost"><div class="pw"><svg id="plan"></svg></div>'+
    '<aside class="side2" id="sd" hidden></aside></div>';
   $("#q").addEventListener("input",e=>{q=e.target.value;paint()});
+  const rel=$("#rel");
+  if(rel)rel.addEventListener("click",()=>{const n=releaseExpired();pPlan();
+    alert("ปล่อยคืน "+n+" บูธ คิวถัดไปเลื่อนขึ้นแล้ว");});
   const xs=B.concat(AR);
   const X0=Math.min(...xs.map(o=>o.x))-1,Y0=Math.min(...xs.map(o=>o.y))-1;
   const X1=Math.max(...xs.map(o=>o.x+o.w))+1,Y1=Math.max(...xs.map(o=>o.y+o.h))+1;
@@ -560,6 +607,11 @@ function paint(){
       n.textContent=b.co.length>mx?b.co.slice(0,mx-1)+"…":b.co;
       g.appendChild(n);
     }
+    const hs2=holdState(b);
+    if(hs2&&(hs2.k==="warn"||hs2.k==="over")){
+      g.insertBefore(E("rect",{x:b.x-.04,y:b.y-.04,width:b.w+.08,height:b.h+.08,rx:.24,
+        fill:"none",stroke:cv("--risk"),"stroke-width":.16}),g.firstChild.nextSibling||null);
+    }
     const qn=(Q[b.code]||[]).length;
     if(qn){g.appendChild(E("circle",{cx:b.x+b.w-.28,cy:b.y+.3,r:.26,fill:cv("--risk")}));
       const c=E("text",{x:b.x+b.w-.28,y:b.y+.43,"text-anchor":"middle","font-size":.36,fill:"#fff","font-weight":700});
@@ -574,7 +626,7 @@ function sidebar(){
   const sd=$("#sd"); if(!sd)return;
   if(!sel){sd.hidden=true; sd.innerHTML=""; return}
   sd.hidden=false;
-  const b=B.find(x=>x.code===sel),st=ST[b.st],qs=Q[b.code]||[];
+  const b=B.find(x=>x.code===sel),st=ST[b.st],qs=Q[b.code]||[],hs=holdState(b);
   const own=ROLE[role].scope==="all"||!b.sales||b.sales===me, wr=can("floorplan")==="write";
   let h='<h3>'+esc(b.code)+'</h3><p class="s"><span class="pill" style="background:'+cv(st.c)+';color:'+st.t+'">'+
    st.l+'</span>'+(b.pkg?" · "+esc(b.pkg):"")+'</p>';
@@ -598,10 +650,22 @@ function sidebar(){
    (!b.co?'<dt>ลูกค้า</dt><dd><span style="color:var(--ink2)">ยังไม่มี</span></dd>':'')+
    (b.sales?'<dt>เซลล์</dt><dd>'+esc(b.sales)+'</dd>':'')+
    (b.contact&&own?'<dt>ผู้ติดต่อ</dt><dd>'+esc(b.contact)+(b.phone?"<br>"+esc(b.phone):"")+'</dd>':'')+
-   '<dt>ราคาตั้ง</dt><dd>'+f(b.list)+' บาท</dd></dl><div class="acts">';
+   '<dt>ราคาตั้ง</dt><dd>'+f(b.list)+' บาท</dd>'+
+   (hs?'<dt>มัดจำ</dt><dd><span class="pill" style="background:'+cv(hs.c)+'">'+hs.t+'</span>'+
+     (b.due?'<br><small style="color:var(--ink2)">ครบกำหนด '+esc(b.due)+'</small>':'')+'</dd>':'')+
+   '</dl><div class="acts">';
+  if(hs&&wr&&own){
+    h+='<label style="font-size:12px;color:var(--ink2)">ให้เวลามัดจำ</label>'+
+      '<select id="hd">'+HOLD_OPTS.map(n=>'<option value="'+n+'"'+(b.hold===n?" selected":"")+'>'+
+        n+' วัน</option>').join("")+'</select>'+
+      '<button class="act" data-a="sethold">ตั้งกำหนดใหม่จากวันนี้</button>';
+  }
   if(!wr)h+='<p style="color:var(--ink2);font-size:13.5px;margin:0">บทบาทนี้ดูได้อย่างเดียว</p>';
   else if(b.st==="free")h+='<input id="cu" placeholder="ชื่อบริษัท">'+
     '<input id="cs" placeholder="เว็บไซต์บริษัท (ไม่บังคับ)">'+
+    '<label style="font-size:12px;color:var(--ink2)">ให้เวลามัดจำ</label>'+
+    '<select id="hd2">'+HOLD_OPTS.map(n=>'<option value="'+n+'"'+(n===30?" selected":"")+'>'+
+      n+' วัน</option>').join("")+'</select>'+
     '<button class="act go" data-a="book">จองในชื่อ '+esc(me)+'</button>';
   else if(!own)h+='<p style="color:var(--ink2);font-size:13.5px;margin:0 0 6px">บูธของ '+esc(b.sales)+' คุณแก้ไม่ได้</p>'+
     '<input id="cu" placeholder="ชื่อลูกค้าที่จะต่อคิว"><button class="act" data-a="q">ต่อคิว</button>';
@@ -626,16 +690,19 @@ function sidebar(){
 function act(a){
   const b=B.find(x=>x.code===sel),i=$("#cu"),n=i?i.value.trim():"";
   if(a==="book"){if(!n){i.focus();return}b.st="booked";b.co=n;b.sales=me;
+    const hd=$("#hd2")?+$("#hd2").value:30; b.hold=hd; b.due=addDays(hd);
     const u=$("#cs")&&$("#cs").value.trim(); if(u)SITE[n]=norm(u);}
+  else if(a==="sethold"){const hd=+$("#hd").value; b.hold=hd; b.due=addDays(hd);}
   else if(a==="fetch"){
     const u=$("#site").value.trim(); if(!u){$("#site").focus();return}
     SITE[b.co]=norm(u); LOGO[b.co]=fakeLogo(SITE[b.co]);}
   else if(a==="rmlogo")delete LOGO[b.co];
-  else if(a==="next")b.st=NEXT[b.st]||b.st;
+  else if(a==="next"){b.st=NEXT[b.st]||b.st; if(b.st!=="booked"){b.due=null;b.hold=null}}
   else if(a==="q"){if(!n){i.focus();return}(Q[b.code]=Q[b.code]||[]).push({co:n,sales:me})}
   else if(a==="rel"){const qs=Q[b.code]||[];
-    if(qs.length){const x=qs.shift();b.st="booked";b.co=x.co;b.sales=x.sales;if(!qs.length)delete Q[b.code]}
-    else{b.st="free";b.co=null;b.sales=null}}
+    if(qs.length){const x=qs.shift();b.st="booked";b.co=x.co;b.sales=x.sales;
+      b.hold=30;b.due=addDays(30);if(!qs.length)delete Q[b.code]}
+    else{b.st="free";b.co=null;b.sales=null;b.due=null;b.hold=null}}
   paint();sidebar();
 }
 

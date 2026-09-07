@@ -314,7 +314,11 @@ create table deal (
   conditions    text,                   -- เงื่อนไขพิเศษที่ตกลงไว้
   commission_rate numeric(5,2) not null default 0,   -- 10 หรือ 15
 
-  hold_expires_at   timestamptz,        -- จองไว้ถึงเมื่อไหร่ ไม่จ่ายมัดจำแล้วปล่อยคืน
+  -- เซลล์เลือกเวลาให้ลูกค้าจ่ายมัดจำได้ 30 45 หรือ 60 วัน
+  -- เหลือ 7 วันระบบขึ้นแดงเตือนให้ตาม เลยกำหนดแล้วปล่อยให้คิวถัดไปขึ้นมา
+  hold_days         int check (hold_days in (30,45,60)),
+  hold_started_at   date,
+  hold_expires_at   timestamptz,
   contract_sent_at  timestamptz,
   contract_signed_at timestamptz,
   won_at            timestamptz,
@@ -366,6 +370,8 @@ create table payment (
   note        text
 );
 create index payment_due_idx on payment (due_date) where paid_at is null;
+create index deal_hold_idx on deal (hold_expires_at)
+  where status = 'booking' and hold_expires_at is not null;
 
 -- สิทธิประโยชน์ที่สัญญากับสปอนเซอร์ ต้องเช็กได้ว่าส่งมอบครบมั้ย
 create table sponsor_benefit (
