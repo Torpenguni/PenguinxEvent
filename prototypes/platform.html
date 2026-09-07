@@ -96,6 +96,24 @@ th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vert
 overflow-wrap:break-word;word-break:normal}
 /* ตารางแบบชีต ล้นแล้วเลื่อนแนวนอน ไม่บีบคอลัมน์ */
 .tw table[style*="table-layout"] td,.tw table[style*="table-layout"] th{white-space:normal}
+/* ช่องที่แก้ได้ ให้รู้ว่าคลิกได้โดยไม่รก */
+td [contenteditable]{display:block;min-height:20px;border-radius:5px;padding:2px 5px;margin:-2px -5px;
+outline:none;transition:background .1s}
+td [contenteditable]:hover{background:var(--soft);box-shadow:inset 0 0 0 1px var(--line2)}
+td [contenteditable]:focus{background:var(--card);box-shadow:inset 0 0 0 2px var(--accent)}
+td [contenteditable]:empty::before{content:attr(data-ph);color:var(--ink3)}
+td select.cell{border:0;background:transparent;color:inherit;font:inherit;font-size:13.5px;
+padding:2px 3px;border-radius:5px;max-width:100%;cursor:pointer}
+td select.cell:hover{background:var(--soft)}
+button.tog{border:0;background:none;font:inherit;cursor:pointer;padding:2px 6px;border-radius:5px}
+button.tog:hover{background:var(--soft)}
+button.rowdel{border:0;background:none;color:var(--ink3);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:5px}
+button.rowdel:hover{background:var(--soft);color:var(--risk)}
+.addbar{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.addbar button{border:1px solid var(--line2);background:var(--card);color:var(--ink);font:inherit;
+font-size:13.5px;padding:8px 13px;border-radius:8px;cursor:pointer}
+.addbar button:hover{border-color:var(--accent)}
+.rdonly{font-size:13px;color:var(--ink2);margin:10px 0 0}
 thead th{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);background:var(--soft);
 position:sticky;top:0}
 tbody tr:last-child td{border-bottom:none}
@@ -1227,8 +1245,62 @@ function stageOne(){
    (sview==="table"?sheet(rows):oneTimeline(g));
   $("#back").addEventListener("click",()=>{stg=null;pStage()});
   bindDay(pStage);
+  if(sview==="table")bindSheet();
   $("#page").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>{sview=b.dataset.v;pStage()}));
 }
+
+function bindSheet(){
+  const P=$("#page");
+  const get=(si,pi)=>pi>=0?SES[si].people[pi]:SES[si];
+  P.querySelectorAll("[contenteditable]").forEach(el=>{
+    el.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){e.preventDefault();el.blur()}
+      if(e.key==="Escape"){el.textContent=el.dataset.was||"";el.blur()}
+    });
+    el.addEventListener("focus",()=>{el.dataset.was=el.textContent});
+    el.addEventListener("blur",()=>{
+      const si=+el.dataset.si, pi=+el.dataset.pi, f=el.dataset.f;
+      const v=el.textContent.trim();
+      if(f==="newp"){ if(!v)return; SES[si].people.push({n:v,real:null,pos:null,st:"",contact:null});
+        pStage(); return; }
+      const o=get(si,pi); if(!o)return;
+      if(o[f]===(v||null))return;
+      o[f]=v||null;
+      if(f==="time"||f==="min"){recalc(SES[si]); pStage(); return;}
+      pStage();
+    });
+  });
+  P.querySelectorAll("select.cell").forEach(el=>el.addEventListener("change",()=>{
+    const o=get(+el.dataset.si,+el.dataset.pi); if(!o)return;
+    o[el.dataset.f]=el.value; pStage();
+  }));
+  P.querySelectorAll("[data-tg]").forEach(b=>b.addEventListener("click",()=>{
+    const s=SES[+b.dataset.si]; s[b.dataset.tg]=!s[b.dataset.tg]; pStage();
+  }));
+  P.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.armed){SES.splice(+b.dataset.del,1);pStage();return}
+    P.querySelectorAll("[data-del]").forEach(x=>{delete x.dataset.armed;x.textContent="×";
+      x.style.color="";x.title="ลบช่วงนี้"});
+    b.dataset.armed="1"; b.textContent="ลบ?"; b.style.color=cv("--risk");
+    b.title="กดอีกครั้งเพื่อลบ";
+    setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent="×";b.style.color=""}},4000);
+  }));
+  P.querySelectorAll("[data-addp]").forEach(b=>b.addEventListener("click",()=>{
+    SES[+b.dataset.addp].people.push({n:"",real:null,pos:null,st:"",contact:null}); pStage();
+  }));
+  const add=$("#addses");
+  if(add)add.addEventListener("click",()=>{
+    const g=SG[stg], last=SES.filter(x=>x.stage===g&&x.day===day).slice(-1)[0];
+    const start=last?last.b:600;
+    const hh=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+    SES.push({stage:g,day:day,date:last?last.date:null,
+      time:hh(start+5)+"-"+hh(start+45),a:start+5,b:start+45,min:"40",no:null,
+      title:null,kind:"talk",cf:false,lock:false,mod:null,coord:null,slides:null,people:[]});
+    SES.sort((x,y)=>(x.day-y.day)||(x.a-y.a));
+    pStage();
+  });
+}
+
 function bindDay(fn){
   $("#page").querySelectorAll("[data-d]").forEach(b=>b.addEventListener("click",()=>{day=+b.dataset.d;fn()}));
 }
@@ -1252,60 +1324,83 @@ function oneTimeline(g){
   return h+'</div></div></div>';
 }
 
-/* ตารางแบบชีต ช่องระดับช่วงถูก merge เมื่อมีหลายสปีกเกอร์ เหมือนที่ทีมทำในชีต */
+/* ตารางแบบชีต แก้ได้ในช่องเลย ช่องระดับช่วงถูก merge เมื่อมีหลายคน */
+function mins2(t){const m=/^(\d{1,2}):(\d{2})/.exec(t||"");return m?+m[1]*60+ +m[2]:null}
+function recalc(s){
+  const a=mins2(s.time); if(a==null)return;
+  s.a=a;
+  const m=/^\d{1,2}:\d{2}\s*-\s*(\d{1,2}):(\d{2})/.exec(s.time);
+  s.b=m?+m[1]*60+ +m[2]:a+(+s.min||20);
+  if(m)s.min=String(s.b-s.a);
+}
 function sheet(rows){
-  const yn=v=>v?'<span style="color:var(--ok);font-weight:700">TRUE</span>':
-                '<span style="color:var(--ink3)">FALSE</span>';
-  const stp=v=>{if(!v)return '<span style="color:var(--ink3)">—</span>';
-    const c=v==="Confirm"?"--ok":v==="Maybe not"?"--risk":"--warn";
-    return '<span class="pill" style="background:'+cv(c)+'">'+esc(v)+'</span>'};
+  const ed=can("stage")==="write";
+  const yn=(v,si,fld)=>ed?'<button class="tog" data-si="'+si+'" data-tg="'+fld+'">'+
+      (v?'<span style="color:var(--ok);font-weight:700">TRUE</span>':'<span style="color:var(--ink3)">FALSE</span>')+'</button>'
+    :(v?'<span style="color:var(--ok);font-weight:700">TRUE</span>':'<span style="color:var(--ink3)">FALSE</span>');
+  const cell=(v,si,pi,fld,ph)=>ed
+    ?'<span contenteditable="plaintext-only" data-si="'+si+'" data-pi="'+pi+'" data-f="'+fld+
+      '" data-ph="'+esc(ph||"")+'">'+esc(v||"")+'</span>'
+    :esc(v||"—");
+  const sel=(v,si,pi,fld,opts)=>ed
+    ?'<select class="cell" data-si="'+si+'" data-pi="'+pi+'" data-f="'+fld+'">'+
+      opts.map(o=>'<option value="'+o[0]+'"'+(v===o[0]?" selected":"")+'>'+o[1]+'</option>').join("")+'</select>'
+    :esc((opts.find(o=>o[0]===v)||["",v||"—"])[1]);
+  const KOPT=Object.keys(SKIND).map(k=>[k,SKIND[k]]);
+  const SOPT=[["","—"],["Confirm","Confirm"],["Maybe CF","Maybe CF"],["Maybe not","Maybe not"],["Cancel","Cancel"]];
   let body="";
   rows.forEach(s=>{
+    const si=SES.indexOf(s);
     const need=["talk","keynote","panel","workshop"].includes(s.kind);
     const ppl=s.people.length?s.people:[null];
     const n=ppl.length;
     ppl.forEach((p,i)=>{
+      const pi=s.people.length?i:-1;
       const span=i===0?' rowspan="'+n+'"':"";
       body+='<tr>';
       if(i===0)body+=
-        '<td'+span+' class="num">'+(s.no||"")+'</td>'+
-        '<td'+span+' class="num" style="white-space:nowrap">'+esc(s.time)+'</td>'+
-        '<td'+span+' class="num">'+(s.min||"")+'</td>'+
+        '<td'+span+' class="num">'+cell(s.no,si,-1,"no")+'</td>'+
+        '<td'+span+' class="num">'+cell(s.time,si,-1,"time","09:00-09:40")+'</td>'+
+        '<td'+span+' class="num">'+cell(s.min,si,-1,"min")+'</td>'+
         '<td'+span+'><span class="dot" style="background:'+cv(SCOL[s.kind]||"--ink3")+'"></span>'+
-          (SKIND[s.kind]||s.kind)+'</td>'+
-        '<td'+span+'>'+(s.title?'<b>'+esc(s.title)+'</b>':
-          '<span style="color:var(--risk)">— ยังไม่มีหัวข้อ —</span>')+'</td>'+
-        '<td'+span+' class="num">'+yn(s.cf)+'</td>';
+          sel(s.kind,si,-1,"kind",KOPT)+'</td>'+
+        '<td'+span+'>'+(ed?cell(s.title,si,-1,"title","ยังไม่มีหัวข้อ")
+          :(s.title?'<b>'+esc(s.title)+'</b>':'<span style="color:var(--risk)">— ยังไม่มีหัวข้อ —</span>'))+'</td>'+
+        '<td'+span+' class="num">'+yn(s.cf,si,"cf")+'</td>';
       body+=
         '<td>'+(p?'<span style="display:flex;gap:8px;align-items:center">'+avatar(p.n,26)+
-          '<span>'+esc(p.n)+'</span></span>':(need?'<span style="color:var(--risk)">ยังไม่มีสปีกเกอร์</span>':
-          '<span style="color:var(--ink3)">—</span>'))+'</td>'+
-        '<td style="color:var(--ink2)">'+(p&&p.real?esc(p.real):"—")+'</td>'+
-        '<td style="color:var(--ink2)">'+(p&&p.pos?esc(p.pos):"—")+'</td>'+
-        '<td>'+(p?stp(p.st):"")+'</td>'+
-        '<td style="color:var(--ink2)">'+(p&&p.contact?esc(p.contact):
-          (p?'<span style="color:var(--risk)">ไม่มีเบอร์</span>':'<span style="color:var(--ink3)">—</span>'))+'</td>';
+          cell(p.n,si,pi,"n")+'</span>'
+          :(ed?cell("",si,-1,"newp","+ ใส่ชื่อสปีกเกอร์")
+            :(need?'<span style="color:var(--risk)">ยังไม่มีสปีกเกอร์</span>':'<span style="color:var(--ink3)">—</span>')))+'</td>'+
+        '<td style="color:var(--ink2)">'+(p?cell(p.real,si,pi,"real"):"—")+'</td>'+
+        '<td style="color:var(--ink2)">'+(p?cell(p.pos,si,pi,"pos"):"—")+'</td>'+
+        '<td>'+(p?sel(p.st||"",si,pi,"st",SOPT):"")+'</td>'+
+        '<td style="color:var(--ink2)">'+(p?cell(p.contact,si,pi,"contact","ยังไม่มีเบอร์"):"—")+'</td>';
       if(i===0)body+=
-        '<td'+span+' style="color:var(--ink2)">'+(s.mod?esc(s.mod):"—")+'</td>'+
-        '<td'+span+' class="num">'+yn(s.lock)+'</td>'+
-        '<td'+span+' style="color:var(--ink2)">'+
-          (s.people.find(x=>x&&x.coord)?esc(s.people.find(x=>x.coord).coord):"—")+'</td>'+
-        '<td'+span+'>'+(s.people.find(x=>x&&x.slides)?'<span style="color:var(--ok)">มีแล้ว</span>':
-          (need?'<span style="color:var(--warn)">ยังไม่ได้</span>':'<span style="color:var(--ink3)">—</span>'))+'</td>';
+        '<td'+span+' style="color:var(--ink2)">'+cell(s.mod,si,-1,"mod")+'</td>'+
+        '<td'+span+' class="num">'+yn(s.lock,si,"lock")+'</td>'+
+        '<td'+span+' style="color:var(--ink2)">'+cell(s.coord,si,-1,"coord")+'</td>'+
+        '<td'+span+'>'+cell(s.slides,si,-1,"slides","ยังไม่ได้")+'</td>'+
+        (ed?'<td'+span+'><button class="rowdel" data-del="'+si+'" title="ลบช่วงนี้">×</button>'+
+            '<br><button class="rowdel" data-addp="'+si+'" title="เพิ่มคน" style="font-size:13px">+คน</button></td>':'');
       body+='</tr>';
     });
   });
-  /* กว้างขั้นต่ำรายคอลัมน์ กันไม่ให้ภาษาไทยตกบรรทัดทีละคำ ล้นแล้วเลื่อนแนวนอนเอา */
-  const CW=[54,104,60,116,300,84,168,168,220,112,124,170,96,140,104];
+  const CW=[54,104,60,132,300,84,168,168,220,118,124,170,96,140,104];
+  if(ed)CW.push(64);
   const total=CW.reduce((a,b)=>a+b,0);
+  const HD=['Que','เวลา','นาที','รูปแบบ','หัวข้อ','CF หัวข้อ','Speaker (ชื่อเล่น)','ชื่อจริง',
+    'ตำแหน่ง','Status SPK','Contact','MOD','ล็อคเวลา','คนประสานงาน','Slides'];
+  if(ed)HD.push("");
   return '<div class="tw" style="max-height:74vh;overflow:auto">'+
    '<table style="min-width:'+total+'px;table-layout:fixed">'+
    '<colgroup>'+CW.map(w=>'<col style="width:'+w+'px">').join("")+'</colgroup>'+
-   '<thead><tr>'+
-   ['Que','เวลา','นาที','รูปแบบ','หัวข้อ','CF หัวข้อ','Speaker (ชื่อเล่น)','ชื่อจริง',
-    'ตำแหน่ง','Status SPK','Contact','MOD','ล็อคเวลา','คนประสานงาน','Slides']
-   .map((h,i)=>'<th'+([0,1,2,5,12].includes(i)?' class="num"':'')+'>'+h+'</th>').join("")+
+   '<thead><tr>'+HD.map((h,i)=>'<th'+([0,1,2,5,12].includes(i)?' class="num"':'')+'>'+h+'</th>').join("")+
    '</tr></thead><tbody>'+body+'</tbody></table></div>'+
+   (ed?'<div class="addbar"><button id="addses">+ เพิ่มช่วงเวลา</button>'+
+     '<span style="font-size:13px;color:var(--ink2);align-self:center">'+
+     'คลิกช่องไหนก็พิมพ์ทับได้เลย กด Tab ไปช่องถัดไป · แก้แล้วบันทึกทันที</span></div>'
+    :'<p class="rdonly">บทบาท '+ROLE[role].n+' ดูได้อย่างเดียว แก้ตารางไม่ได้</p>')+
    '<h2 class="sec">ทำไมตารางนี้ถึงหน้าตาเหมือนชีตเดิม</h2><div class="note">'+
    '<p>คอลัมน์เรียงตามชีต Agenda ที่ทีมใช้อยู่ และช่องระดับช่วง เช่น เวลา หัวข้อ MOD '+
    'ถูก merge ลงมาเมื่อช่วงนั้นมีสปีกเกอร์หลายคน เหมือนที่ทีมทำในชีตทุกวันนี้ '+
