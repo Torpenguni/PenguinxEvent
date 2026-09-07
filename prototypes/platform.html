@@ -150,7 +150,21 @@ svg#plan{display:block;min-width:740px;width:100%;height:auto}
 .ev{position:absolute;left:4px;right:4px;border-radius:6px;padding:5px 8px;overflow:hidden;cursor:pointer;
 color:#fff;border:0;text-align:left;display:block;font:inherit}
 .ev:hover{filter:brightness(1.09)}
-.ev .t{font-size:10.5px;opacity:.9}.ev .n{font-size:12.5px;font-weight:600;line-height:1.3}
+.ev{padding:7px 10px}
+.ev .t{font-size:10.5px;opacity:.88;display:block}
+.ev .n{font-size:13px;font-weight:600;line-height:1.32;display:block;margin-top:1px}
+.ev .fa{display:flex;align-items:center;gap:5px;margin-top:6px;flex-wrap:wrap}
+.ev .fa .nm{font-size:11px;opacity:.9;line-height:1.3}
+.lgrow{display:flex;gap:11px;align-items:center;margin-bottom:11px}
+.lgrow .meta{min-width:0}
+.lgrow .meta b{display:block;font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis}
+.lgrow .meta a{font-size:12.5px;color:var(--accent);text-decoration:none;word-break:break-all}
+.lgbtns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.lgbtns button,.lgbtns label{border:1px solid var(--line2);background:var(--card);color:var(--ink);
+font-size:12.5px;padding:6px 10px;border-radius:7px;cursor:pointer}
+.lgbtns button:hover,.lgbtns label:hover{border-color:var(--accent)}
+.lgbtns input[type=file]{display:none}
+.simnote{font-size:11.5px;color:var(--ink3);line-height:1.5;margin:0 0 10px}
 .tlh{display:grid;grid-template-columns:56px repeat(3,1fr);border-bottom:1px solid var(--line2);min-width:800px}
 .tlh div{padding:10px 12px;font-size:13px;font-weight:700}
 .tlh div:first-child{font-size:11px;color:var(--ink2)}
@@ -231,6 +245,47 @@ const f=n=>Math.round(n||0).toLocaleString("th-TH");
 const can=m=>m?ROLE[role].p[m]:"read";
 const mine=d=>ROLE[role].scope==="all"||!d.sales||d.sales===me;
 const $=s=>document.querySelector(s);
+
+/* รูปแทนคนและโลโก้ สร้างจากชื่อ ใช้เป็นตัวยืนจนกว่าจะมีไฟล์จริง */
+const LOGO={};                       // ชื่อบริษัท -> dataURI ที่อัปโหลด
+const SITE={};                       // ชื่อบริษัท -> เว็บไซต์
+function hue(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h}
+function initials(s){
+  const t=String(s||"").replace(/^(คุณ|พี่|อ\.|เชฟ|ดร\.|น้า)/,"").trim();
+  const w=t.split(/[\s·]+/).filter(Boolean);
+  return ((w[0]||"?")[0]+((w[1]||"")[0]||"")).toUpperCase();
+}
+function avatar(name,px,ring){
+  const h=hue(name||"?");
+  return '<span style="display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;'+
+   'width:'+px+'px;height:'+px+'px;border-radius:99px;background:hsl('+h+' 42% 46%);color:#fff;'+
+   'font-size:'+Math.round(px*.4)+'px;font-weight:700;letter-spacing:.02em;'+
+   (ring?'box-shadow:0 0 0 2px rgba(255,255,255,.55);':'')+'">'+esc(initials(name))+'</span>';
+}
+function norm(u){
+  u=u.trim().replace(/^https?:\/\//i,"").replace(/\/$/,"");
+  return "https://"+u;
+}
+/* ของจริงเซิร์ฟเวอร์จะไปอ่าน og:image หรือ favicon ของเว็บนั้นแล้วเก็บไฟล์ไว้เอง
+   ตัวอย่างนี้เรียกข้ามเว็บไม่ได้ จึงวาดตัวยืนจากชื่อโดเมนแทน */
+function fakeLogo(url){
+  const d=url.replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0];
+  const nm=d.split(".")[0], h=hue(d);
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">'+
+   '<rect width="96" height="96" rx="14" fill="hsl('+h+' 55% 42%)"/>'+
+   '<text x="48" y="58" font-size="34" font-family="Helvetica,Arial" font-weight="700" '+
+   'fill="#fff" text-anchor="middle">'+nm.slice(0,2).toUpperCase()+'</text></svg>';
+  return "data:image/svg+xml;utf8,"+encodeURIComponent(svg);
+}
+function logoTile(co,px){
+  if(LOGO[co])return '<img src="'+LOGO[co]+'" alt="" style="width:'+px+'px;height:'+px+
+    'px;border-radius:8px;object-fit:contain;background:#fff;border:1px solid var(--line)">';
+  const h=hue(co||"?");
+  return '<span style="display:inline-flex;align-items:center;justify-content:center;width:'+px+
+   'px;height:'+px+'px;border-radius:8px;background:hsl('+h+' 30% 92%);color:hsl('+h+' 45% 32%);'+
+   'font-size:'+Math.round(px*.36)+'px;font-weight:700;border:1px solid var(--line)">'+esc(initials(co))+'</span>';
+}
+
 
 /* ---------- shell ---------- */
 $("#lform").addEventListener("submit",e=>{
@@ -359,13 +414,32 @@ function sidebar(){
   const b=B.find(x=>x.code===sel),st=ST[b.st],qs=Q[b.code]||[];
   const own=ROLE[role].scope==="all"||!b.sales||b.sales===me, wr=can("floorplan")==="write";
   let h='<h3>'+esc(b.code)+'</h3><p class="s"><span class="pill" style="background:'+cv(st.c)+';color:'+st.t+'">'+
-   st.l+'</span>'+(b.pkg?" · "+esc(b.pkg):"")+'</p><dl class="kv">'+
-   '<dt>ลูกค้า</dt><dd>'+(b.co?(own?esc(b.co):'<span style="color:var(--ink2)">ดีลของเซลล์คนอื่น</span>'):'<span style="color:var(--ink2)">ยังไม่มี</span>')+'</dd>'+
+   st.l+'</span>'+(b.pkg?" · "+esc(b.pkg):"")+'</p>';
+  if(b.co&&own){
+    h+='<div class="lgrow">'+logoTile(b.co,46)+'<div class="meta"><b>'+esc(b.co)+'</b>'+
+      (SITE[b.co]?'<a href="'+esc(SITE[b.co])+'" target="_blank" rel="noopener">'+esc(SITE[b.co])+'</a>':
+       '<span style="font-size:12.5px;color:var(--ink3)">ยังไม่มีเว็บไซต์</span>')+'</div></div>';
+    if(can("floorplan")==="write"){
+      h+='<input id="site" placeholder="เว็บไซต์บริษัท เช่น example.com" value="'+esc(SITE[b.co]||"")+
+        '" style="width:100%;padding:8px 11px;border:1px solid var(--line2);border-radius:8px;'+
+        'background:var(--paper);color:var(--ink);margin-bottom:7px">'+
+        '<div class="lgbtns"><button data-a="fetch">ดึงโลโก้จากเว็บไซต์</button>'+
+        '<label>อัปโหลดโลโก้<input type="file" id="up" accept="image/*"></label>'+
+        (LOGO[b.co]?'<button data-a="rmlogo">ลบโลโก้</button>':'')+'</div>'+
+        '<p class="simnote">ตัวอย่างนี้ดึงจากเน็ตจริงไม่ได้ เพราะหน้าเผยแพร่บล็อกการเรียกข้ามเว็บ '+
+        'กดแล้วจะได้ตัวยืนจากชื่อโดเมนแทน · <b>อัปโหลดเองใช้ได้จริง</b> ลองเลือกไฟล์ดู</p>';
+    }
+  }
+  h+='<dl class="kv">'+
+   (b.co&&!own?'<dt>ลูกค้า</dt><dd><span style="color:var(--ink2)">ดีลของเซลล์คนอื่น</span></dd>':'')+
+   (!b.co?'<dt>ลูกค้า</dt><dd><span style="color:var(--ink2)">ยังไม่มี</span></dd>':'')+
    (b.sales?'<dt>เซลล์</dt><dd>'+esc(b.sales)+'</dd>':'')+
    (b.contact&&own?'<dt>ผู้ติดต่อ</dt><dd>'+esc(b.contact)+(b.phone?"<br>"+esc(b.phone):"")+'</dd>':'')+
    '<dt>ราคาตั้ง</dt><dd>'+f(b.list)+' บาท</dd></dl><div class="acts">';
   if(!wr)h+='<p style="color:var(--ink2);font-size:13.5px;margin:0">บทบาทนี้ดูได้อย่างเดียว</p>';
-  else if(b.st==="free")h+='<input id="cu" placeholder="ชื่อลูกค้า"><button class="act go" data-a="book">จองในชื่อ '+esc(me)+'</button>';
+  else if(b.st==="free")h+='<input id="cu" placeholder="ชื่อบริษัท">'+
+    '<input id="cs" placeholder="เว็บไซต์บริษัท (ไม่บังคับ)">'+
+    '<button class="act go" data-a="book">จองในชื่อ '+esc(me)+'</button>';
   else if(!own)h+='<p style="color:var(--ink2);font-size:13.5px;margin:0 0 6px">บูธของ '+esc(b.sales)+' คุณแก้ไม่ได้</p>'+
     '<input id="cu" placeholder="ชื่อลูกค้าที่จะต่อคิว"><button class="act" data-a="q">ต่อคิว</button>';
   else h+=(NEXT[b.st]?'<button class="act go" data-a="next">เลื่อนเป็น '+ST[NEXT[b.st]].l+'</button>':'')+
@@ -376,10 +450,23 @@ function sidebar(){
     ' <small style="color:var(--ink3)">'+esc(x.sales)+'</small></span></li>').join("")+'</ul>';
   sd.innerHTML=h;
   sd.querySelectorAll("[data-a]").forEach(x=>x.addEventListener("click",()=>act(x.dataset.a)));
+  const up=$("#up");
+  if(up)up.addEventListener("change",e=>{
+    const fl=e.target.files[0]; if(!fl)return;
+    if(fl.size>500000){alert("ไฟล์ใหญ่เกิน 500KB");return}
+    const r=new FileReader();
+    r.onload=()=>{LOGO[b.co]=r.result;paint();sidebar()};
+    r.readAsDataURL(fl);
+  });
 }
 function act(a){
   const b=B.find(x=>x.code===sel),i=$("#cu"),n=i?i.value.trim():"";
-  if(a==="book"){if(!n){i.focus();return}b.st="booked";b.co=n;b.sales=me}
+  if(a==="book"){if(!n){i.focus();return}b.st="booked";b.co=n;b.sales=me;
+    const u=$("#cs")&&$("#cs").value.trim(); if(u)SITE[n]=norm(u);}
+  else if(a==="fetch"){
+    const u=$("#site").value.trim(); if(!u){$("#site").focus();return}
+    SITE[b.co]=norm(u); LOGO[b.co]=fakeLogo(SITE[b.co]);}
+  else if(a==="rmlogo")delete LOGO[b.co];
   else if(a==="next")b.st=NEXT[b.st]||b.st;
   else if(a==="q"){if(!n){i.focus();return}(Q[b.code]=Q[b.code]||[]).push({co:n,sales:me})}
   else if(a==="rel"){const qs=Q[b.code]||[];
@@ -396,7 +483,8 @@ function pDeals(){
      list.length+' จาก '+DEALS.length+' ดีล ตามค่า <code>scope = own</code></p></div>':'')+
    '<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>แพ็กเกจ</th><th>บูธ</th>'+
    '<th class="num">ราคาตั้ง</th><th>สถานะ</th><th>เซลล์</th><th>ผู้ติดต่อ</th></tr></thead><tbody>'+
-   list.map(d=>'<tr><td><b>'+esc(d.co)+'</b></td><td>'+esc(d.pkg||"—")+'</td>'+
+   list.map(d=>'<tr><td><span style="display:flex;gap:9px;align-items:center">'+logoTile(d.co,28)+
+    '<b>'+esc(d.co)+'</b></span></td><td>'+esc(d.pkg||"—")+'</td>'+
     '<td style="font-size:12.5px;color:var(--ink2)">'+esc(d.booths.slice(0,4).join(", "))+
       (d.booths.length>4?" +"+(d.booths.length-4):"")+'</td>'+
     '<td class="num">'+f(d.list)+'</td>'+
@@ -477,7 +565,7 @@ function stageList(){
 }
 
 function timelineHTML(){
-  const T0=560,T1=1330,PX=1.05,H=(T1-T0)*PX;
+  const T0=560,T1=1330,PX=2.3,H=(T1-T0)*PX;
   const hh=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
   let h='<div class="pw" style="padding:0"><div class="tlh"><div>เวลา</div>'+
    SG.map(s=>'<div>'+s+'</div>').join("")+'</div><div class="tl" style="height:'+H+'px">'+
@@ -486,9 +574,14 @@ function timelineHTML(){
   h+='</div>';
   SG.forEach(g=>{h+='<div class="col" style="height:'+H+'px">';
     SES.filter(s=>s.day===day&&s.stage===g).forEach(s=>{
-      const top=(s.a-T0)*PX,ht=Math.max(18,(s.b-s.a)*PX-3);
+      const top=(s.a-T0)*PX,ht=Math.max(26,(s.b-s.a)*PX-4);
       h+='<button class="ev" style="top:'+top+'px;height:'+ht+'px;background:'+cv(SCOL[s.kind]||"--ink3")+'">'+
-       '<span class="t">'+s.time+'</span><span class="n">'+esc(s.title||"—")+'</span></button>'});
+       '<span class="t">'+s.time+(s.min?' · '+s.min+' นาที':'')+'</span>'+
+       '<span class="n">'+esc(s.title||"—")+'</span>'+
+       (s.people.length&&ht>66?'<span class="fa">'+s.people.slice(0,4).map(p=>
+          avatar(p.n,22,1)).join("")+
+          '<span class="nm">'+esc(s.people.map(p=>p.n).join(", "))+'</span></span>':'')+
+       '</button>'});
     h+='</div>'});
   return h+'</div></div>';
 }
@@ -518,7 +611,7 @@ function bindDay(fn){
   $("#page").querySelectorAll("[data-d]").forEach(b=>b.addEventListener("click",()=>{day=+b.dataset.d;fn()}));
 }
 function oneTimeline(g){
-  const T0=560,T1=1330,PX=1.3,H=(T1-T0)*PX;
+  const T0=560,T1=1330,PX=2.6,H=(T1-T0)*PX;
   const hh=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
   let h='<div class="pw" style="padding:0"><div class="tlh" style="grid-template-columns:56px 1fr;min-width:420px">'+
    '<div>เวลา</div><div>'+esc(g)+'</div></div>'+
@@ -527,11 +620,13 @@ function oneTimeline(g){
   for(let m=Math.ceil(T0/60)*60;m<=T1;m+=60)h+='<div class="hr" style="top:'+((m-T0)*PX-7)+'px">'+hh(m)+'</div>';
   h+='</div><div class="col" style="height:'+H+'px">';
   SES.filter(s=>s.day===day&&s.stage===g).forEach(s=>{
-    const top=(s.a-T0)*PX,ht=Math.max(20,(s.b-s.a)*PX-3);
-    const who=s.people.map(p=>p.n).join(", ");
+    const top=(s.a-T0)*PX,ht=Math.max(26,(s.b-s.a)*PX-4);
     h+='<button class="ev" style="top:'+top+'px;height:'+ht+'px;background:'+cv(SCOL[s.kind]||"--ink3")+'">'+
-     '<span class="t">'+s.time+' · '+(s.min||"")+' นาที</span><span class="n">'+esc(s.title||"—")+'</span>'+
-     (who&&ht>52?'<span class="t" style="display:block;margin-top:2px">'+esc(who)+'</span>':'')+'</button>'});
+     '<span class="t">'+s.time+(s.min?' · '+s.min+' นาที':'')+'</span>'+
+     '<span class="n">'+esc(s.title||"—")+'</span>'+
+     (s.people.length&&ht>62?'<span class="fa">'+s.people.slice(0,5).map(p=>avatar(p.n,26,1)).join("")+
+       '<span class="nm">'+esc(s.people.map(p=>p.n+(p.pos?" · "+p.pos:"")).join(" / "))+'</span></span>':'')+
+     '</button>'});
   return h+'</div></div></div>';
 }
 
@@ -560,7 +655,8 @@ function sheet(rows){
           '<span style="color:var(--risk)">— ยังไม่มีหัวข้อ —</span>')+'</td>'+
         '<td'+span+' class="num">'+yn(s.cf)+'</td>';
       body+=
-        '<td>'+(p?esc(p.n):(need?'<span style="color:var(--risk)">ยังไม่มีสปีกเกอร์</span>':
+        '<td>'+(p?'<span style="display:flex;gap:8px;align-items:center">'+avatar(p.n,26)+
+          '<span>'+esc(p.n)+'</span></span>':(need?'<span style="color:var(--risk)">ยังไม่มีสปีกเกอร์</span>':
           '<span style="color:var(--ink3)">—</span>'))+'</td>'+
         '<td style="color:var(--ink2)">'+(p&&p.real?esc(p.real):"—")+'</td>'+
         '<td style="color:var(--ink2);min-width:170px">'+(p&&p.pos?esc(p.pos):"—")+'</td>'+

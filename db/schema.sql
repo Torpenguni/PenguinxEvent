@@ -159,6 +159,15 @@ create table company (
   tax_id          text,
   address         text,
   industry        text,
+
+  -- โลโก้ใช้ทั้งบนผัง ป้ายหัวบูธ สูจิบัตร และ Directory Board
+  -- fetched = เซิร์ฟเวอร์ไปอ่าน og:image หรือ favicon จาก website แล้วเก็บไฟล์ไว้เอง
+  -- ไม่ hotlink รูปจากเว็บลูกค้า เพราะเว็บเขาเปลี่ยนแล้วป้ายเราพัง
+  website         text,
+  logo_url        text,
+  logo_source     text check (logo_source in ('fetched','uploaded','from_exhibitor')),
+  logo_updated_at timestamptz,
+
   peak_contact_id text,                  -- id ฝั่ง PEAK เก็บไว้กันสร้างซ้ำ
   note            text,
   created_at      timestamptz not null default now()
