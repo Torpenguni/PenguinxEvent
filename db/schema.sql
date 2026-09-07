@@ -27,7 +27,7 @@ create table role_permission (
   role   text not null references role (code) on delete cascade,
   module text not null check (module in
            ('floorplan','deal','price','document','payment','budget','target',
-            'stage','marketing','exhibitor','movein','user','audit')),
+            'stage','marketing','exhibitor','movein','share','user','audit')),
   level  text not null check (level in ('none','read','write','approve')),
   -- เห็นเฉพาะของตัวเอง หรือเห็นทั้งงาน ใช้กับ deal เป็นหลัก
   scope  text not null default 'all' check (scope in ('own','all')),
@@ -42,6 +42,7 @@ insert into role_permission (role, module, level, scope) values
   ('admin','stage','write','all'),      ('admin','marketing','write','all'),
   ('admin','exhibitor','write','all'),  ('admin','movein','write','all'),
   ('admin','user','write','all'),       ('admin','audit','read','all'),
+  ('admin','share','write','all'),
   ('admin','target','write','all'),
 
   -- ผู้บริหาร เห็นทุกอย่างแต่ไม่แก้
@@ -51,6 +52,7 @@ insert into role_permission (role, module, level, scope) values
   ('exec','stage','read','all'),        ('exec','marketing','read','all'),
   ('exec','exhibitor','read','all'),    ('exec','movein','read','all'),
   ('exec','user','none','all'),         ('exec','audit','read','all'),
+  ('exec','share','read','all'),
   ('exec','target','read','all'),
 
   -- บัญชีการเงิน เจ้าของเอกสารและตัวเลข แต่ไม่ย้ายบูธ
@@ -60,6 +62,7 @@ insert into role_permission (role, module, level, scope) values
   ('finance','stage','none','all'),     ('finance','marketing','none','all'),
   ('finance','exhibitor','read','all'), ('finance','movein','none','all'),
   ('finance','user','none','all'),      ('finance','audit','read','all'),
+  ('finance','share','none','all'),
   ('finance','target','write','all'),
 
   -- หัวหน้าเซลล์ เห็นดีลทุกคน อนุมัติส่วนลดได้ แต่ยังไม่เห็นงบทั้งงาน
@@ -69,6 +72,7 @@ insert into role_permission (role, module, level, scope) values
   ('sales_lead','stage','read','all'),      ('sales_lead','marketing','read','all'),
   ('sales_lead','exhibitor','read','all'),  ('sales_lead','movein','none','all'),
   ('sales_lead','user','none','all'),       ('sales_lead','audit','none','all'),
+  ('sales_lead','share','none','all'),
   ('sales_lead','target','read','all'),
 
   -- เซลล์ จองบูธและดูแลดีลของตัวเอง ไม่เห็น Feasibility
@@ -78,6 +82,7 @@ insert into role_permission (role, module, level, scope) values
   ('sales','stage','read','all'),       ('sales','marketing','none','all'),
   ('sales','exhibitor','read','own'),   ('sales','movein','none','all'),
   ('sales','user','none','all'),        ('sales','audit','none','all'),
+  ('sales','share','none','all'),
   ('sales','target','none','all'),
 
   -- การตลาด
@@ -87,6 +92,7 @@ insert into role_permission (role, module, level, scope) values
   ('marketing','stage','write','all'),    ('marketing','marketing','write','all'),
   ('marketing','exhibitor','read','all'), ('marketing','movein','none','all'),
   ('marketing','user','none','all'),      ('marketing','audit','none','all'),
+  ('marketing','share','none','all'),
   ('marketing','target','none','all'),
 
   -- ปฏิบัติการ ดูแลผู้ออกบูธและงานก่อสร้าง
@@ -96,6 +102,7 @@ insert into role_permission (role, module, level, scope) values
   ('operations','stage','write','all'),     ('operations','marketing','none','all'),
   ('operations','exhibitor','write','all'), ('operations','movein','write','all'),
   ('operations','user','none','all'),       ('operations','audit','none','all'),
+  ('operations','share','write','all'),
   ('operations','target','none','all'),
 
   -- ดูอย่างเดียว
@@ -105,6 +112,7 @@ insert into role_permission (role, module, level, scope) values
   ('viewer','stage','read','all'),      ('viewer','marketing','none','all'),
   ('viewer','exhibitor','none','all'),  ('viewer','movein','none','all'),
   ('viewer','user','none','all'),       ('viewer','audit','none','all'),
+  ('viewer','share','none','all'),
   ('viewer','target','none','all');
 
 -- ---------------------------------------------------------------- คน & องค์กร
@@ -385,6 +393,43 @@ create table sponsor_benefit (
   evidence_url text
 );
 
+-- แชร์งานให้คนอื่นเข้ามาดูหรือแก้ ใช้ได้ทั้งคนในและคนนอกบริษัท
+-- ต่างจาก user_event ตรงที่ผูกกับอีเมล ไม่ต้องมีบัญชีมาก่อน และจำกัดได้ว่าเห็นโมดูลไหน
+create table event_share (
+  id         bigserial primary key,
+  event_id   bigint not null references event on delete cascade,
+  email      text not null,
+  user_id    bigint references app_user on delete set null,  -- เติมตอนกดรับคำเชิญ
+  permission text not null default 'view' check (permission in ('view','edit')),
+  -- null คือเห็นทั้งงานตามสิทธิ์ ถ้าระบุคือเห็นเฉพาะโมดูลนั้นโมดูลเดียว
+  scope_module text check (scope_module in
+                 ('floorplan','deal','budget','stage','exhibitor','movein')),
+  external   boolean not null default false,   -- อีเมลนอกโดเมนบริษัท
+  invited_by bigint references app_user,
+  invited_at timestamptz not null default now(),
+  accepted_at timestamptz,
+  revoked_at  timestamptz,
+  last_seen_at timestamptz,
+  note       text,
+  unique (event_id, email)
+);
+create index event_share_live_idx on event_share (event_id)
+  where revoked_at is null;
+
+-- คอมเมนต์ตามจุดต่าง ๆ ในงาน จะได้ไม่ต้องย้ายไปคุยกันในไลน์
+create table comment (
+  id         bigserial primary key,
+  event_id   bigint not null references event on delete cascade,
+  entity     text not null,          -- booth, deal, session, budget_line
+  entity_id  bigint not null,
+  author_id  bigint references app_user,
+  author_email text,                 -- คนนอกที่ยังไม่มีบัญชี
+  body       text not null,
+  resolved_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index comment_entity_idx on comment (entity, entity_id, created_at);
+
 -- คิวรอบูธเดียวกัน ผังกระบวนการเขียนไว้เป็น Que 1 -> Que 2 -> Que 3,4,5
 -- บูธดีๆ มีคนอยากได้พร้อมกันหลายเจ้า วันนี้คิวอยู่ในหัวเซลล์
 -- พอคนแรกไม่จ่ายมัดจำตามกำหนด ต้องรู้ทันทีว่าโทรหาใครต่อ
@@ -481,6 +526,9 @@ create table session (
   deal_id    bigint references deal on delete set null,
   slides_url text,
   slides_received boolean not null default false,
+  -- ลิงก์ Google Doc ที่ใช้เขียนสคริปต์ MC และคิวเวที
+  -- ชีตเดิมมีแท็บ Phone Agenda ที่พิมพ์มือ อันนี้แทนที่ตรงนั้น
+  script_url text,
   remark     text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
