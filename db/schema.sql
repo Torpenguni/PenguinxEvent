@@ -272,6 +272,18 @@ create table booth_type (
   unique (event_id, code)
 );
 
+-- เงื่อนไขของแต่ละแพ็กเกจ แยกเป็นแถวแทนที่จะเป็นข้อความก้อนเดียว
+-- เพราะบางข้อต้องส่งมอบจริงและตามได้ ผูกกับ sponsor_benefit ตอนปิดดีล
+create table package_benefit (
+  id            bigserial primary key,
+  booth_type_id bigint not null references booth_type on delete cascade,
+  label         text not null,
+  kind          text not null default 'included' check (kind in
+                  ('included','limit','restriction','optional')),
+  sort          int not null default 0
+);
+create index package_benefit_type_idx on package_benefit (booth_type_id, sort);
+
 create table booth (
   id            bigserial primary key,
   event_id      bigint not null references event on delete cascade,

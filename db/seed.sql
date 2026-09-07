@@ -61,4 +61,48 @@ select e.id, t.code, t.label, t.phase, t.applies, t.days, t.sort
  where e.code = 'restech-trc-2026'
 on conflict do nothing;
 
+-- เงื่อนไขแพ็กเกจ ตามที่ปรากฏในชีต Feasibility ของ Restech x TRC
+insert into package_benefit (booth_type_id, label, kind, sort)
+select bt.id, b.label, b.kind, b.sort
+  from booth_type bt
+  join event e on e.id = bt.event_id
+  join (values
+    ('title',    'พื้นที่ 6x12 m แบบพื้นที่เปล่า',        'included',   1),
+    ('title',    'สิทธิ์สื่อในแพ็กเกจสปอนเซอร์',           'included',   2),
+    ('title',    'ช่วงพูดบนเวทีหลัก',                      'included',   3),
+    ('title',    'บัตร Exhibitor 12 ใบ',                   'limit',      4),
+    ('platinum', 'พื้นที่ 6x6 m แบบพื้นที่เปล่า',          'included',   1),
+    ('platinum', 'รวม Workshop (ถ้าไม่รวมราคาลดลง)',       'optional',   2),
+    ('platinum', 'สิทธิ์สื่อในแพ็กเกจสปอนเซอร์',           'included',   3),
+    ('platinum', 'บัตร Exhibitor 8 ใบ',                    'limit',      4),
+    ('gold',     'พื้นที่ 3x6 m แบบพื้นที่เปล่า',          'included',   1),
+    ('gold',     'ตำแหน่ง Side Area ราคาต่ำกว่า',          'optional',   2),
+    ('gold',     'บัตร Exhibitor 6 ใบ',                    'limit',      3),
+    ('silver',   'พื้นที่ 3x6 m แบบพื้นที่เปล่า',          'included',   1),
+    ('silver',   'บัตร Exhibitor 6 ใบ',                    'limit',      2),
+    ('std3x3',   'คูหามาตรฐาน 3x3 m พร้อมโครง',            'included',   1),
+    ('std3x3',   'บูธมุมราคาเพิ่ม 5,000',                  'optional',   2),
+    ('std3x3',   'กระแสไฟบูธรวมแล้ว',                      'included',   3),
+    ('std3x3',   'บัตร Exhibitor 4 ใบ',                    'limit',      4),
+    ('food2x2',  'คูหา 2x2 m พร้อมโครง',                   'included',   1),
+    ('food2x2',  'ห้ามใช้เสียง',                            'restriction',2),
+    ('food2x2',  'บูธมุมราคาเพิ่ม 2,000',                  'optional',   3),
+    ('food2x2',  'บัตร Exhibitor 2 ใบ',                    'limit',      4)
+  ) as b(code, label, kind, sort) on b.code = bt.code
+ where e.code = 'restech-trc-2026'
+on conflict do nothing;
+
+-- ของขายเสริม ราคาตามชีต
+insert into addon (event_id, code, name, list_price)
+select e.id, a.code, a.name, a.price
+  from event e, (values
+    ('speaker_session', 'Additional Speaker Session (ไม่เกิน 3 Session)', 120000),
+    ('mc_onground',     'MC On Ground ประกาศหน้าบูธ',                     2000),
+    ('photo',           'ภาพนิ่งบูธ',                                       500),
+    ('video',           'ภาพวิดีโอบูธ',                                    5000),
+    ('workshop',        'Workshop Package',                              100000)
+  ) as a(code, name, price)
+ where e.code = 'restech-trc-2026'
+on conflict do nothing;
+
 commit;
