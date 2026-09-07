@@ -1,0 +1,205 @@
+<title>ผัง TRC โซนอาหาร</title>
+<style>
+:root{--paper:#F5F6F2;--card:#FFF;--ink:#191D1A;--ink2:#4E564F;--line:#E0E2DA;--line2:#CDD1C6;
+--accent:#0E5C4A;--soft:#E4EFE9;--free:#2F9E62;--hold:#D08A0A;--sold:#8B9088;--block:#5B6BA8;
+--zA:#3E7BC4;--zE:#C4713E;--zF:#8E5BB0;--zH:#2F9E62;--zN:#C43E6B;--zX:#5B6BA8;
+--sh:0 1px 2px rgba(25,29,26,.05),0 8px 24px -18px rgba(25,29,26,.35)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#12150F;--card:#1B1F19;--ink:#EDEFE8;--ink2:#A3AB9F;
+--line:#2C3129;--line2:#3C4239;--accent:#63C9A8;--soft:#1D2A24;--free:#4FBE7F;--hold:#E0A63A;--sold:#7C8279;--block:#8494C9;
+--zA:#6FA3E0;--zE:#DE9666;--zF:#B285CE;--zH:#4FBE7F;--zN:#DE6E96;--zX:#8494C9;
+--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.8)}}
+:root[data-theme="dark"]{--paper:#12150F;--card:#1B1F19;--ink:#EDEFE8;--ink2:#A3AB9F;
+--line:#2C3129;--line2:#3C4239;--accent:#63C9A8;--soft:#1D2A24;--free:#4FBE7F;--hold:#E0A63A;--sold:#7C8279;--block:#8494C9;
+--zA:#6FA3E0;--zE:#DE9666;--zF:#B285CE;--zH:#4FBE7F;--zN:#DE6E96;--zX:#8494C9;
+--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.8)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;
+font-family:"IBM Plex Sans Thai","Noto Sans Thai",-apple-system,"Sukhumvit Set","Helvetica Neue",Thonburi,Arial,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:48px 20px 90px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 12px}
+h1{font-size:clamp(26px,4.2vw,38px);line-height:1.25;margin:0 0 12px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.lede{font-size:17px;color:var(--ink2);margin:0 0 28px;max-width:66ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:0 0 26px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:var(--sh)}
+.stat b{display:block;font-size:26px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--ink2);letter-spacing:.04em}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+input[type=search]{flex:1;min-width:200px;padding:10px 14px;border:1px solid var(--line2);border-radius:8px;
+background:var(--card);color:var(--ink);font:inherit;font-size:15px}
+input[type=search]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:transparent;color:var(--ink2);font:inherit;font-size:14px;padding:10px 15px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--card)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 16px}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2)}
+.legend i{width:12px;height:12px;border-radius:3px;display:block}
+.planwrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--sh)}
+svg{display:block;min-width:900px;width:100%;height:auto}
+.bt{cursor:pointer}
+.bt rect{stroke:#fff;stroke-width:.12;transition:opacity .12s}
+.bt:hover rect{stroke:var(--ink);stroke-width:.28}
+.bt.dim{opacity:.16}
+.bt text{pointer-events:none;font-weight:600;fill:#fff}
+.area rect{fill:var(--line);opacity:.55}
+.area text{fill:var(--ink2);font-weight:600;pointer-events:none}
+.panel{margin-top:18px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+border-radius:10px;padding:20px 24px;box-shadow:var(--sh);min-height:120px}
+.panel h3{margin:0 0 3px;font-size:20px;font-weight:700}
+.panel .sub{margin:0 0 14px;color:var(--ink2);font-size:14px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:7px 16px;margin:0;font-size:15px}
+.kv dt{color:var(--ink2);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding-top:3px}
+.kv dd{margin:0;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;color:#fff}
+.empty{color:var(--ink2);font-size:15px;margin:0}
+h2{font-size:13px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--ink2);
+margin:44px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.note{background:var(--soft);border:1px solid var(--line2);border-left:4px solid var(--accent);border-radius:8px;padding:18px 22px}
+.note p{margin:0 0 10px}.note p:last-child{margin:0}
+ul.plain{margin:0;padding-left:20px}ul.plain li{margin-bottom:8px}ul.plain li:last-child{margin:0}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink2)}
+code{background:var(--soft);padding:2px 6px;border-radius:4px;font-size:12.5px;color:var(--accent)}
+</style>
+<div class="wrap">
+<p class="eyebrow">penguinxevent · ตัวอย่างที่ทำเอง</p>
+<h1>ผัง TRC ของเราเอง ทำจากชีตจริง</h1>
+<p class="lede">ผังนี้ไม่ได้วาดใหม่ ดึงพิกัดออกมาจากชีต <b>Restech x TRC 2026 Booking</b> ตรง ๆ
+ทุกรหัสบูธ ทุกชื่อผู้เช่า และทุกตำแหน่ง คือของจริงจากแท็บล่าสุดในไฟล์นั้น
+กดบูธไหนก็ได้เพื่อดูรายละเอียด</p>
+
+<div class="stats" id="stats"></div>
+<div class="bar">
+  <input type="search" id="q" placeholder="ค้นรหัสบูธ หรือ ชื่อผู้เช่า" aria-label="ค้นหาบูธ">
+  <div class="seg" role="group" aria-label="โหมดสี">
+    <button id="mStatus" aria-pressed="true">สีตามสถานะ</button>
+    <button id="mZone" aria-pressed="false">สีตามโซน</button>
+  </div>
+</div>
+<div class="legend" id="legend"></div>
+<div class="planwrap"><svg id="plan" viewBox="52 -1.6 69 23.4" role="img" aria-label="ผังบูธ"></svg></div>
+<div class="panel" id="panel"><p class="empty">กดบูธบนผังเพื่อดูรายละเอียด</p></div>
+<script>
+const DATA={"booths": [{"code": "A31", "key": "A31", "zone": "A", "name": "Nerd Labo", "x": 59, "y": 18, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": 40000, "status": "sold"}, {"code": "A32", "key": "A32", "zone": "A", "name": "หมีคู่ดาว", "x": 59, "y": 15, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": 0, "status": "sold"}, {"code": "A33", "key": "A33", "zone": "A", "name": "Panich Natural", "x": 59, "y": 12, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": 35000, "status": "sold"}, {"code": "A34", "key": "A34", "zone": "A", "name": "Kaspy", "x": 59, "y": 9, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": 0, "status": "sold"}, {"code": "A35", "key": "A35", "zone": "A", "name": "หมูกรอบ เนเวอร์ดาย", "x": 61, "y": 6, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": 35000, "status": "sold"}, {"code": "A36", "key": "A36", "zone": "A", "name": "Kinza Gyoza", "x": 64, "y": 4, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "A37", "key": "A37", "zone": "A", "name": "Mariam Ocean", "x": 67, "y": 4, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": 0, "status": "sold"}, {"code": "E25, E27", "key": "E25", "zone": "E", "name": "เวย์ตาน่า", "x": 68, "y": 18, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "E28", "key": "E28", "zone": "E", "name": "เอส เอ็น พี & นิวเอ็กซ์", "x": 71, "y": 18, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "E29", "key": "E29", "zone": "E", "name": "โปรแพลน อุตสาหกรรม", "x": 68, "y": 15, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "E30", "key": "E30", "zone": "E", "name": "ชัยจินดา ซีฟู้ด", "x": 71, "y": 15, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "E31", "key": "E31", "zone": "E", "name": "ศ.วรภัทร อินเตอร์ ฟู้ดส์", "x": 68, "y": 12, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "E32", "key": "E32", "zone": "E", "name": "ไทย สุวรรณฟู้ด", "x": 71, "y": 12, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "F26, F28", "key": "F26", "zone": "F", "name": "Kew P", "x": 80, "y": 18, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "F27", "key": "F27", "zone": "F", "name": null, "x": 77, "y": 18, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "available"}, {"code": "F29", "key": "F29", "zone": "F", "name": null, "x": 77, "y": 15, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "available"}, {"code": "F30", "key": "F30", "zone": "F", "name": "น้าเน็ก เก็กฮวย", "x": 80, "y": 15, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "F31", "key": "F31", "zone": "F", "name": "องค์การคลัง สินค้าข้าว", "x": 77, "y": 12, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "F32", "key": "F32", "zone": "F", "name": "Italthai HOS", "x": 80, "y": 12, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "H27", "key": "H27", "zone": "H", "name": "Miss Mamon", "x": 86, "y": 18, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "H28", "key": "H28", "zone": "H", "name": "Diana หาดใหญ่", "x": 89, "y": 18, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "H29", "key": "H29", "zone": "H", "name": "Make Me Mango", "x": 86, "y": 15, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "H30", "key": "H30", "zone": "H", "name": "Nimbly", "x": 89, "y": 15, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "H31", "key": "H31", "zone": "H", "name": "Buds", "x": 86, "y": 12, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "H32", "key": "H32", "zone": "H", "name": "Guardian Diamond", "x": 89, "y": 12, "w": 3, "h": 3, "size": "3x3 m", "sqm": 9, "list": 50000, "deal": null, "status": "sold"}, {"code": "N1", "key": "N1", "zone": "N", "name": "Zoul cider", "x": 96, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N2", "key": "N2", "zone": "N", "name": "Brewave", "x": 98, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N3", "key": "N3", "zone": "N", "name": "เจปัง", "x": 100, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N4", "key": "N4", "zone": "N", "name": "นาบเนื้อ", "x": 102, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N5", "key": "N5", "zone": "N", "name": "Jem Juice", "x": 104, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N6", "key": "N6", "zone": "N", "name": "กุเลาทอง แม่แป้น", "x": 106, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N7", "key": "N7", "zone": "N", "name": "Mom's Korean Grill", "x": 108, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N8", "key": "N8", "zone": "N", "name": "ขาหมูพระนคร", "x": 110, "y": 1, "w": 2, "h": 2, "size": "2x2 m", "sqm": 4, "list": 23000, "deal": null, "status": "sold"}, {"code": "N9", "key": "N9", "zone": "N", "name": "EU Wine", "x": 112, "y": 2, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "N10", "key": "N10", "zone": "N", "name": "Call me papa", "x": 114, "y": 4, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "N11", "key": "N11", "zone": "N", "name": "ฮั่วเซ่งฮง", "x": 116, "y": 7, "w": 1, "h": 2, "size": "1x2 m", "sqm": 2, "list": null, "deal": null, "status": "sold"}, {"code": "N12", "key": "N12", "zone": "N", "name": "พาเลท", "x": 116, "y": 9, "w": 1, "h": 2, "size": "1x2 m", "sqm": 2, "list": null, "deal": null, "status": "sold"}, {"code": "N13", "key": "N13", "zone": "N", "name": "กุ้งถัง", "x": 116, "y": 11, "w": 1, "h": 2, "size": "1x2 m", "sqm": 2, "list": null, "deal": null, "status": "sold"}, {"code": "N14", "key": "N14", "zone": "N", "name": "ล่าเมียว", "x": 116, "y": 13, "w": 1, "h": 2, "size": "1x2 m", "sqm": 2, "list": null, "deal": null, "status": "sold"}, {"code": "N15", "key": "N15", "zone": "N", "name": "thefatkids", "x": 116, "y": 15, "w": 1, "h": 2, "size": "1x2 m", "sqm": 2, "list": null, "deal": null, "status": "sold"}, {"code": "N16", "key": "N16", "zone": "N", "name": "ข้าวหน้า", "x": 116, "y": 17, "w": 1, "h": 2, "size": "1x2 m", "sqm": 2, "list": null, "deal": null, "status": "sold"}, {"code": "N17", "key": "N17", "zone": "N", "name": "Wine De Kalasin", "x": 116, "y": 19, "w": 1, "h": 1, "size": "1x1 m", "sqm": 1, "list": null, "deal": null, "status": "sold"}, {"code": "N18", "key": "N18", "zone": "N", "name": "หมี่ไก่ฉีกฮิ", "x": 93, "y": 2, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "N19", "key": "N19", "zone": "N", "name": "นายป.", "x": 91, "y": 4, "w": 3, "h": 2, "size": "3x2 m", "sqm": 6, "list": null, "deal": null, "status": "sold"}, {"code": "X12", "key": "X12", "zone": "X", "name": null, "x": 74, "y": 8, "w": 1, "h": 1, "size": "1x1 m", "sqm": 1, "list": null, "deal": null, "status": "available"}, {"code": "X13", "key": "X13", "zone": "X", "name": null, "x": 96, "y": 10, "w": 1, "h": 1, "size": "1x1 m", "sqm": 1, "list": null, "deal": null, "status": "available"}], "areas": [{"name": "TRC STAGE", "x": 0, "y": 0, "w": 59, "h": 20}, {"name": "X2 Exclusive Activity Area", "x": 70, "y": 0, "w": 18, "h": 8}, {"name": "washing", "x": 91, "y": 0, "w": 3, "h": 2}, {"name": "Food Zone", "x": 96, "y": 3, "w": 16, "h": 3}, {"name": "Food Zone", "x": 113, "y": 7, "w": 3, "h": 13}, {"name": "Food Suppliers", "x": 62, "y": 9, "w": 6, "h": 11}, {"name": "Food Ingredient", "x": 74, "y": 12, "w": 3, "h": 8}, {"name": "Berverage Service", "x": 83, "y": 12, "w": 3, "h": 8}, {"name": "Restaurant Service", "x": 92, "y": 12, "w": 3, "h": 8}, {"name": "Rest Area", "x": 101, "y": 13, "w": 7, "h": 3}]};
+const ZC={A:'--zA',E:'--zE',F:'--zF',H:'--zH',N:'--zN',X:'--zX'};
+const ZN={A:'โซน A',E:'โซน E',F:'โซน F',H:'โซน H',N:'โซน N',X:'จุดกิจกรรม'};
+const ST={sold:{l:'ขายแล้ว',c:'--sold'},available:{l:'ว่าง',c:'--free'},held:{l:'จองไว้',c:'--hold'}};
+const cv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const baht=n=>n===null||n===undefined?'—':n===0?'0 (แลกของ)':n.toLocaleString('th-TH')+' บาท';
+let mode='status',sel=null,q='';
+const svg=document.getElementById('plan'),NS='http://www.w3.org/2000/svg';
+function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+function draw(){
+  svg.textContent='';
+  DATA.areas.forEach(a=>{
+    const g=el('g',{class:'area'}),cy=a.y+a.h/2;
+    const cx=Math.min(Math.max(a.x+a.w/2,53.8),120);
+    g.appendChild(el('rect',{x:a.x,y:a.y,width:a.w,height:a.h,rx:.25}));
+    const vert=a.h>a.w*1.4, span=vert?a.h:a.w;
+    const fs=Math.min(vert?a.w*.62:1, .95), max=Math.max(4,Math.floor(span/(fs*.62)));
+    const off=a.x+a.w/2<54;
+    const t=el('text',{x:off?54.3:cx,y:off?a.y+1.25:cy+fs*.35,'text-anchor':off?'start':'middle','font-size':fs});
+    if(vert)t.setAttribute('transform','rotate(-90 '+cx+' '+cy+')');
+    const nm=a.name==='TRC STAGE'?'← TRC STAGE':a.name;
+    t.textContent=nm.length>max?nm.slice(0,max-1)+'…':nm;
+    g.appendChild(t);svg.appendChild(g);
+  });
+  DATA.booths.forEach(b=>{
+    const fill=mode==='status'?cv(ST[b.status].c):cv(ZC[b.zone]||'--sold');
+    const g=el('g',{class:'bt',tabindex:0,role:'button'});
+    g.dataset.key=b.key;
+    g.setAttribute('aria-label',b.code+(b.name?' '+b.name:'')+' '+ST[b.status].l);
+    g.appendChild(el('rect',{x:b.x+.08,y:b.y+.08,width:b.w-.16,height:b.h-.16,rx:.22,fill:fill}));
+    const cx=b.x+b.w/2,cy=b.y+b.h/2,narrow=b.w<1.6;
+    const two=b.name&&b.h>2.4&&!narrow;
+    const fs=narrow?.55:.8;
+    const c=el('text',{x:cx,y:two?cy-.12:cy+fs*.36,'text-anchor':'middle','font-size':fs});
+    if(narrow)c.setAttribute('transform','rotate(-90 '+cx+' '+cy+')');
+    c.textContent=b.key;g.appendChild(c);
+    if(two){
+      const nf=.55, max=Math.max(4,Math.floor((b.w-.3)/(nf*.58)));
+      const n=el('text',{x:cx,y:cy+.82,'text-anchor':'middle','font-size':nf,opacity:.93});
+      n.textContent=b.name.length>max?b.name.slice(0,max-1)+'…':b.name;g.appendChild(n);
+    }
+    g.addEventListener('click',()=>pick(b.key));
+    g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(b.key)}});
+    svg.appendChild(g);
+  });
+  filter();
+}
+function filter(){
+  const s=q.trim().toLowerCase();
+  document.querySelectorAll('.bt').forEach(g=>{
+    const b=DATA.booths.find(x=>x.key===g.dataset.key);
+    const hit=!s||b.code.toLowerCase().includes(s)||(b.name||'').toLowerCase().includes(s);
+    g.classList.toggle('dim',!hit);
+  });
+}
+function pick(k){
+  sel=DATA.booths.find(b=>b.key===k);
+  const p=document.getElementById('panel'),s=ST[sel.status];
+  p.innerHTML='<h3>'+sel.code+(sel.name?' · '+sel.name:'')+'</h3>'+
+   '<p class="sub">'+(ZN[sel.zone]||'')+' · '+sel.size+' · '+sel.sqm+' ตร.ม.</p>'+
+   '<dl class="kv">'+
+   '<dt>สถานะ</dt><dd><span class="pill" style="background:'+cv(s.c)+'">'+s.l+'</span></dd>'+
+   '<dt>ผู้เช่า</dt><dd>'+(sel.name||'ยังไม่มี')+'</dd>'+
+   '<dt>ราคาตั้ง</dt><dd>'+baht(sel.list)+'</dd>'+
+   '<dt>ขายได้จริง</dt><dd>'+(sel.deal===undefined||sel.deal===null?'<span style="color:var(--ink2)">ไม่มีในชีต ต้องไล่หาเอง</span>':baht(sel.deal))+'</dd>'+
+   '<dt>เซลล์เจ้าของ</dt><dd style="color:var(--ink2)">ชีตผังไม่ได้เก็บ</dd>'+
+   '<dt>มัดจำ</dt><dd style="color:var(--ink2)">ชีตผังไม่ได้เก็บ</dd>'+
+   '</dl>';
+}
+function stats(){
+  const b=DATA.booths,sold=b.filter(x=>x.status==='sold').length;
+  const known=b.filter(x=>x.deal!==null&&x.deal!==undefined);
+  const rev=known.reduce((s,x)=>s+x.deal,0);
+  document.getElementById('stats').innerHTML=
+   [[b.length,'บูธในผังนี้'],[sold,'ขายแล้ว'],[b.length-sold,'ยังว่าง'],
+    [Math.round(sold/b.length*100)+'%','ขายไปแล้ว'],[known.length+'/'+b.length,'ที่รู้ราคาจริง']]
+   .map(([v,l])=>'<div class="stat"><b>'+v+'</b><span>'+l+'</span></div>').join('');
+}
+function legend(){
+  const items=mode==='status'
+    ?[['--free','ว่าง'],['--hold','จองไว้'],['--sold','ขายแล้ว']]
+    :Object.keys(ZN).map(k=>[ZC[k],ZN[k]]);
+  document.getElementById('legend').innerHTML=items.map(([c,l])=>
+    '<span><i style="background:'+cv(c)+'"></i>'+l+'</span>').join('');
+}
+document.getElementById('q').addEventListener('input',e=>{q=e.target.value;filter()});
+document.getElementById('mStatus').addEventListener('click',()=>setMode('status'));
+document.getElementById('mZone').addEventListener('click',()=>setMode('zone'));
+function setMode(m){mode=m;
+  document.getElementById('mStatus').setAttribute('aria-pressed',m==='status');
+  document.getElementById('mZone').setAttribute('aria-pressed',m==='zone');
+  legend();draw();}
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{legend();draw()});
+stats();legend();draw();
+</script>
+
+<h2>สิ่งที่หน้านี้พิสูจน์แล้ว</h2>
+<div class="note">
+<p><b>ทำได้ และข้อมูลมีอยู่แล้ว</b> — ผังที่เห็นสร้างจากชีตอัตโนมัติ ไม่มีใครนั่งวาดใหม่
+เพราะทีมวาดผังด้วยการ merge ช่องตารางอยู่แล้ว พิกัดจึงอ่านออกมาเป็นตัวเลขได้ทันที</p>
+<p><b>แต่ชีตขาดสามอย่างที่ผังของ Surf Expo มี</b> — สถานะบูธ ราคา และคนดูแล
+บนหน้านี้ผมเดาสถานะจาก “มีชื่อผู้เช่าเขียนอยู่มั้ย” เพราะชีตไม่มีคอลัมน์สถานะ
+บูธที่เขียนแค่รหัสอย่าง <code>F27</code> เลยกลายเป็นว่าง ซึ่งอาจไม่จริง</p>
+<p><b>ราคาที่ขายได้จริงรู้แค่ 6 บูธจาก 46</b> เพราะชีตงบกับชีตผังไม่ได้ผูกกัน
+ต้องไล่จับคู่ด้วยมือทีละรหัส นี่คือช่องว่างที่ระบบปิดให้ได้ตั้งแต่วันแรก</p>
+</div>
+
+<h2>ที่ยังทำไม่ได้ในหน้าเดียว</h2>
+<ul class="plain">
+<li><b>ผังเต็มฮอลล์</b> — ไฟล์ที่อ่านมีเฉพาะฝั่งโซนอาหาร ส่วนซ้ายถูกยุบเป็นบล็อก TRC STAGE ก้อนเดียว บูธ A1–A30, B, C, D อยู่ในไฟล์อื่น</li>
+<li><b>แก้สถานะจากหน้าจอ</b> — หน้านี้อ่านอย่างเดียว ของจริงต้องกดเปลี่ยนสถานะแล้วบันทึกพร้อม audit log</li>
+<li><b>สีตามวันเข้างาน</b> — ใช้ผังเดียวกันสลับโหมดสีให้ทีมก่อสร้างอ่าน ทำได้ด้วยข้อมูลชุดเดิม</li>
+</ul>
+
+<h2>ถัดไป</h2>
+<ul class="plain">
+<li>ขอไฟล์ผังของอีกสามงาน แล้วดึงเข้าระบบด้วยวิธีเดียวกัน</li>
+<li>ยืนยันสถานะจริงของบูธที่หน้านี้เดาว่าว่าง</li>
+<li>ต่อผังเข้ากับตาราง <code>deal</code> เพื่อให้กดบูธแล้วเห็นราคาจริง มัดจำ และเซลล์เจ้าของ</li>
+</ul>
+
+<footer>ที่มา · ผัง Restech x TRC 2026 Booking (แท็บล่าสุด) · ราคาที่ขายได้จริงจาก Feasibility_Restech x TRC 2026 ·
+ราคาตั้งจากตารางสินค้าคงคลังบูธในชีตเดียวกัน · โครงข้อมูลอยู่ใน <code>db/schema.sql</code></footer>
+</div>
