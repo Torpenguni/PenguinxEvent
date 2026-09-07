@@ -266,6 +266,9 @@ create table booth_type (
   sqm          numeric(8,2) generated always as (width_m * depth_m) stored,
   list_price   numeric(12,2) not null,  -- ราคาตั้ง ไม่ใช่ราคาที่ขายได้จริง
   build_cost   numeric(12,2) not null default 0,  -- ต้นทุนสร้าง เช่น shell scheme 2,500
+  -- เพดานบัตรตามแพ็กเกจ ใช้บังคับตอนผู้ออกบูธกรอกชื่อคนประจำบูธเอง
+  badge_exhibitor  int not null default 4,
+  badge_contractor int not null default 2,
   unique (event_id, code)
 );
 
@@ -678,6 +681,12 @@ create table sales_agent (
 create table task_template (
   id       bigserial primary key,
   event_id bigint not null references event on delete cascade,
+  -- ใครเป็นคนทำงานนี้ ทีมเราหรือผู้ออกบูธเอง
+  -- งานที่ผู้ออกบูธทำเองคือของที่จะโผล่ในพอร์ทัลของเขา
+  assigned_to text not null default 'exhibitor'
+                check (assigned_to in ('exhibitor','organiser')),
+  required boolean not null default true,
+  instructions text,
   code     text not null,                -- contact, line_group, manual, logo,
                                          -- fascia_name, badge_ex, badge_con,
                                          -- f6, f2, f3, design, insurance
@@ -703,6 +712,23 @@ create table exhibitor_task (
 );
 create index exhibitor_task_open_idx on exhibitor_task (due_date)
   where done = false;
+
+-- คนประจำบูธ ชีตเดิมนับเป็นจำนวนบัตร Exhibitor กับบัตร Contractor
+-- จำนวนบัตรผูกกับแพ็กเกจ ระบบบังคับเพดานให้เอง จะได้ไม่ต้องมานั่งเถียงหน้างาน
+create table booth_staff (
+  id         bigserial primary key,
+  deal_id    bigint not null references deal on delete cascade,
+  name       text not null,
+  role       text,
+  phone      text,
+  email      text,
+  badge_type text not null default 'exhibitor'
+               check (badge_type in ('exhibitor','contractor')),
+  badge_no   text,
+  checked_in_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index booth_staff_deal_idx on booth_staff (deal_id);
 
 -- ---------------------------------------------------------------- ร่องรอย
 
