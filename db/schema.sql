@@ -26,7 +26,7 @@ insert into role (code, name, sort) values
 create table role_permission (
   role   text not null references role (code) on delete cascade,
   module text not null check (module in
-           ('floorplan','deal','price','document','payment','budget',
+           ('floorplan','deal','price','document','payment','budget','target',
             'stage','marketing','exhibitor','movein','user','audit')),
   level  text not null check (level in ('none','read','write','approve')),
   -- เห็นเฉพาะของตัวเอง หรือเห็นทั้งงาน ใช้กับ deal เป็นหลัก
@@ -42,6 +42,7 @@ insert into role_permission (role, module, level, scope) values
   ('admin','stage','write','all'),      ('admin','marketing','write','all'),
   ('admin','exhibitor','write','all'),  ('admin','movein','write','all'),
   ('admin','user','write','all'),       ('admin','audit','read','all'),
+  ('admin','target','write','all'),
 
   -- ผู้บริหาร เห็นทุกอย่างแต่ไม่แก้
   ('exec','floorplan','read','all'),    ('exec','deal','read','all'),
@@ -50,6 +51,7 @@ insert into role_permission (role, module, level, scope) values
   ('exec','stage','read','all'),        ('exec','marketing','read','all'),
   ('exec','exhibitor','read','all'),    ('exec','movein','read','all'),
   ('exec','user','none','all'),         ('exec','audit','read','all'),
+  ('exec','target','read','all'),
 
   -- บัญชีการเงิน เจ้าของเอกสารและตัวเลข แต่ไม่ย้ายบูธ
   ('finance','floorplan','read','all'), ('finance','deal','read','all'),
@@ -58,6 +60,7 @@ insert into role_permission (role, module, level, scope) values
   ('finance','stage','none','all'),     ('finance','marketing','none','all'),
   ('finance','exhibitor','read','all'), ('finance','movein','none','all'),
   ('finance','user','none','all'),      ('finance','audit','read','all'),
+  ('finance','target','write','all'),
 
   -- หัวหน้าเซลล์ เห็นดีลทุกคน อนุมัติส่วนลดได้ แต่ยังไม่เห็นงบทั้งงาน
   ('sales_lead','floorplan','write','all'), ('sales_lead','deal','write','all'),
@@ -66,6 +69,7 @@ insert into role_permission (role, module, level, scope) values
   ('sales_lead','stage','read','all'),      ('sales_lead','marketing','read','all'),
   ('sales_lead','exhibitor','read','all'),  ('sales_lead','movein','none','all'),
   ('sales_lead','user','none','all'),       ('sales_lead','audit','none','all'),
+  ('sales_lead','target','read','all'),
 
   -- เซลล์ จองบูธและดูแลดีลของตัวเอง ไม่เห็น Feasibility
   ('sales','floorplan','write','all'),  ('sales','deal','write','own'),
@@ -74,6 +78,7 @@ insert into role_permission (role, module, level, scope) values
   ('sales','stage','read','all'),       ('sales','marketing','none','all'),
   ('sales','exhibitor','read','own'),   ('sales','movein','none','all'),
   ('sales','user','none','all'),        ('sales','audit','none','all'),
+  ('sales','target','none','all'),
 
   -- การตลาด
   ('marketing','floorplan','read','all'), ('marketing','deal','read','all'),
@@ -82,6 +87,7 @@ insert into role_permission (role, module, level, scope) values
   ('marketing','stage','write','all'),    ('marketing','marketing','write','all'),
   ('marketing','exhibitor','read','all'), ('marketing','movein','none','all'),
   ('marketing','user','none','all'),      ('marketing','audit','none','all'),
+  ('marketing','target','none','all'),
 
   -- ปฏิบัติการ ดูแลผู้ออกบูธและงานก่อสร้าง
   ('operations','floorplan','write','all'), ('operations','deal','read','all'),
@@ -90,6 +96,7 @@ insert into role_permission (role, module, level, scope) values
   ('operations','stage','write','all'),     ('operations','marketing','none','all'),
   ('operations','exhibitor','write','all'), ('operations','movein','write','all'),
   ('operations','user','none','all'),       ('operations','audit','none','all'),
+  ('operations','target','none','all'),
 
   -- ดูอย่างเดียว
   ('viewer','floorplan','read','all'),  ('viewer','deal','none','all'),
@@ -97,7 +104,8 @@ insert into role_permission (role, module, level, scope) values
   ('viewer','payment','none','all'),    ('viewer','budget','none','all'),
   ('viewer','stage','read','all'),      ('viewer','marketing','none','all'),
   ('viewer','exhibitor','none','all'),  ('viewer','movein','none','all'),
-  ('viewer','user','none','all'),       ('viewer','audit','none','all');
+  ('viewer','user','none','all'),       ('viewer','audit','none','all'),
+  ('viewer','target','none','all');
 
 -- ---------------------------------------------------------------- คน & องค์กร
 
@@ -209,6 +217,8 @@ create table event (
   move_out_to   date,
   status        text not null default 'planning'
                   check (status in ('planning','selling','onsite','closed','archived')),
+  -- เป้ารายได้ที่ตกลงกันไว้ ไม่ใช่ผลรวมราคาตั้ง
+  -- ของ Restech x TRC 2026 คือ 13,066,200 มาจากราคาตั้ง 21,777,000 หัก 40%
   revenue_goal  numeric(14,2),
   cloned_from   bigint references event,  -- ปีหน้าโคลนจากปีนี้
   created_at    timestamptz not null default now()
