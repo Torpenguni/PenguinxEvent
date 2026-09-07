@@ -370,33 +370,88 @@ function pPlan(){
   $("#plan").setAttribute("viewBox",X0+" "+Y0+" "+(X1-X0)+" "+(Y1-Y0));
   paint(); sidebar();
 }
+/* ตัดรหัสบูธเป็นบรรทัดให้พอดีความกว้าง แล้วคืนขนาดตัวอักษรที่ใช้ได้ */
+/* จัดป้ายโซนให้อยู่ในกรอบ ตัดตามช่องว่างก่อน ถ้ายังไม่พอค่อยย่อขนาด */
+function wrapLabel(txt,w,h){
+  const W=.52, MAX=.8, MIN=.15;
+  const words=String(txt).split(/\s+/).filter(Boolean);
+  const pack=(per)=>{                       // จัดคำลงบรรทัด ไม่หักกลางคำ
+    const out=[]; let cur="";
+    for(const wd of words){
+      const t=cur?cur+" "+wd:wd;
+      if(t.length<=per)cur=t; else{ if(cur)out.push(cur); cur=wd }
+    }
+    if(cur)out.push(cur);
+    return out;
+  };
+  // รอบแรก ย่อขนาดลงเรื่อย ๆ จนคำยาวสุดพอดีบรรทัด โดยไม่หักคำ
+  for(let fs=MAX; fs>=MIN; fs-=.03){
+    const per=Math.max(1,Math.floor(w/(fs*W)));
+    if(Math.max(...words.map(x=>x.length))>per)continue;
+    const lines=pack(per);
+    if(lines.length*fs*1.12<=h)return {lines,n:lines.length,fs};
+  }
+  // ยังไม่พอ ค่อยยอมหักคำที่ขนาดเล็กสุด
+  const per=Math.max(2,Math.floor(w/(MIN*W)));
+  const out=[];
+  for(const wd of words){
+    if(wd.length<=per)out.push(wd);
+    else for(let i=0;i<wd.length;i+=per)out.push(wd.slice(i,i+per));
+  }
+  const max=Math.max(1,Math.floor(h/(MIN*1.12)));
+  if(out.length>max){out.length=max; out[max-1]=out[max-1].slice(0,per-1)+"…"}
+  return {lines:out,n:out.length,fs:MIN};
+}
+function fitLines(code,w){
+  const W=.53;                       // ความกว้างตัวอักษรโดยประมาณ เทียบกับ font-size
+  const size=t=>Math.min(.5,w/(t.length*W));
+  let parts=[code];
+  if(size(code)<.3){                 // แคบไป ลองตัดเป็นสองบรรทัด
+    const cut=code.indexOf(",")>0?code.indexOf(",")+1:
+              code.indexOf("-")>0?code.indexOf("-")+1:-1;
+    if(cut>0)parts=[code.slice(0,cut).trim(),code.slice(cut).trim()].filter(Boolean);
+  }
+  const longest=Math.max(...parts.map(p=>p.length));
+  return {parts,n:parts.length,fs:Math.max(.15,Math.min(.5,w/(longest*W)))};
+}
 const NS="http://www.w3.org/2000/svg";
 function E(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
 function paint(){
   const svg=$("#plan"); if(!svg)return; svg.textContent="";
   AR.forEach(a=>{
-    const g=E("g",{class:"ar"}),cx=a.x+a.w/2,cy=a.y+a.h/2,v=a.h>a.w*1.4;
+    const g=E("g",{class:"ar"}),cx=a.x+a.w/2,cy=a.y+a.h/2;
     g.appendChild(E("rect",{x:a.x,y:a.y,width:a.w,height:a.h,rx:.2}));
-    const fs=Math.min(v?a.w*.5:.6,.68),mx=Math.max(4,Math.floor((v?a.h:a.w)/(fs*.6)));
-    const t=E("text",{x:cx,y:cy+fs*.35,"text-anchor":"middle","font-size":fs});
-    if(v)t.setAttribute("transform","rotate(-90 "+cx+" "+cy+")");
-    t.textContent=a.name.length>mx?a.name.slice(0,mx-1)+"…":a.name;
-    g.appendChild(t);svg.appendChild(g);
+    /* ป้ายโซนแนวนอนเสมอ ตัดคำลงบรรทัดใหม่แทนการตะแคง */
+    const L=wrapLabel(a.name,a.w-.3,a.h-.3);
+    let y=cy-(L.n*L.fs*1.12)/2+L.fs*.86;
+    L.lines.forEach(t=>{
+      const e=E("text",{x:cx,y:y,"text-anchor":"middle","font-size":L.fs});
+      e.textContent=t; g.appendChild(e); y+=L.fs*1.12;
+    });
+    svg.appendChild(g);
   });
   const s=q.trim().toLowerCase();
   B.forEach(b=>{
     const st=ST[b.st],g=E("g",{class:"bt"+(sel===b.code?" sel":""),tabindex:0,role:"button"});
     g.setAttribute("aria-label",b.code+" "+st.l);
     g.appendChild(E("rect",{x:b.x+.06,y:b.y+.06,width:b.w-.12,height:b.h-.12,rx:.17,fill:cv(st.c)}));
-    const cx=b.x+b.w/2,cy=b.y+b.h/2,nr=b.w<1.3;
-    const t=E("text",{x:cx,y:cy+(b.co&&b.h>1.6&&!nr?-.02:.2),"text-anchor":"middle",
-      "font-size":nr?.4:.48,fill:st.t});
-    if(nr)t.setAttribute("transform","rotate(-90 "+cx+" "+cy+")");
-    t.textContent=b.code;g.appendChild(t);
-    if(b.co&&b.h>1.6&&!nr){
-      const mx=Math.max(4,Math.floor((b.w-.2)/.25));
-      const n=E("text",{x:cx,y:cy+.5,"text-anchor":"middle","font-size":.38,fill:st.t,opacity:.9});
-      n.textContent=b.co.length>mx?b.co.slice(0,mx-1)+"…":b.co;g.appendChild(n);
+    const cx=b.x+b.w/2,cy=b.y+b.h/2;
+    /* ตัวหนังสือแนวนอนเสมอ ถ้าไม่พอกว้างก็ตัดเป็นสองบรรทัดแล้วย่อขนาดให้พอดี */
+    const lines=fitLines(b.code,b.w-.22);
+    const room=b.h-.2;
+    const nameOK=b.co&&room>lines.fs*lines.n+.42;
+    const total=lines.fs*1.06*lines.n+(nameOK?.34:0);
+    let ty=cy-total/2+lines.fs*.86;
+    lines.parts.forEach(part=>{
+      const t=E("text",{x:cx,y:ty,"text-anchor":"middle","font-size":lines.fs,fill:st.t});
+      t.textContent=part; g.appendChild(t); ty+=lines.fs*1.06;
+    });
+    if(nameOK){
+      const nf=Math.min(.34,Math.max(.16,(b.w-.24)/(Math.min(b.co.length,14)*.5)));
+      const mx=Math.max(3,Math.floor((b.w-.24)/(nf*.5)));
+      const n=E("text",{x:cx,y:ty+nf*.5,"text-anchor":"middle","font-size":nf,fill:st.t,opacity:.9});
+      n.textContent=b.co.length>mx?b.co.slice(0,mx-1)+"…":b.co;
+      g.appendChild(n);
     }
     const qn=(Q[b.code]||[]).length;
     if(qn){g.appendChild(E("circle",{cx:b.x+b.w-.28,cy:b.y+.3,r:.26,fill:cv("--risk")}));
