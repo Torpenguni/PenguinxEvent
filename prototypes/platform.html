@@ -369,22 +369,36 @@ table.gt th.gtn{z-index:5}table.gt th.gts{z-index:5}table.gt th.gtd{z-index:5}
 /* หัวหมวดกินสามคอลัมน์รวมกัน ปุ่มจึงไม่ล้นไปทับช่องอื่น */
 table.gt td.gtgh{width:492px;min-width:492px;max-width:492px}
 table.gt td.gts select{width:100%;font-size:12px;padding:4px 6px;border-radius:7px}
-td.gtd.gtlate{color:var(--tl-risk);font-weight:700}
+table.gt th.gtd2,table.gt td.gtd2{width:126px;min-width:126px}
+table.gt th.gtd2 small{display:block;font-weight:600;font-size:10.5px;color:var(--ink3);margin-top:1px}
+td.gtd2 .dpl,td.gtd2 .dac{display:block;white-space:nowrap;line-height:1.5}
+td.gtd2 .dpl{color:var(--ink2);font-size:12px}
+td.gtd2 .dac{font-size:11px;font-weight:700;color:var(--ink3)}
+td.gtd2 .dac.bad{color:var(--tl-risk)}
+td.gtd2 .dac.good{color:var(--tl-done)}
+td.gtd2 .dac.none{font-weight:400;font-style:italic}
+.tlleg i.lgplan{background:transparent;border:1.5px solid var(--tl-plan);height:9px}
 
 /* ช่องสัปดาห์ */
-td.gtc{height:36px;position:relative;border-left:1px solid var(--tl-grid)}
+td.gtc{height:46px;position:relative;border-left:1px solid var(--tl-grid)}
 td.gtc.gtalt{background:var(--tl-alt)}
 th.gtnow,td.gtnow{box-shadow:inset 1px 0 0 var(--accent)}
 td.gtnow{background:color-mix(in srgb,var(--accent) 7%,transparent)}
 th.gtnow{background:color-mix(in srgb,var(--accent) 12%,var(--card))}
 
-/* แถบงาน ปลายมนเฉพาะหัวกับท้าย ตรงกลางต่อกันสนิท */
-td.gtc .gbar{position:absolute;left:-1px;right:-1px;top:11px;height:14px;display:block}
-td.gtc .gbar.ba{left:2px;border-radius:7px 0 0 7px}
-td.gtc .gbar.bb{right:2px;border-radius:0 7px 7px 0}
-td.gtc .gbar.ba.bb{border-radius:7px}
+/* สองชั้น แถบบางด้านบนคือแผน แถบหนาด้านล่างคือที่ทำจริง */
+td.gtc .gplan,td.gtc .gact{position:absolute;left:-1px;right:-1px;display:block}
+td.gtc .gplan{top:9px;height:8px;background:transparent;
+  border:1.5px solid var(--tl-plan);border-left:0;border-right:0;opacity:.85}
+td.gtc .gplan.ba{left:2px;border-left:1.5px solid var(--tl-plan);border-radius:5px 0 0 5px}
+td.gtc .gplan.bb{right:2px;border-right:1.5px solid var(--tl-plan);border-radius:0 5px 5px 0}
+td.gtc .gplan.ba.bb{border-radius:5px}
+td.gtc .gact{top:22px;height:14px}
+td.gtc .gact.ba{left:2px;border-radius:7px 0 0 7px}
+td.gtc .gact.bb{right:2px;border-radius:0 7px 7px 0}
+td.gtc .gact.ba.bb{border-radius:7px}
 /* แถบสรุปของหมวด เป็นเส้นบางๆ ไม่แย่งสายตาแถบงาน */
-td.gtc .gsum{position:absolute;left:-1px;right:-1px;top:16px;height:5px;display:block;
+td.gtc .gsum{position:absolute;left:-1px;right:-1px;top:21px;height:5px;display:block;
   background:var(--tl-sum);opacity:.6}
 td.gtc .gsum.gsa{left:3px;border-radius:99px 0 0 99px}
 td.gtc .gsum.gsb{right:3px;border-radius:0 99px 99px 0}
@@ -435,13 +449,16 @@ table.gt td.gtn [contenteditable]:focus{outline:0;border-bottom-color:var(--acce
 .dtb.on{background:var(--soft);border-color:var(--accent);color:var(--accent)}
 .dtb.on b{background:var(--card);color:var(--accent)}
 .dtb:hover{border-color:var(--accent)}
+table.gt.onx td.gtd2{width:126px;min-width:126px}
 table.gt.onx th.onh{width:52px;min-width:52px;padding:5px 0;font-size:10.5px;font-weight:600;
   color:var(--ink3);text-align:center;border-left:1px solid var(--tl-grid)}
 td.ontrack{padding:0;position:relative;border-left:1px solid var(--line2)}
-.onlane{position:relative;height:38px;
+.onlane{position:relative;height:46px;
   background-image:repeating-linear-gradient(to right,var(--tl-grid) 0 1px,transparent 1px 6.25%)}
-tr.gtg .onlane{height:30px;opacity:.5}
-.onbar{position:absolute;top:8px;height:22px;border-radius:7px;display:flex;align-items:center;
+tr.gtg .onlane{height:32px;opacity:.5}
+.onplan{position:absolute;top:8px;height:9px;border:1.5px solid var(--tl-plan);
+  border-radius:5px;background:transparent;display:block;min-width:6px;opacity:.85}
+.onbar{position:absolute;top:22px;height:18px;border-radius:7px;display:flex;align-items:center;
   padding:0 8px;overflow:hidden;min-width:14px}
 .onbar span{font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap;
   text-shadow:0 1px 1px rgba(0,0,0,.25)}
@@ -449,10 +466,30 @@ tr.gtg .onlane{height:30px;opacity:.5}
 .onbar.narrow{padding:0;overflow:visible}
 .onbar.narrow span{position:absolute;left:calc(100% + 6px);color:var(--ink2);
   text-shadow:none;font-weight:600}
-.onsum{position:absolute;top:12px;height:5px;border-radius:99px;
+.onsum{position:absolute;top:13px;height:5px;border-radius:99px;
   background:var(--tl-sum);opacity:.6;display:block}
 td.ontrack[data-ol]{cursor:col-resize}
 td.ontrack[data-ol]:hover .onlane{background-color:color-mix(in srgb,var(--accent) 5%,transparent)}
+/* แถบตั้งวันจัดงาน และคอลัมน์ที่ผู้ใช้เพิ่มเอง */
+.dbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:13px}
+.dbar2{margin:-4px 0 12px}
+.dbar .dbl{font-weight:700;color:var(--ink)}
+.dbar .dbs{color:var(--ink2)}
+.dbar b{font-weight:700}
+.dbar input{border:1px solid var(--line2);border-radius:7px;padding:5px 9px;font-size:13px;
+  background:var(--paper);color:var(--ink);font-family:inherit}
+.dbar input[type=number]{width:62px;text-align:center}
+.dbar .dbw{margin-left:auto;color:var(--warn);font-size:12px;font-weight:600}
+table.gt th.gtx3,table.gt td.gtx3{width:150px;min-width:150px;padding:7px 11px;text-align:left;
+  font-size:12px;color:var(--ink2);border-left:1px solid var(--line2);vertical-align:top}
+table.gt th.gtx3{white-space:nowrap;font-weight:700;color:var(--ink)}
+table.gt td.gtx3 [contenteditable],table.gt th.gtx3 [contenteditable]{display:inline-block;
+  border-bottom:1px dashed var(--line2);cursor:text;min-width:60px}
+table.gt td.gtx3 [contenteditable]:focus,table.gt th.gtx3 [contenteditable]:focus{outline:0;
+  border-bottom-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.gtdel2{opacity:.45;font-size:13px}
+th.gtx3:hover .gtdel2{opacity:1}
 </style>
 
 <div id="login">
@@ -591,7 +628,15 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 const f=n=>Math.round(n||0).toLocaleString("th-TH");
 const can=m=>m?ROLE[role].p[m]:"read";
 const mine=d=>ROLE[role].scope==="all"||!d.sales||d.sales===me;
-const $=s=>(s==="#page"&&PAGEHOST)?PAGEHOST:document.querySelector(s);
+/* หน้าที่มีแท็บจะเขียนลง #tabbody ไม่ใช่ #page ทั้งก้อน
+   ไม่งั้นเวลาฟังก์ชันหน้าเรียกตัวเองใหม่หลังผู้ใช้แก้อะไร แถบแท็บจะถูกเขียนทับหายไป */
+const $=s=>{
+  if(s==="#page"){
+    if(PAGEHOST)return PAGEHOST;
+    const tb=document.getElementById("tabbody"); if(tb)return tb;
+  }
+  return document.querySelector(s);
+};
 
 /* รูปแทนคนและโลโก้ สร้างจากชื่อ ใช้เป็นตัวยืนจนกว่าจะมีไฟล์จริง */
 const LOGO={};                       // ชื่อบริษัท -> dataURI ที่อัปโหลด
@@ -693,7 +738,7 @@ function draw(){
   const n=NAV.find(x=>x.id===page);
   $("#ttl").textContent=n.t;
   const ts=navTabs(n), t=curTab(n);
-  const host=$("#page");
+  const host=document.getElementById("page");
   host.innerHTML = ts
     ? '<div class="tabs">'+ts.map(x=>'<button data-tb="'+x[0]+'" aria-pressed="'+
         (t===x[0])+'">'+x[1]+'</button>').join("")+'</div><div id="tabbody"></div>'
@@ -3238,6 +3283,14 @@ const TLST={plan:{l:"รอเริ่ม",c:"var(--tl-plan)"},doing:{l:"กำ
  done:{l:"เสร็จแล้ว",c:"var(--tl-done)"},risk:{l:"ติดปัญหา",c:"var(--tl-risk)"}};
 const THM=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 let tlOpen={}, tlDrag=null, tlFilter="";
+/* แผนกับจริงเก็บแยกกัน แผนคือ a,b จริงคือ aa,ab ถ้ายังไม่มีจริงคือยังไม่ได้บันทึก
+   ผลต่างนับเป็นสัปดาห์ที่ปลายแถบ บวกคือช้ากว่าแผน */
+const hasAct=r=>r.aa!=null&&r.ab!=null;
+const pA=r=>Math.min(r.a,r.b), pB=r=>Math.max(r.a,r.b);
+const aA=r=>Math.min(r.aa,r.ab), aB=r=>Math.max(r.aa,r.ab);
+const slip=r=>hasAct(r)?aB(r)-pB(r):null;
+function seedAct(r){ if(!hasAct(r)){ r.aa=r.a; r.ab=r.b } }
+let tlEdit="plan";
 
 function monday(d){ const x=new Date(d); const g=(x.getDay()+6)%7; x.setDate(x.getDate()-g); x.setHours(0,0,0,0); return x }
 function tlShowWeek(){ const ev=effEventDate(EV); return ev.date?monday(new Date(ev.date+"T00:00:00")):monday(new Date()) }
@@ -3262,6 +3315,78 @@ function tlFill(ph){
   alert("เติมเพิ่ม "+add.length+" รายการในช่วงนี้");
   return add.length;
 }
+/* ───── แก้ได้ทุกอย่าง: วันจัดงาน ช่วงเวลาที่วาด และคอลัมน์ของตัวเอง ───── */
+let tlPad={pre:[0,0],post:[0,0]};
+
+/* วันจัดงานเป็นตัวตั้งของทั้งไทม์ไลน์ แก้ตรงนี้แล้วทุกแถบขยับตาม */
+function tlDateBar(wr){
+  const ev=effEventDate(EV), a=ev.date||"", b=EV.end_date||a;
+  const nb=EV.buildDays==null?1:EV.buildDays, ns=EV.strikeDays==null?1:EV.strikeDays;
+  return '<div class="dbar">'+
+   '<span class="dbl">วันจัดงาน</span>'+
+   (wr?'<input type="date" id="evd1" value="'+esc(a)+'">'
+      :'<b>'+esc(a)+'</b>')+
+   '<span class="dbs">ถึง</span>'+
+   (wr?'<input type="date" id="evd2" value="'+esc(b)+'">':'<b>'+esc(b)+'</b>')+
+   '<span class="dbs">เซ็ตอัปก่อน</span>'+
+   (wr?'<input type="number" id="evbd" min="0" max="7" value="'+nb+'">':'<b>'+nb+'</b>')+
+   '<span class="dbs">วัน · รื้อถอนหลัง</span>'+
+   (wr?'<input type="number" id="evsd" min="0" max="7" value="'+ns+'">':'<b>'+ns+'</b>')+
+   '<span class="dbs">วัน</span>'+
+   (ev.rolled?'<span class="dbw">เลื่อนจาก '+esc(ev.orig)+' มาปีหน้าให้อัตโนมัติ</span>':'')+
+   '</div>';
+}
+function wireDateBar(P,redraw){
+  const d1=P.querySelector("#evd1"); if(!d1)return;
+  const set=()=>{
+    const a=P.querySelector("#evd1").value, b=P.querySelector("#evd2").value;
+    if(a){ EV.eventDate=a; EV.event_date=a; EV.end_date=(b&&b>=a)?b:a;
+      EV.dates=fmtRange(a,EV.end_date) }
+    EV.buildDays=Math.max(0,+P.querySelector("#evbd").value||0);
+    EV.strikeDays=Math.max(0,+P.querySelector("#evsd").value||0);
+    onDay=null; redraw();
+  };
+  ["#evd1","#evd2","#evbd","#evsd"].forEach(k=>{
+    const el=P.querySelector(k); if(el)el.addEventListener("change",set)});
+}
+function fmtRange(a,b){
+  const x=new Date(a+"T00:00:00"), y=new Date(b+"T00:00:00");
+  const yy=x.getFullYear()+543;
+  return x.getDate()+(x.getMonth()===y.getMonth()?"":" "+THM[x.getMonth()])+
+    (a===b?"":"–"+y.getDate())+" "+THM[y.getMonth()]+" "+yy;
+}
+
+/* คอลัมน์ของตัวเอง วางท้ายตารางเหมือนช่อง Date กับ Remark ในชีตเดิม */
+function tlCols(){ return EV.tlCols||(EV.tlCols=[]) }
+function colHead(wr){
+  return tlCols().map((c,ci)=>'<th class="gtx3" rowspan="2">'+
+    (wr?'<span contenteditable="plaintext-only" data-cl="'+ci+'">'+esc(c.l)+'</span>'+
+        '<button class="gtdel gtdel2" data-cd="'+ci+'" title="ลบคอลัมน์นี้">×</button>':esc(c.l))+
+    '</th>').join("");
+}
+function colCells(r,i,wr){
+  return tlCols().map(c=>'<td class="gtx3">'+
+    (wr?'<span contenteditable="plaintext-only" data-cv="'+i+'" data-ck="'+esc(c.k)+'">'+
+        esc((r.x||{})[c.k]||"—")+'</span>':esc((r.x||{})[c.k]||""))+'</td>').join("");
+}
+function wireCols(P,R,redraw){
+  P.querySelectorAll("[data-cl]").forEach(el=>el.addEventListener("blur",()=>{
+    const t=el.textContent.trim(); if(t)tlCols()[+el.dataset.cl].l=t; redraw()}));
+  P.querySelectorAll("[data-cd]").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.armed){ const c=tlCols().splice(+b.dataset.cd,1)[0];
+      tlRows().forEach(r=>{ if(r.x)delete r.x[c.k] }); redraw(); return }
+    b.dataset.armed="1"; b.textContent="ลบ?"; b.style.color=cv("--risk");
+    setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent="×";b.style.color=""}},4000)}));
+  P.querySelectorAll("[data-cv]").forEach(el=>el.addEventListener("blur",()=>{
+    const r=R[+el.dataset.cv]; (r.x=r.x||{})[el.dataset.ck]=
+      el.textContent.trim().replace(/^—$/,""); redraw()}));
+  const ab=P.querySelector("#colnew");
+  if(ab)ab.addEventListener("click",()=>{
+    const l=prompt("ชื่อคอลัมน์ใหม่","งบประมาณ"); if(!l)return;
+    tlCols().push({k:"c"+Date2()+tlCols().length,l:l.trim()}); redraw()});
+}
+/* เลี่ยง Date.now ในบางสภาพแวดล้อม ใช้ตัวนับของเราเอง */
+let _ck=0; function Date2(){ return (++_ck)+"" }
 function pTimeline(ph){
   const wr=can("timeline")==="write", ALL=tlRows(), now=tlNowWeek();
   const R=ALL.filter(r=>(r.ph||"pre")===ph);
@@ -3293,7 +3418,9 @@ function pTimeline(ph){
   const ra=R.map(r=>Math.min(r.a,r.b)), rb=R.map(r=>Math.max(r.a,r.b));
   const lo=ph==="post"?Math.min(0,...ra):Math.min(-2,...ra,now<=0?now:0),
         hi=ph==="post"?Math.max(1,...rb,now>=0?now:0):Math.max(0,...rb);
-  const cols=[]; for(let k=lo;k<=hi;k++)cols.push(k);
+  const pad=tlPad[ph]||[0,0];
+  const LO=lo-pad[0], HI=hi+pad[1];
+  const cols=[]; for(let k=LO;k<=HI;k++)cols.push(k);
   /* หัวเดือน รวมสัปดาห์ที่อยู่เดือนเดียวกัน */
   const mons=[], band={};
   cols.forEach(k=>{ const d=tlWeekStart(k), key=d.getFullYear()+"-"+d.getMonth();
@@ -3304,43 +3431,52 @@ function pTimeline(ph){
     band[k]=(mons.length%2?"":" gtalt")+(first?" gtms":"") });
 
   const done=R.filter(r=>r.st==="done").length;
-  const late=R.filter(r=>r.st!=="done"&&Math.max(r.a,r.b)<now).length;
-  const soon=R.filter(r=>r.st!=="done"&&Math.max(r.a,r.b)>=now&&Math.max(r.a,r.b)<=now+1).length;
+  const late=R.filter(r=>r.st!=="done"&&pB(r)<now).length;
+  const beh=R.filter(r=>slip(r)>0), ahd=R.filter(r=>slip(r)<0);
+  const tracked=R.filter(hasAct).length;
   const ev=effEventDate(EV);
 
   let h='<div class="cards" style="margin-bottom:16px">'+
-   card(R.length,"งานทั้งหมด",tlGroups().length+" หมวด","--line2")+
+   card(R.length,"งานทั้งหมด",new Set(R.map(r=>r.grp)).size+" หมวด","--line2")+
    card(Math.round(done/R.length*100)+"%","เสร็จแล้ว",done+" จาก "+R.length,"--s-paid")+
-   card(late,"เลยกำหนด",late?"ต้องตามด่วน":"ไม่มีค้าง",late?"--risk":"--line2")+
-   card(soon,"ครบกำหนดใน 2 สัปดาห์",soon?"เตรียมตัว":"ยังว่าง",soon?"--s-booked":"--line2")+
+   card(beh.length,"ช้ากว่าแผน",beh.length?"ช้าสุด "+Math.max(...beh.map(slip))+" สัปดาห์"
+        :(tracked?"ไม่มีงานที่ช้า":"ยังไม่ได้บันทึกจริง"),beh.length?"--risk":"--line2")+
+   card(ahd.length,"เร็วกว่าแผน",tracked?"บันทึกจริงแล้ว "+tracked+"/"+R.length+" งาน"
+        :"ยังไม่ได้บันทึกจริง",ahd.length?"--s-paid":"--line2")+
    '</div>';
-  h+='<p class="edhint" style="margin:-4px 0 12px">'+PH.d+'</p>';
+  h+=tlDateBar(wr)+'<p class="edhint" style="margin:2px 0 12px">'+PH.d+'</p>';
   h+='<div class="tlbar">'+
     '<input id="tlq" class="cell" placeholder="ค้นหางาน หรือชื่อทีม" value="'+esc(tlFilter)+'" style="max-width:260px">'+
-    '<span class="tlleg">'+Object.keys(TLST).map(k=>
+    (wr?'<div class="seg"><button data-em="plan" aria-pressed="'+(tlEdit==="plan")+'">ลากแก้แผน</button>'+
+        '<button data-em="act" aria-pressed="'+(tlEdit==="act")+'">ลากแก้จริง</button></div>':'')+
+    '<span class="tlleg"><i class="lgplan"></i>แผน'+Object.keys(TLST).map(k=>
       '<i style="background:'+TLST[k].c+'"></i>'+TLST[k].l).join("")+'</span>'+
     dlBtn("dltl","ดาวน์โหลด CSV")+
-    (wr?' <button class="act" id="tlfill" style="padding:9px 15px">เติมจากโครงมาตรฐาน</button>':'')+
+    (wr?' <button class="act" id="tlfill" style="padding:9px 15px">เติมจากโครงมาตรฐาน</button>'+
+        ' <button class="act" id="colnew" style="padding:9px 15px">+ เพิ่มคอลัมน์</button>':'')+
    '</div>';
-  if(wr)h+='<p class="edhint">แถบสัปดาห์ ลากในตารางเพื่อกำหนดช่วงเวลา · ชื่องาน ผู้รับผิดชอบ '+
-    'และหมายเหตุ คลิกพิมพ์ทับได้ · กดหัวหมวดเพื่อย่อ</p>';
+  if(wr)h+='<p class="edhint">แถบบนคือแผน แถบล่างคือที่ทำจริง เลือกก่อนว่าจะลากแก้อันไหน '+
+    'แล้วลากในตาราง · พอเปลี่ยนสถานะเป็นกำลังทำหรือเสร็จแล้ว ระบบจะตั้งแถบจริงตามแผนให้ก่อน '+
+    'ค่อยลากปรับตามความจริง</p>';
 
   h+='<div class="tw"><table class="gt"><thead>'+
    '<tr><th class="gtn" rowspan="2">งาน · ทีม · หมายเหตุ</th>'+
-   '<th class="gts" rowspan="2">สถานะ</th><th class="gtd" rowspan="2">เสร็จภายใน</th>'+
-   mons.map(m=>'<th colspan="'+m.n+'" class="gtm">'+m.l+'</th>').join("")+'</tr><tr>'+
+   '<th class="gts" rowspan="2">สถานะ</th><th class="gtd gtd2" rowspan="2">เสร็จภายใน<br><small>แผน / จริง</small></th>'+
+   mons.map(m=>'<th colspan="'+m.n+'" class="gtm">'+m.l+'</th>').join("")+
+   colHead(wr)+'</tr><tr>'+
    cols.map(k=>{const d=tlWeekStart(k), w=Math.floor((d.getDate()-1)/7)+1;
      return '<th class="gtw'+band[k]+(k===now?" gtnow":"")+(k===0?" gtshow":"")+'">W'+w+'</th>'}).join("")+
    '</tr></thead><tbody>';
 
   const q=tlFilter.trim().toLowerCase();
-  tlGroups().forEach(g=>{
+  const G=[]; R.forEach(r=>{if(!G.includes(r.grp))G.push(r.grp)});
+  G.forEach(g=>{
     const idx=R.map((r,i)=>[r,i]).filter(([r])=>r.grp===g)
       .filter(([r])=>!q||(r.name+" "+r.by+" "+(r.note||"")).toLowerCase().includes(q));
     if(q&&!idx.length)return;
     const gd=idx.filter(([r])=>r.st==="done").length, op=tlOpen[g]!==false;
-    const ga=Math.min(...idx.map(([r])=>Math.min(r.a,r.b))),
-          gb=Math.max(...idx.map(([r])=>Math.max(r.a,r.b)));
+    const ga=Math.min(...idx.map(([r])=>pA(r))),
+          gb=Math.max(...idx.map(([r])=>pB(r)));
     const pct=Math.round(gd/idx.length*100);
     h+='<tr class="gtg"><td class="gtn gtgh" colspan="3">'+
       '<button class="gtx" data-gt="'+esc(g)+'">'+(op?"▾":"▸")+'</button>'+
@@ -3352,11 +3488,12 @@ function pTimeline(ph){
       cols.map(k=>'<td class="gtc'+band[k]+(k===now?" gtnow":"")+'">'+
         (k===ga&&k===gb?'<i class="gsum gsone"></i>'
          :k===ga?'<i class="gsum gsa"></i>':k===gb?'<i class="gsum gsb"></i>'
-         :(k>ga&&k<gb?'<i class="gsum"></i>':''))+'</td>').join("")+'</tr>';
+         :(k>ga&&k<gb?'<i class="gsum"></i>':''))+'</td>').join("")+
+      tlCols().map(()=>'<td class="gtx3"></td>').join("")+'</tr>';
     if(!op)return;
     idx.forEach(([r,i])=>{
-      const a=Math.min(r.a,r.b), b=Math.max(r.a,r.b);
-      const st=TLST[r.st]||TLST.plan, isLate=r.st!=="done"&&b<now;
+      const a=pA(r), b=pB(r), ha=hasAct(r), xa=ha?aA(r):0, xb=ha?aB(r):-1;
+      const st=TLST[r.st]||TLST.plan, isLate=r.st!=="done"&&b<now, sl=slip(r);
       h+='<tr class="gtr"><td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-tn="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-tx="'+i+'" title="ลบงานนี้">×</button>':'')+
@@ -3368,16 +3505,24 @@ function pTimeline(ph){
         Object.keys(TLST).map(k=>'<option value="'+k+'"'+((r.st||"plan")===k?" selected":"")+'>'+
           TLST[k].l+'</option>').join("")+'</select>'
         :'<span style="color:'+st.c+';font-weight:700">'+st.l+'</span>')+'</td>'+
-      '<td class="gtd'+(isLate?" gtlate":"")+'">'+tlDate(b)+
-        (isLate?'<br><small>เลย '+(now-b)+' สัปดาห์</small>':'')+'</td>'+
+      '<td class="gtd gtd2">'+
+        '<span class="dpl">'+tlDate(b)+'</span>'+
+        (ha?'<span class="dac'+(sl>0?" bad":sl<0?" good":"")+'">'+tlDate(xb)+
+              (sl?(sl>0?" ช้า ":" เร็ว ")+Math.abs(sl)+" สัปดาห์":" ตรงแผน")+'</span>'
+           :'<span class="dac none">'+(isLate?"เลยกำหนด "+(now-b)+" สัปดาห์":"ยังไม่บันทึก")+'</span>')+
+        '</td>'+
       cols.map(k=>'<td class="gtc'+band[k]+(k===now?" gtnow":"")+'" data-r="'+i+'" data-k="'+k+'">'+
-        (k>=a&&k<=b?'<i class="gbar'+(k===a?" ba":"")+(k===b?" bb":"")+
+        (k>=a&&k<=b?'<i class="gplan'+(k===a?" ba":"")+(k===b?" bb":"")+'"></i>':'')+
+        (k>=xa&&k<=xb?'<i class="gact'+(k===xa?" ba":"")+(k===xb?" bb":"")+
           '" style="background:'+(isLate?"var(--tl-risk)":st.c)+'"></i>':'')+
-        '</td>').join("")+'</tr>';
+        '</td>').join("")+colCells(r,i,wr)+'</tr>';
     });
   });
   h+='</tbody></table></div>';
-  if(wr)h+='<div class="addbar"><button id="tlgadd">+ เพิ่มหมวด</button></div>';
+  if(wr)h+='<div class="addbar"><button id="tlgadd">+ เพิ่มหมวด</button>'+
+    '<button id="padA">◀ ขยายช่วงต้น 4 สัปดาห์</button>'+
+    '<button id="padB">ขยายช่วงท้าย 4 สัปดาห์ ▶</button>'+
+    (pad[0]||pad[1]?'<button id="padR">คืนช่วงเดิม</button>':'')+'</div>';
   h+='<h2 class="sec">ที่มาและวิธีคิด</h2><div class="note">'+
    '<p>โครงนี้ถอดมาจากชีต <b>Project Timeline งาน Caf con</b> ทั้ง 9 หมวด '+
    'ตั้งแต่วันจัดงาน โปรโมทผู้ชม เชิญแขก ทีมงาน ดูแลผู้ออกบูธ กิจกรรม งานออกแบบ งานบนเวที ไปจนถึงประชุมใหญ่</p>'+
@@ -3392,13 +3537,14 @@ function pTimeline(ph){
   const box=P.querySelector(".tw");
   if(box){ const first=Math.min(...R.map(r=>Math.min(r.a,r.b)));
     const cell=box.querySelector("th.gtw"); const w=cell?cell.offsetWidth:26;
-    box.scrollLeft=Math.max(0,(first-lo-2)*w); }
+    box.scrollLeft=Math.max(0,(first-LO-2)*w); }
 
   P.querySelector("#tlq").addEventListener("input",e=>{
     tlFilter=e.target.value; const p=e.target.selectionStart; pTimeline(ph);
     const n=$("#tlq"); n.focus(); n.setSelectionRange(p,p);});
   P.querySelectorAll("[data-gt]").forEach(b=>b.addEventListener("click",()=>{
     const g=b.dataset.gt; tlOpen[g]=tlOpen[g]===false; pTimeline(ph)}));
+  wireDateBar(P,()=>pTimeline(ph));
   if(!wr){ wireTlCsv(P,ph); return }
 
   /* ลากในตารางเพื่อกำหนดช่วงสัปดาห์ */
@@ -3411,7 +3557,9 @@ function pTimeline(ph){
   document.addEventListener("mouseup",tlUp);
   function tlUp(){ document.removeEventListener("mouseup",tlUp);
     if(!tlDrag)return; const d=tlDrag; tlDrag=null;
-    const r=R[d.r]; r.a=Math.min(d.a,d.b); r.b=Math.max(d.a,d.b); pTimeline(ph); }
+    const r=R[d.r], a=Math.min(d.a,d.b), b=Math.max(d.a,d.b);
+    if(tlEdit==="act"){ r.aa=a; r.ab=b } else { r.a=a; r.b=b }
+    pTimeline(ph); }
 
   P.querySelectorAll("[data-tn]").forEach(el=>el.addEventListener("blur",()=>{
     const t=el.textContent.trim(); if(t)R[+el.dataset.tn].name=t; pTimeline(ph)}));
@@ -3420,7 +3568,17 @@ function pTimeline(ph){
   P.querySelectorAll("[data-tnote]").forEach(el=>el.addEventListener("blur",()=>{
     R[+el.dataset.tnote].note=el.textContent.trim().replace(/^—$/,""); pTimeline(ph)}));
   P.querySelectorAll("[data-tst]").forEach(el=>el.addEventListener("change",()=>{
-    R[+el.dataset.tst].st=el.value; pTimeline(ph)}));
+    const r=R[+el.dataset.tst]; r.st=el.value;
+    /* พอเริ่มลงมือแล้ว ตั้งแถบจริงตามแผนไว้ก่อน จะได้มีอะไรให้ลากปรับ */
+    if(["doing","done","risk"].includes(r.st))seedAct(r);
+    pTimeline(ph)}));
+  P.querySelectorAll("[data-em]").forEach(b=>b.addEventListener("click",()=>{
+    tlEdit=b.dataset.em; pTimeline(ph)}));
+  P.querySelector("#padA").addEventListener("click",()=>{tlPad[ph]=[pad[0]+4,pad[1]];pTimeline(ph)});
+  P.querySelector("#padB").addEventListener("click",()=>{tlPad[ph]=[pad[0],pad[1]+4];pTimeline(ph)});
+  const pr=P.querySelector("#padR");
+  if(pr)pr.addEventListener("click",()=>{tlPad[ph]=[0,0];pTimeline(ph)});
+  wireCols(P,R,()=>pTimeline(ph));
   P.querySelectorAll("[data-gn]").forEach(el=>el.addEventListener("blur",()=>{
     const o=el.dataset.gn, n=el.textContent.trim();
     if(n&&n!==o){R.forEach(r=>{if(r.grp===o)r.grp=n}); tlOpen[n]=tlOpen[o]} pTimeline(ph)}));
@@ -3436,7 +3594,7 @@ function pTimeline(ph){
     b.dataset.armed="1"; const o=b.textContent; b.textContent="ลบ?"; b.style.color=cv("--risk");
     setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent=o;b.style.color=""}},4000)}));
   P.querySelector("#tlgadd").addEventListener("click",()=>{
-    ALL.push({grp:"หมวดใหม่ "+(tlGroups().length+1),name:"งานใหม่",by:"Event",
+    ALL.push({grp:"หมวดใหม่ "+(G.length+1),name:"งานใหม่",by:"Event",
       a:ph==="post"?1:-4,b:ph==="post"?1:-4,st:"",note:"",ph:ph});
     pTimeline(ph)});
   const fb=P.querySelector("#tlfill");
@@ -3446,26 +3604,32 @@ function pTimeline(ph){
 /* ───────── ระหว่างงาน ─────────
    ช่วงนี้ใช้หน่วยเป็นวันและชั่วโมง ไม่ใช่สัปดาห์ จึงเป็นตารางรันคิวรายวัน
    วันจริงคำนวณจากวันจัดงาน บวกวันเซ็ตอัปหน้าหนึ่งวัน และวันรื้อถอนท้ายหนึ่งวัน */
-const ONH0=7, ONH1=23;                       // ตารางครอบ 07:00 ถึง 23:00
+/* ช่วงชั่วโมงที่วาด ปรับได้ต่องาน ค่าเริ่มต้น 07:00 ถึง 23:00 */
+const onH0=()=>EV.onH0==null?7:EV.onH0, onH1=()=>EV.onH1==null?23:EV.onH1;
 let onDay=null;
 function tlDays(){
   const ev=effEventDate(EV); if(!ev.date)return [];
   const a=new Date(ev.date+"T00:00:00");
   const e=EV.end_date?new Date(EV.end_date+"T00:00:00"):new Date(a);
   if(e<a)e.setTime(a.getTime());
-  const out=[], set=new Date(a); set.setDate(set.getDate()-1);
-  out.push({d:new Date(set),kind:"build",l:"เซ็ตอัป"});
+  const nb=EV.buildDays==null?1:EV.buildDays, ns=EV.strikeDays==null?1:EV.strikeDays;
+  const out=[];
+  for(let i=nb;i>=1;i--){ const x=new Date(a); x.setDate(x.getDate()-i);
+    out.push({d:x,kind:"build",l:nb>1?"เซ็ตอัป "+(nb-i+1):"เซ็ตอัป"}) }
   let n=1;
   for(let x=new Date(a); x<=e; x.setDate(x.getDate()+1))
     out.push({d:new Date(x),kind:"show",l:"วันงาน "+(n++)});
-  const st=new Date(e); st.setDate(st.getDate()+1);
-  out.push({d:st,kind:"strike",l:"รื้อถอน"});
+  for(let i=1;i<=ns;i++){ const x=new Date(e); x.setDate(x.getDate()+i);
+    out.push({d:x,kind:"strike",l:ns>1?"รื้อถอน "+i:"รื้อถอน"}) }
   return out;
 }
 const hm=t=>{const [a,b]=String(t||"09:00").split(":");return (+a)+(+b||0)/60};
 const mh=v=>{const h=Math.floor(v),m=Math.round((v-h)*60);
   return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")};
 function onRows(){ return tlRows().filter(r=>r.ph==="on") }
+const hasActT=r=>!!(r.at1&&r.at2);
+function seedActT(r){ if(!hasActT(r)){ r.at1=r.t1; r.at2=r.t2 } }
+const slipMin=r=>hasActT(r)?Math.round((hm(r.at2)-hm(r.t2))*60):null;
 
 function pTimelineOn(){
   const wr=can("timeline")==="write", ALL=tlRows(), days=tlDays();
@@ -3483,9 +3647,10 @@ function pTimelineOn(){
   R.forEach(r=>{ if(r.d<0||r.d>=days.length)r.d=days.length-1 });
   if(onDay==null||onDay>=days.length)onDay=Math.max(0,days.findIndex(x=>x.kind==="show"));
   const day=days[onDay], list=R.filter(r=>r.d===onDay);
-  const HR=[]; for(let x=ONH0;x<=ONH1;x++)HR.push(x);
-  const span=ONH1-ONH0;
-  const pc=v=>((Math.min(Math.max(v,ONH0),ONH1)-ONH0)/span*100);
+  const H0=onH0(), H1=Math.max(onH1(),H0+2);
+  const HR=[]; for(let x=H0;x<=H1;x++)HR.push(x);
+  const span=H1-H0;
+  const pc=v=>((Math.min(Math.max(v,H0),H1)-H0)/span*100);
 
   const done=list.filter(r=>r.st==="done").length;
   let h='<div class="cards" style="margin-bottom:16px">'+
@@ -3495,25 +3660,33 @@ function pTimelineOn(){
    card(list.length?Math.round(done/list.length*100)+"%":"—","เสร็จแล้ววันนี้",
         done+" จาก "+list.length,"--s-paid")+
    '</div>';
+  h=tlDateBar(wr)+h;
   h+='<div class="daytabs">'+days.map((d,i)=>
     '<button class="dtb'+(i===onDay?" on":"")+' k-'+d.kind+'" data-od="'+i+'">'+
     esc(d.l)+'<small>'+ymdTH(d.d)+'</small>'+
     '<b>'+R.filter(r=>r.d===i).length+'</b></button>').join("")+'</div>';
   h+='<div class="tlbar">'+
-    '<span class="tlleg">'+Object.keys(TLST).map(k=>
+    (wr?'<div class="seg"><button data-oem="plan" aria-pressed="'+(tlEdit==="plan")+'">ลากแก้แผน</button>'+
+        '<button data-oem="act" aria-pressed="'+(tlEdit==="act")+'">ลากแก้จริง</button></div>':'')+
+    '<span class="tlleg"><i class="lgplan"></i>แผน'+Object.keys(TLST).map(k=>
       '<i style="background:'+TLST[k].c+'"></i>'+TLST[k].l).join("")+'</span>'+
     dlBtn("dlon","ดาวน์โหลด CSV")+
     (wr?' <button class="act" id="onfill2" style="padding:9px 15px">เติมจากโครงมาตรฐาน</button>'+
-        ' <button class="act" id="oncopy" style="padding:9px 15px">คัดลอกคิวไปวันอื่น</button>':'')+
-   '</div>';
-  if(wr)h+='<p class="edhint">ลากบนแถบเวลาเพื่อกำหนดช่วง ระบบจะจับทีละครึ่งชั่วโมง · '+
-    'ชื่องาน ผู้รับผิดชอบ และหมายเหตุ คลิกพิมพ์ทับได้</p>';
+        ' <button class="act" id="oncopy" style="padding:9px 15px">คัดลอกคิวไปวันอื่น</button>'+
+        ' <button class="act" id="colnew" style="padding:9px 15px">+ เพิ่มคอลัมน์</button>':'')+
+   '</div>'+
+   (wr?'<div class="dbar dbar2"><span class="dbl">ช่วงเวลาที่แสดง</span>'+
+     '<input type="number" id="onh0" min="0" max="20" value="'+H0+'"><span class="dbs">น. ถึง</span>'+
+     '<input type="number" id="onh1" min="2" max="24" value="'+H1+'"><span class="dbs">น.</span></div>':'');
+  if(wr)h+='<p class="edhint">แถบบางด้านบนคือเวลาที่วางแผนไว้ แถบหนาด้านล่างคือเวลาที่เกิดขึ้นจริง '+
+    'เลือกก่อนว่าจะลากแก้อันไหน แล้วลากบนแถบเวลา ระบบจับทีละครึ่งชั่วโมง</p>';
 
   h+='<div class="tw"><table class="gt onx"><thead><tr>'+
-   '<th class="gtn">คิวงาน · ทีม · หมายเหตุ</th><th class="gts">สถานะ</th><th class="gtd">เวลา</th>'+
-   HR.map(x=>'<th class="onh">'+String(x).padStart(2,"0")+'</th>').join("")+'</tr></thead><tbody>';
+   '<th class="gtn">คิวงาน · ทีม · หมายเหตุ</th><th class="gts">สถานะ</th><th class="gtd gtd2">เวลา<br><small>แผน / จริง</small></th>'+
+   HR.map(x=>'<th class="onh">'+String(x).padStart(2,"0")+'</th>').join("")+
+   colHead(wr)+'</tr></thead><tbody>';
   const grps=[]; list.forEach(r=>{if(!grps.includes(r.grp))grps.push(r.grp)});
-  if(!grps.length)h+='<tr><td class="gtn" colspan="'+(3+HR.length)+'" style="padding:22px 14px;'+
+  if(!grps.length)h+='<tr><td class="gtn" colspan="'+(3+HR.length+tlCols().length)+'" style="padding:22px 14px;'+
     'color:var(--ink3)">ยังไม่มีคิวงานในวันนี้ กด + เพิ่มคิว ด้านล่าง</td></tr>';
   grps.forEach(g=>{
     const idx=R.map((r,i)=>[r,i]).filter(([r])=>r.d===onDay&&r.grp===g);
@@ -3531,6 +3704,8 @@ function pTimelineOn(){
       '</div></td></tr>';
     idx.sort((a,b)=>hm(a[0].t1)-hm(b[0].t1)).forEach(([r,i])=>{
       const t1=hm(r.t1), t2=Math.max(hm(r.t2),t1+.5), st=TLST[r.st]||TLST.plan;
+      const ha=hasActT(r), y1=ha?hm(r.at1):0, y2=ha?Math.max(hm(r.at2),y1+.5):0;
+      const sm=slipMin(r);
       h+='<tr class="gtr"><td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-on="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-ox="'+i+'" title="ลบคิวนี้">×</button>':'')+
@@ -3542,12 +3717,19 @@ function pTimelineOn(){
         Object.keys(TLST).map(k=>'<option value="'+k+'"'+((r.st||"plan")===k?" selected":"")+'>'+
           TLST[k].l+'</option>').join("")+'</select>'
         :'<span style="color:'+st.c+';font-weight:700">'+st.l+'</span>')+'</td>'+
-      '<td class="gtd">'+mh(t1)+'<br><small>ถึง '+mh(t2)+'</small></td>'+
+      '<td class="gtd gtd2"><span class="dpl">'+mh(t1)+'–'+mh(t2)+'</span>'+
+        (ha?'<span class="dac'+(sm>0?" bad":sm<0?" good":"")+'">'+mh(y1)+'–'+mh(y2)+
+              (sm?(sm>0?" ช้า ":" เร็ว ")+Math.abs(sm)+" น.":" ตรงแผน")+'</span>'
+           :'<span class="dac none">ยังไม่บันทึก</span>')+'</td>'+
       '<td class="ontrack" colspan="'+HR.length+'"'+(wr?' data-ol="'+i+'"':'')+'>'+
-        '<div class="onlane"><i class="onbar'+(pc(t2)-pc(t1)<9?" narrow":"")+
-          '" style="left:'+pc(t1)+'%;width:'+Math.max(pc(t2)-pc(t1),1.2)+'%;background:'+st.c+
-          '" title="'+mh(t1)+' ถึง '+mh(t2)+'">'+
-          '<span>'+mh(t1)+'–'+mh(t2)+'</span></i></div></td></tr>';
+        '<div class="onlane">'+
+          '<i class="onplan" style="left:'+pc(t1)+'%;width:'+Math.max(pc(t2)-pc(t1),1.2)+
+            '%" title="แผน '+mh(t1)+' ถึง '+mh(t2)+'"></i>'+
+          (ha?'<i class="onbar'+(pc(y2)-pc(y1)<9?" narrow":"")+
+            '" style="left:'+pc(y1)+'%;width:'+Math.max(pc(y2)-pc(y1),1.2)+'%;background:'+st.c+
+            '" title="จริง '+mh(y1)+' ถึง '+mh(y2)+'">'+
+            '<span>'+mh(y1)+'–'+mh(y2)+'</span></i>':'')+
+        '</div></td>'+colCells(r,i,wr)+'</tr>';
     });
   });
   h+='</tbody></table></div>';
@@ -3566,35 +3748,44 @@ function pTimelineOn(){
   P.querySelectorAll("[data-od]").forEach(b=>b.addEventListener("click",()=>{
     onDay=+b.dataset.od; pTimelineOn()}));
   P.querySelector("#dlon").addEventListener("click",e=>{
-    const out=[["วัน","วันที่","หมวด","คิวงาน","ทีม","สถานะ","เริ่ม","จบ","หมายเหตุ"]];
+    const out=[["วัน","วันที่","หมวด","คิวงาน","ทีม","สถานะ","แผนเริ่ม","แผนจบ",
+      "จริงเริ่ม","จริงจบ","ช้ากว่าแผน (นาที)","หมายเหตุ"].concat(tlCols().map(c=>c.l))];
     days.forEach((dd,di)=>R.filter(r=>r.d===di)
       .sort((a,b)=>hm(a.t1)-hm(b.t1))
       .forEach(r=>out.push([dd.l,ymd(dd.d),r.grp,r.name,r.by||"",
-        (TLST[r.st]||TLST.plan).l,r.t1,r.t2,r.note||""])));
+        (TLST[r.st]||TLST.plan).l,r.t1,r.t2,r.at1||"",r.at2||"",
+        slipMin(r)==null?"":slipMin(r),r.note||""]
+          .concat(tlCols().map(c=>(r.x||{})[c.k]||"")))));
     saveCSV("timeline-on-"+EV.id+".csv",out,e.currentTarget)});
+  wireDateBar(P,pTimelineOn);
   if(!wr)return;
 
   /* ลากบนแถบเวลา จับทีละครึ่งชั่วโมง */
   let drag=null;
   const hourAt=(td,ev)=>{ const b=td.getBoundingClientRect();
-    return Math.round((ONH0+(ev.clientX-b.left)/b.width*span)*2)/2 };
+    return Math.round((H0+(ev.clientX-b.left)/b.width*span)*2)/2 };
   P.querySelectorAll("td.ontrack[data-ol]").forEach(td=>{
     td.addEventListener("mousedown",e=>{ e.preventDefault();
+      const r=R[+td.dataset.ol];
+      if(tlEdit==="act"&&!hasActT(r)){ seedActT(r); pTimelineOn(); return }
       drag={r:+td.dataset.ol,td,a:hourAt(td,e),b:hourAt(td,e)}; paintOn() });
     td.addEventListener("mousemove",e=>{ if(!drag||drag.td!==td)return;
       drag.b=hourAt(td,e); paintOn() });
   });
   function paintOn(){ if(!drag)return;
     const a=Math.min(drag.a,drag.b), b=Math.max(drag.a,drag.b);
-    const bar=drag.td.querySelector(".onbar");
+    const bar=drag.td.querySelector(tlEdit==="act"?".onbar":".onplan");
+    if(!bar)return;
     bar.style.left=pc(a)+"%"; bar.style.width=Math.max(pc(b)-pc(a),1.2)+"%";
-    bar.classList.toggle("narrow",pc(b)-pc(a)<9);
-    bar.querySelector("span").textContent=mh(a)+"–"+mh(Math.max(b,a+.5)) }
+    if(tlEdit==="act"){ bar.classList.toggle("narrow",pc(b)-pc(a)<9);
+      bar.querySelector("span").textContent=mh(a)+"–"+mh(Math.max(b,a+.5)) } }
   document.addEventListener("mouseup",up);
   function up(){ document.removeEventListener("mouseup",up); if(!drag)return;
     const d=drag; drag=null; const r=R[d.r];
     const a=Math.min(d.a,d.b), b=Math.max(d.a,d.b);
-    r.t1=mh(a); r.t2=mh(Math.max(b,a+.5)); pTimelineOn() }
+    if(tlEdit==="act"){ r.at1=mh(a); r.at2=mh(Math.max(b,a+.5)) }
+    else { r.t1=mh(a); r.t2=mh(Math.max(b,a+.5)) }
+    pTimelineOn() }
 
   P.querySelectorAll("[data-on]").forEach(el=>el.addEventListener("blur",()=>{
     const t=el.textContent.trim(); if(t)R[+el.dataset.on].name=t; pTimelineOn()}));
@@ -3603,7 +3794,15 @@ function pTimelineOn(){
   P.querySelectorAll("[data-onote]").forEach(el=>el.addEventListener("blur",()=>{
     R[+el.dataset.onote].note=el.textContent.trim().replace(/^—$/,""); pTimelineOn()}));
   P.querySelectorAll("[data-ost]").forEach(el=>el.addEventListener("change",()=>{
-    R[+el.dataset.ost].st=el.value; pTimelineOn()}));
+    const r=R[+el.dataset.ost]; r.st=el.value;
+    if(["doing","done","risk"].includes(r.st))seedActT(r);
+    pTimelineOn()}));
+  P.querySelectorAll("[data-oem]").forEach(b=>b.addEventListener("click",()=>{
+    tlEdit=b.dataset.oem; pTimelineOn()}));
+  ["#onh0","#onh1"].forEach(k=>{const el=P.querySelector(k); if(el)
+    el.addEventListener("change",()=>{ EV.onH0=Math.max(0,+P.querySelector("#onh0").value||0);
+      EV.onH1=Math.min(24,+P.querySelector("#onh1").value||24); pTimelineOn()})});
+  wireCols(P,R,pTimelineOn);
   P.querySelectorAll("[data-ox]").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.armed){const k=ALL.indexOf(R[+b.dataset.ox]);
       if(k>=0)ALL.splice(k,1); pTimelineOn(); return}
@@ -3642,11 +3841,14 @@ function paintDrag(P){
 }
 function wireTlCsv(P,ph){
   P.querySelector("#dltl").addEventListener("click",e=>{
-    const out=[["หมวด","งาน","ทีม","สถานะ","เริ่มสัปดาห์","เสร็จภายใน","หมายเหตุ"]];
+    const out=[["หมวด","งาน","ทีม","สถานะ","แผนเริ่ม","แผนเสร็จ","จริงเริ่ม","จริงเสร็จ",
+      "ช้ากว่าแผน (สัปดาห์)","หมายเหตุ"].concat(tlCols().map(c=>c.l))];
     tlRows().filter(r=>(r.ph||"pre")===ph).forEach(r=>{
-      const a=Math.min(r.a,r.b),b=Math.max(r.a,r.b);
+      const s=slip(r);
       out.push([r.grp,r.name,r.by||"",(TLST[r.st]||TLST.plan).l,
-        tlDate(a),tlDate(b),r.note||""])});
+        tlDate(pA(r)),tlDate(pB(r)),
+        hasAct(r)?tlDate(aA(r)):"",hasAct(r)?tlDate(aB(r)):"",
+        s==null?"":s,r.note||""].concat(tlCols().map(c=>(r.x||{})[c.k]||"")))});
     saveCSV("timeline-"+ph+"-"+EV.id+".csv",out,e.currentTarget)});
 }
 
