@@ -696,6 +696,13 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
 .stgb{display:flex;gap:9px;align-items:center;margin-top:11px;padding-top:11px;
   border-top:1px solid var(--line)}
 .stgb .act{padding:6px 13px;font-size:13px}
+/* ปุ่มถอยหลัง เดินหน้า */
+.undo{display:flex;gap:5px;margin-left:16px}
+.undo button{width:31px;height:31px;border:1px solid var(--line2);border-radius:8px;
+  background:var(--card);color:var(--ink2);font-size:15px;cursor:pointer;line-height:1;
+  display:grid;place-items:center;transition:border-color .12s,color .12s}
+.undo button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.undo button:disabled{opacity:.32;cursor:default}
 </style>
 
 <div id="login">
@@ -745,6 +752,10 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
   <main>
     <div class="top">
       <h1 id="ttl">Overview</h1><span class="sp"></span>
+      <div class="undo">
+        <button id="ubk" title="Undo — Ctrl+Z" disabled>↺</button>
+        <button id="ufw" title="Redo — Ctrl+Shift+Z" disabled>↻</button>
+      </div>
       <span class="demo">Demo</span>
       <div class="rolepick"><label for="rl2">Switch role</label><select id="rl2"></select></div>
     </div>
@@ -1215,9 +1226,16 @@ function enter(id){
   $("#ev").innerHTML=EVENTS.map(e=>'<option value="'+e.id+'"'+(e.id===EV.id?" selected":"")+'>'+
     esc(e.short)+'</option>').join("");
   showEvLogo();
+  UNDO.list.length=0; UNDO.at=-1;
   go("dash");
+  watchPage(); snapPush();
 }
-$("#ev").addEventListener("change",e=>{useEvent(e.target.value);showEvLogo();go("dash")});
+$("#ev").addEventListener("change",e=>{
+  useEvent(e.target.value); showEvLogo();
+  UNDO.list.length=0; UNDO.at=-1;    // คนละงาน ประวัติคนละชุด
+  go("dash")});
+document.getElementById("ubk").addEventListener("click",undoStep);
+document.getElementById("ufw").addEventListener("click",redoStep);
 $("#allev").addEventListener("click",showPick);
 $("#pout").addEventListener("click",()=>{$("#pick").classList.remove("on");$("#login").style.display="grid"});
 $("#out").addEventListener("click",()=>{$("#app").classList.remove("on");$("#login").style.display="grid"});
@@ -1228,6 +1246,73 @@ $("#rl2").addEventListener("change",e=>{role=e.target.value;
 function go(p){page=p;sel=null;dealOpen=null;costOpen=null;exhOpen=null;
   ["dealpanel","costpanel","exhpanel"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove()});
   draw()}
+/* ───────── ถอยหลัง เดินหน้า ─────────
+   เก็บภาพนิ่งของงานที่เปิดอยู่หลังการวาดหน้าทุกครั้ง ถ้าต่างจากอันล่าสุดถึงจะเก็บ
+   วิธีนี้ครอบคลุมทุกการแก้โดยไม่ต้องไปแตะโค้ดทุกจุดที่แก้ข้อมูล
+   ไม่เก็บโลโก้กับไฟล์ผัง เพราะเป็น data URI ก้อนใหญ่และแทบไม่เปลี่ยน */
+const HEAVY=["logo","planFile"];
+const UNDO={ list:[], at:-1, busy:false, max:40, unlock:null };
+function snapNow(){
+  const o={}; for(const k in EV) if(!HEAVY.includes(k)) o[k]=EV[k];
+  return JSON.stringify(o);
+}
+/* หน้าส่วนใหญ่แก้ข้อมูลแล้วเรียกฟังก์ชันของหน้าตัวเองใหม่ ไม่ได้เรียก draw()
+   เลยต้องดักที่การเปลี่ยนแปลงของ DOM แทน จะได้ครอบคลุมทุกการแก้โดยไม่ต้องไล่แก้ทุกจุด */
+let snapT=null;
+function snapSoon(){ clearTimeout(snapT); snapT=setTimeout(snapPush,260) }
+let snapWatch=null;
+function watchPage(){
+  if(snapWatch)return;
+  const el=document.getElementById("page"); if(!el)return;
+  snapWatch=new MutationObserver(()=>{ if(!UNDO.busy)snapSoon() });
+  snapWatch.observe(el,{childList:true,subtree:true,characterData:true});
+}
+function snapPush(){
+  if(UNDO.busy||!EV)return;
+  const js=snapNow();
+  if(UNDO.at>=0&&UNDO.list[UNDO.at]&&UNDO.list[UNDO.at].js===js)return;
+  UNDO.list.length=UNDO.at+1;               // แก้ใหม่หลังถอยแล้ว ตัดทางเดินหน้าทิ้ง
+  UNDO.list.push({ev:EV.id,js});
+  if(UNDO.list.length>UNDO.max)UNDO.list.shift();
+  UNDO.at=UNDO.list.length-1;
+  paintUndo();
+}
+function snapApply(n){
+  const s=UNDO.list[n]; if(!s)return;
+  if(s.ev!==EV.id)useEvent(s.ev);
+  const o=JSON.parse(s.js);
+  for(const k in o)EV[k]=o[k];
+  useEvent(EV.id);                          // ผูก B AR DEALS SES เข้ากับชุดใหม่
+  UNDO.at=n; UNDO.busy=true;
+  sel=null; dealOpen=null; costOpen=null; exhOpen=null;
+  ["dealpanel","costpanel","exhpanel"].forEach(id=>{const e=document.getElementById(id);if(e)e.remove()});
+  draw();
+  /* ตัวดัก DOM ทำงานทีหลัง ถ้าปลดล็อกทันทีมันจะเก็บภาพของสถานะที่เพิ่งย้อนมา
+     แล้วทางเดินหน้าจะหายไป จึงต้องกดไว้ให้นานกว่าจังหวะหน่วงของตัวดัก */
+  clearTimeout(snapT);
+  clearTimeout(UNDO.unlock);
+  UNDO.unlock=setTimeout(()=>{ UNDO.busy=false; clearTimeout(snapT) },420);
+  paintUndo();
+}
+function undoStep(){ if(UNDO.at>0){ snapApply(UNDO.at-1); toastTL("Undone") } }
+function redoStep(){ if(UNDO.at<UNDO.list.length-1){ snapApply(UNDO.at+1); toastTL("Redone") } }
+function paintUndo(){
+  const b=document.getElementById("ubk"), f=document.getElementById("ufw");
+  if(!b||!f)return;
+  b.disabled=UNDO.at<=0;
+  f.disabled=UNDO.at>=UNDO.list.length-1;
+  b.title="Undo — Ctrl+Z"+(b.disabled?" (nothing to undo)":" ("+UNDO.at+" step"+(UNDO.at===1?"":"s")+" back)");
+  f.title="Redo — Ctrl+Shift+Z"+(f.disabled?" (nothing to redo)":"");
+}
+document.addEventListener("keydown",e=>{
+  if(!(e.metaKey||e.ctrlKey))return;
+  const a=document.activeElement;
+  /* อยู่ในช่องพิมพ์ ปล่อยให้เบราว์เซอร์ถอยตัวหนังสือเองตามปกติ */
+  if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA)$/.test(a.tagName)))return;
+  const k=e.key.toLowerCase();
+  if(k==="z"&&!e.shiftKey){ e.preventDefault(); undoStep() }
+  else if((k==="z"&&e.shiftKey)||k==="y"){ e.preventDefault(); redoStep() }
+});
 function draw(){
   $("#rl2").value=role; $("#wn").textContent=me; $("#wr").textContent=ROLE[role].n;
   const vis=NAV.filter(n=>navOK(n)&&modOn(n.id));
@@ -1258,6 +1343,7 @@ function draw(){
   PAGEHOST=proxy;
   (PAGE[ts?page+":"+t:page]||pDash)();
   PAGEHOST=null;
+  snapSoon();
 }
 let PAGEHOST=null;
 function deny(t){return '<div class="deny"><h3>Role '+ROLE[role].n+' No access '+esc(t)+'</h3>'+
@@ -1964,12 +2050,6 @@ function pPkg(){
    '<p class="rdonly">these prices are in the budget sheet but every quantity is 0 '+
    'showing it at close time lets reps see there is something more to sell</p>';
 
-  h+='<h2 class="sec">Where the numbers come from</h2><div class="note">'+
-   '<p>prices and terms come from the Restech x TRC 2026 Feasibility sheet '+
-   'which holds detail that normally lives only in a salesperson’s head, such as Platinum priced with and without the Workshop '+
-   'Gold in a Side Area position is cheaper · corner booth +5,000 · 2x2 booths may not use sound</p>'+
-   '<p><b>the sheet prices are not consistent across versions</b> Platinum has been set at 400,000 · 500,000 · 700,000 · 800,000 '+
-   'in different blocks — I used the figures from the most recent TRC 2026 block, and the team needs to confirm which is right</p></div>';
 
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-pk]").forEach(el=>{
@@ -2106,15 +2186,6 @@ function pSales(){
      '</tbody></table></div>';
   }
 
-  h+='<h2 class="sec">Why this page looks the way it does</h2><div class="note">'+
-   '<p><b>Field "Next step" is the heart of it</b> research on pipeline hygiene all agrees that '+
-   'the share of deals with a next step dated in the future is the earliest warning of whether a pipeline is real or imaginary '+
-   'next comes deals quiet for more than 14–30 days — that is why both sit at the top of this page</p>'+
-   '<p><b>There is no contact history recorded yet</b> not because it has not been done '+
-   'but because the sheet in use never recorded it — there was only the field "Email received" 56 rows '+
-   'which only says someone was contacted, not when, what was said, or what was agreed</p>'+
-   '<p><b>A caution from the same research</b> if reps feel they are filling this in only for their boss, nobody will fill it in '+
-   'so this page has to give the reps something back — who to call today, what they are holding, and the booth queue waiting on them</p></div>';
 
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-d]").forEach(tr=>
@@ -2371,20 +2442,7 @@ function pPnl(){
    '</tbody></table></div>';
 
   const mm=rows.flatMap(r=>r.mismatch||[]);
-  if(mm.length)h+='<h2 class="sec">Numbers that do not agree in the sheet</h2>'+
-   '<div class="note" style="border-left-color:var(--risk)">'+
-   mm.map(x=>'<p><b>'+esc(x.c)+'</b> the TOTAL line in the sheet says '+f(x.sheet)+
-     ' but sub-items can be added '+f(x.sum)+' Different '+f(Math.abs(x.sum-x.sheet))+'</p>').join("")+
-   '<p>This page uses the TOTAL line from the sheet, because that is what the team works from '+
-   'the team needs to confirm which one is right</p></div>';
 
-  h+='<h2 class="sec">How to read these numbers</h2><div class="note">'+
-   '<p><b>Click the triangle to expand a row</b> Revenue expands by event, then by package '+
-   'Expenses expand into category, then sub-category, then line item '+
-   (wr?'Amounts and new lines can be edited at the lowest level'
-      :'if you view one event at a time and can edit the budget, amounts are editable at the lowest level')+'</p>'+
-   '<p><b>Field "Now" is not yet the whole truth</b> the revenue side is calculated at list price '+
-   'in 2026 the real average sold 36% below list, and expenses only move on lines where actual spend has been entered</p></div>';
 
   $("#page").innerHTML=h;
   const P=$("#page");
@@ -2567,15 +2625,6 @@ function pCost(){
     h+='</div>';
   });
 
-  h+='<h2 class="sec">the same structure as the sheet</h2><div class="note">'+
-   '<p>4 main categories, sub-categories and line items, matching the Feasibility sheet in use '+
-   'the qty x unit x unit price fields come from the same sheet '+
-   'enter a quantity and unit price and the total is calculated — or type the total in directly</p>'+
-   '<p><b>Different from the sheet in that</b> Category totals are calculated live, not by a formula someone forgot to drag '+
-   'which is why the venue TOTAL line in the sheet is short by exactly 3,000,000 — the venue fee</p>'+
-   '<p><b>Standard set '+(D.template||[]).length+' Item</b> Built from the CafCon Feasibility sheet '+
-   'which has all 5 numbered categories, plus the lines that exist only in the Restech sheet '+
-   'New events start from this set and can be adjusted; events that already have a budget can top up only the missing lines</p></div>';
 
   $("#page").innerHTML=h;
   const P=$("#page");
@@ -2767,12 +2816,6 @@ function pSalesMon(){
     +(todo.length>15?'<p class="rdonly">Showing 15 of '+todo.length+' items — see them all in the working grid</p>':'')
    :'<div class="note"><p>Nothing outstanding</p></div>';
 
-  h+='<h2 class="sec">How to read these numbers</h2><div class="note">'+
-   '<p><b>Pipeline value</b> is every open deal added up, which is always too optimistic '+
-   '<b>Expected to close</b> Weighted by stage — not contacted counts 10%, booked 30% '+
-   'quote sent 50%, won 80%, billed 90% — the later ones are far more useful for planning</p>'+
-   '<p><b>these weights are still defaults</b> the real number comes from historic data on how many quoted deals '+
-   'what percentage actually closes, which needs <code>deal.won_at</code> one full selling season first</p></div>';
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-d]").forEach(tr=>
     tr.addEventListener("click",()=>openDeal(+tr.dataset.d)));
@@ -2851,12 +2894,6 @@ function pGrid(){
    '<span style="font-size:13px;color:var(--ink2);align-self:center">'+
    'New deals start at stage "Not contacted" Booths can be linked later from the floor plan</span></div>';
 
-  h+='<h2 class="sec">How is this different from the board</h2><div class="note">'+
-   '<p><b>The board shows where deals are piling up; this table is for working through many at once</b> '+
-   'Click any cell to type over it — client, value, stage, owner and next step</p>'+
-   '<p><b>The exhibitor task columns tie two things together</b> Closing the deal is not the end '+
-   'logos, forms and booth staff lists are still outstanding '+
-   'a rep can see straight away whether their own client is complete, without jumping to another menu</p></div>';
 
   $("#page").innerHTML=h;
   const P=$("#page");
@@ -2966,14 +3003,6 @@ function pOpp(){
       'Create deal</button></td>':'')+'</tr>').join("")+'</tbody></table></div>'
    :'<div class="note"><p>No other event to compare against</p></div>';
 
-  h+='<h2 class="sec">which is not possible yet, and it is a big one</h2><div class="note" style="border-left-color:var(--risk)">'+
-   '<p><b>cannot be compared with last year yet</b> the sheet only holds one year of exhibitor names '+
-   'so the system cannot tell who came last year and has not booked this year</p>'+
-   '<p>the industry benchmark is 62–76% average retention, 85% best in class '+
-   'the gap between 70% and 85% is where most hall revenue sits '+
-   'and winning an old client back is always cheaper than finding a new one</p>'+
-   '<p><b>send last year’s exhibitor list</b> and this page will list '+
-   '"came last year, not booked this year" immediately, with what they paid before, using the same mechanism as the table above</p></div>';
 
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-op]").forEach(b=>b.addEventListener("click",()=>{
@@ -3087,14 +3116,6 @@ function pPerf(){
      '</tbody></table></div>';
   }
 
-  h+='<h2 class="sec">Worth knowing</h2><div class="note">'+
-   '<p><b>Commission is an estimate</b> Calculated from list price times each person’s rate '+
-   'the real figure has to come from prices actually sold, excluding free booths '+
-   'the rates set here are 10% in-house, 15% agent and 0% house, following Sales Agent Commission in the budget sheet</p>'+
-   '<p><b>name matching has been confirmed with the team</b> internal sales nicknames map to the names above '+
-   'all three are in-house reps; the agent is external</p>'+
-   '<p><b>Free booths are excluded from the comparison</b> because it is not any one person’s result '+
-   'appear in the table below instead — booth count and list value are still visible</p></div>';
 
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-mv]").forEach(el=>el.addEventListener("change",()=>{
@@ -3202,12 +3223,6 @@ function pTarget(){
      EV.booths.filter(b=>b.st==="free").length+' Field</p>';
   }
 
-  h+='<h2 class="sec">that this page cannot answer yet</h2><div class="note">'+
-   '<p><b>we do not know how fast we are selling right now</b> because the sheet never recorded the date each deal closed '+
-   'so the run rate above can only tell you "how much has to be done" but it cannot tell you "how much was actually achieved" '+
-   'Field <code>deal.won_at</code> is there to hold this — after one full selling season it can be compared with the same date last year</p>'+
-   '<p><b>still at list price</b> The won figure is a ceiling, not a real total '+
-   'in 2026 the real average sold 36% below list, and it was different at every tier</p></div>';
 
   $("#page").innerHTML=h;
   const save=()=>{tOverride[EV.id]={
@@ -3248,12 +3263,7 @@ function pBudget(){
    '<td class="num">'+f(T.con)+'</td><td class="num" style="color:var(--ok)">'+f(T.got)+'</td>'+
    '<td class="num" style="color:var(--warn)">'+f(T.con-T.got)+'</td></tr>'+
    '<tr><td colspan="4" style="color:var(--ink2)">Build cost of booths already sold</td>'+
-   '<td class="num" style="color:var(--risk)">-'+f(cost)+'</td><td colspan="2"></td></tr></tfoot></table></div>'+
-   '<h2 class="sec">Limits of these numbers</h2><div class="note">'+
-   '<p><b>still at list price</b> the floor plan sheet does not record a price per deal — in 2026 the real average sold 36% below list '+
-   'and it was different at every tier — Title 0% · Gold 54% · Silver 23% — so this figure is a ceiling</p>'+
-   '<p><b>the expense side does not move on its own yet</b> venue, stage, marketing and crew still have to be entered in <code>budget_line</code> '+
-   'only revenue and booth build cost move on their own, because they are tied directly to booth count</p></div>';
+   '<td class="num" style="color:var(--risk)">-'+f(cost)+'</td><td colspan="2"></td></tr></tfoot></table></div>';
   $("#dp").value=String(dep);
   $("#dp").addEventListener("change",e=>{dep=+e.target.value;pBudget()});
   $("#dlinc").addEventListener("click",e=>{
@@ -3592,14 +3602,7 @@ function sheet(rows){
      '<button id="allscript">Add the running script link for this stage</button>'+
      '<span style="font-size:13px;color:var(--ink2);align-self:center">'+
      'Click any cell and type over it, Tab moves to the next · edits save immediately</span></div>'
-    :'<p class="rdonly">Role '+ROLE[role].n+' View only, cannot edit the schedule</p>')+
-   '<h2 class="sec">Why does this table look like the old sheet</h2><div class="note">'+
-   '<p>Columns follow the Agenda sheet the team already uses, plus slot-level fields such as time, topic and MOD '+
-   'were merged when a slot had several speakers, the same way the team does it in the sheet today '+
-   'so nobody has to learn a new way of reading it</p>'+
-   '<p><b>The difference is that</b> in the sheet, merged cells make it impossible to search or count '+
-   'here merging is only a display choice — the underlying data stays in rows <code>session_person</code> '+
-   'so it can answer how many times a person is on, whether they clash, and who has not sent slides</p></div>';
+    :'<p class="rdonly">Role '+ROLE[role].n+' View only, cannot edit the schedule</p>');
 }
 
 
@@ -3632,11 +3635,6 @@ function pTaskSetup(){
      (wr?'<td><button class="rowdel" data-tx="'+i+'">Delete</button></td>':'')+'</tr>'}).join("")+
    '</tbody></table></div>'+
    (wr?'<div class="addbar"><button id="taddb">+ Add checklist item</button></div>':'');
-  h+='<h2 class="sec">Source</h2><div class="note">'+
-   '<p>This list is converted from the 37-column Exhibitor Manual sheet, keeping only real tasks '+
-   'that someone actually has to submit, not internal note fields</p>'+
-   '<p>Change "Owner" to our team, and that task disappears from the exhibitor portal '+
-   'in the schema this is <code>task_template.assigned_to</code></p></div>';
   $("#page").innerHTML=h;
   const P=$("#page");
   P.querySelectorAll("[data-tl]").forEach(el=>el.addEventListener("blur",()=>{
@@ -3754,13 +3752,6 @@ function pExh(){
     :'<tr><td colspan="5" style="color:var(--ink2)">Nothing matches this filter</td></tr>')+
    '</tbody></table></div>';
 
-  h+='<h2 class="sec">Why let exhibitors do it themselves</h2><div class="note">'+
-   '<p>The Exhibitor Manual sheet has 239 rows and 37 columns that our team fills in for them '+
-   'the 4–6 weeks before the show is when the question "what to send, where, and by when" is heaviest</p>'+
-   '<p>Almost all of this is work that<b>the booth owner knows better than we do</b> — logo, fascia name '+
-   'booth staff list and build type — they fill it in themselves and see their own deadlines '+
-   'our team is left only chasing whoever is overdue</p>'+
-   '<p>in the schema that is <code>task_template.assigned_to</code> which separates our tasks from theirs</p></div>';
   $("#page").innerHTML=h; bindExh();
 }
 /* หน้าที่ผู้ออกบูธเห็นเมื่อล็อกอินเข้าพอร์ทัล */
@@ -3813,15 +3804,7 @@ function portalPreview(d){
        '<span class="pill" style="background:'+cv(x.st.c)+'">'+x.st.l+'</span></span>'+
      '</div>').join("")+
    manualBlock(d)+
-   '</div></div>'+
-   '<h2 class="sec">What the portal needs, based on the research</h2><div class="note">'+
-   '<p><b>Badge cap by package</b> Exhibitors can enter their own booth staff, but the system will not let them exceed the quota '+
-   'for that package — the same as the Exhibitor badge and Contractor badge columns in the sheet '+
-   'in the schema this is <code>booth_type.badge_exhibitor</code> and <code>booth_staff</code></p>'+
-   '<p><b>they update their own company details</b> name, description, website, product type, logo '+
-   'until the cut-off, then pushed to the Directory Board and show guide automatically</p>'+
-   '<p><b>Not done</b> an exhibitor login, file upload and automatic reminder emails '+
-   'this demo only shows what it would look like</p></div>';
+   '</div></div>';
 }
 function bindExh(){
   const P=$("#page");
@@ -4210,11 +4193,7 @@ function pUsers(){
    M.map(m=>'<tr><td><b>'+m[1]+'</b></td>'+RS.map(r=>{const l=LV[ROLE[r].p[m[0]]]||LV.none;
      return '<td style="color:'+cv(l[1])+';font-weight:'+(l[0]==="Can edit"?600:400)+'">'+l[0]+
       (m[0]==="deal"&&ROLE[r].scope==="own"?'<br><small style="color:var(--ink3)">Own only</small>':"")+'</td>'}).join("")+
-    '</tr>').join("")+'</tbody></table></div>'+
-   '<h2 class="sec">How it works</h2><div class="note">'+
-   '<p>This table is the data behind the grid <code>role_permission</code> not a condition buried in the code '+
-   'changing a permission is one row, no redeploy — which matters for a team of 15–20 whose roles shift through the selling season</p>'+
-   '<p><b>Watch out</b> Hiding menus on screen is not access control — the real check has to happen on the server on every request</p></div>';
+    '</tr>').join("")+'</tbody></table></div>';
   const ab=$("#raddb");
   if(ab)ab.addEventListener("click",()=>{
     const n=$("#rname").value.trim(); if(!n){$("#rname").focus();return}
