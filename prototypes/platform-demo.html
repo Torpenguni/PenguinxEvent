@@ -613,6 +613,12 @@ tr.gtr.sel td.gts,tr.gtr.sel td.gtd,tr.gtr.sel td.gtx3{background:var(--soft)}
   pointer-events:none;display:none;z-index:0}
 .pw{position:relative}
 .pw svg{position:relative;z-index:1}
+/* ลากสลับลำดับแถว */
+table.gt td.gtno[draggable]{cursor:grab}
+table.gt td.gtno[draggable]:active{cursor:grabbing}
+tr.dragging{opacity:.4}
+tr.dropab td{box-shadow:inset 0 2px 0 var(--accent)}
+tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
 </style>
 
 <div id="login">
@@ -3875,8 +3881,65 @@ function selBar(n,wr){
 }
 /* ช่องเลขแถวแบบสเปรดชีต กดที่เลขเพื่อเลือกทั้งแถว
    Shift เลือกเป็นช่วง Cmd หรือ Ctrl เลือกทีละแถวแบบสลับ */
-const selNo=(i)=>'<td class="gtno" data-rn="'+i+'"><span>'+(i+1)+'</span></td>';
+const selNo=(i)=>'<td class="gtno" data-rn="'+i+'" draggable="true" '+
+  'title="Drag to reorder"><span>'+(i+1)+'</span></td>';
 const grpNo=(g)=>'<td class="gtno gtnog" data-gsel="'+esc(g)+'" title="Select whole category"></td>';
+/* ลากสลับลำดับแถว จับที่ช่องเลขแถว
+   ลากทีเดียวได้ทั้งชุดที่เลือกไว้ ถ้าแถวที่ลากอยู่ในชุดนั้น
+   ลากข้ามหมวดได้ ระบบย้ายหมวดให้ตามที่ไปวาง */
+let dragSet=null;
+function wireDrag(P,list,redraw){
+  const ALL=tlRows();
+  const clear=()=>P.querySelectorAll(".dropab,.dropbe")
+    .forEach(e=>e.classList.remove("dropab","dropbe"));
+
+  P.querySelectorAll("td.gtno[draggable]").forEach(td=>{
+    td.addEventListener("dragstart",e=>{
+      const r=list[+td.dataset.rn]; if(!r)return;
+      dragSet = tlSel.has(r) && tlSel.size>1 ? list.filter(x=>tlSel.has(x)) : [r];
+      e.dataTransfer.effectAllowed="move";
+      e.dataTransfer.setData("text/plain","row");   // Firefox ต้องมีข้อมูลถึงจะเริ่มลาก
+      td.closest("tr").classList.add("dragging");
+    });
+    td.addEventListener("dragend",()=>{
+      dragSet=null; clear();
+      P.querySelectorAll(".dragging").forEach(e=>e.classList.remove("dragging"));
+    });
+  });
+
+  P.querySelectorAll("tr.gtr[data-drow], tr.gtg[data-dgrp]").forEach(tr=>{
+    tr.addEventListener("dragover",e=>{
+      if(!dragSet)return;
+      e.preventDefault(); e.dataTransfer.dropEffect="move";
+      const b=tr.getBoundingClientRect();
+      const below = e.clientY > b.top + b.height/2;
+      clear(); tr.classList.add(below?"dropbe":"dropab");
+    });
+    tr.addEventListener("drop",e=>{
+      if(!dragSet)return;
+      e.preventDefault();
+      const below = e.clientY > tr.getBoundingClientRect().top + tr.getBoundingClientRect().height/2;
+      const moving=dragSet.slice(); dragSet=null; clear();
+
+      let grp, anchor;
+      if(tr.dataset.dgrp!=null){
+        /* วางบนหัวหมวด แปลว่าเอาไปไว้ต้นหมวดนั้น */
+        grp=tr.dataset.dgrp;
+        anchor=ALL.find(x=>x.grp===grp&&!moving.includes(x)) ?? null;
+      }else{
+        const target=list[+tr.dataset.drow];
+        if(!target||moving.includes(target))return;
+        grp=target.grp; anchor=target;
+      }
+      moving.forEach(r=>{ const k=ALL.indexOf(r); if(k>=0)ALL.splice(k,1) });
+      moving.forEach(r=>{ r.grp=grp });
+      let at = anchor ? ALL.indexOf(anchor) + (below&&tr.dataset.dgrp==null ? 1 : 0) : ALL.length;
+      if(at<0)at=ALL.length;
+      ALL.splice(at,0,...moving);
+      redraw();
+    });
+  });
+}
 function wireSel(P,list,redraw){
   P.querySelectorAll("td.gtno[data-rn]").forEach(td=>td.addEventListener("click",e=>{
     const bi=+td.dataset.rn, r=list[bi];
@@ -4246,7 +4309,7 @@ function pTimeline(ph){
     const ga=Math.min(...idx.map(([r])=>pA(r))),
           gb=Math.max(...idx.map(([r])=>pB(r)));
     const pct=Math.round(gd/idx.length*100);
-    h+='<tr class="gtg">'+grpNo(g)+'<td class="gtn gtgh" colspan="3">'+
+    h+='<tr class="gtg" data-dgrp="'+esc(g)+'">'+grpNo(g)+'<td class="gtn gtgh" colspan="3">'+
       '<button class="gtx" data-gt="'+esc(g)+'">'+(op?"▾":"▸")+'</button>'+
       (wr?'<span class="gtgn" contenteditable="plaintext-only" data-gn="'+esc(g)+'">'+esc(g)+'</span>'
          :'<span class="gtgn">'+esc(g)+'</span>')+
@@ -4262,7 +4325,7 @@ function pTimeline(ph){
     idx.forEach(([r,i])=>{
       const a=pA(r), b=pB(r), ha=hasAct(r), xa=ha?aA(r):0, xb=ha?aB(r):-1;
       const st=TLST[r.st]||TLST.plan, isLate=r.st!=="done"&&b<now, sl=slip(r);
-      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'">'+selNo(rowNo++)+'<td class="gtn">'+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'">'+selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-tn="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-tx="'+i+'" title="Delete this task">×</button>':'')+
         '<br><small class="gtnote"><b>'+(wr?'<span contenteditable="plaintext-only" data-tby="'+i+'">'+
@@ -4326,6 +4389,7 @@ function pTimeline(ph){
       return n;
     }};
   wireSel(P,R,()=>pTimeline(ph));
+  if(wr)wireDrag(P,R,()=>pTimeline(ph));
   /* เปิดมาให้เห็นช่วงที่มีงานจริง ไม่ค้างอยู่กับสัปดาห์ว่างทางซ้าย */
   const box=P.querySelector(".tw");
   if(box){ const first=Math.min(...R.map(r=>Math.min(r.a,r.b)));
@@ -4486,7 +4550,7 @@ function pTimelineOn(){
     const idx=R.map((r,i)=>[r,i]).filter(([r])=>r.d===onDay&&r.grp===g);
     const gd=idx.filter(([r])=>r.st==="done").length;
     const pct=Math.round(gd/idx.length*100);
-    h+='<tr class="gtg">'+grpNo(g)+'<td class="gtn gtgh" colspan="3">'+
+    h+='<tr class="gtg" data-dgrp="'+esc(g)+'">'+grpNo(g)+'<td class="gtn gtgh" colspan="3">'+
       '<span class="gtgn">'+esc(g)+'</span>'+
       '<span class="gtpb"><i style="width:'+pct+'%"></i></span><small>'+gd+'/'+idx.length+'</small>'+
       (wr?'<button class="gtx2" data-oa="'+esc(g)+'">+ Add run-sheet item</button>':'')+'</td>'+
@@ -4500,7 +4564,7 @@ function pTimelineOn(){
       const t1=hm(r.t1), t2=Math.max(hm(r.t2),t1+.5), st=TLST[r.st]||TLST.plan;
       const ha=hasActT(r), y1=ha?hm(r.at1):0, y2=ha?Math.max(hm(r.at2),y1+.5):0;
       const sm=slipMin(r);
-      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'">'+selNo(rowNo++)+'<td class="gtn">'+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'">'+selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-on="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-ox="'+i+'" title="Delete this run-sheet item">×</button>':'')+
         '<br><small class="gtnote"><b>'+(wr?'<span contenteditable="plaintext-only" data-oby="'+i+
