@@ -701,6 +701,14 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
   display:grid;place-items:center;transition:border-color .12s,color .12s}
 .undo button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .undo button:disabled{opacity:.32;cursor:default}
+/* ป้ายสถานะแทน TRUE FALSE */
+.ynp{display:inline-block;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:99px;
+  border:1px solid var(--line2);color:var(--ink3);background:var(--paper);white-space:nowrap}
+.ynp.on{border-color:transparent;background:color-mix(in srgb,var(--ok) 16%,transparent);
+  color:var(--ok);font-weight:700}
+.ynb{background:none;border:0;padding:0;cursor:pointer;font:inherit}
+.ynb:hover .ynp{border-color:var(--accent);color:var(--accent)}
+.ynb:hover .ynp.on{border-color:var(--ok);color:var(--ok)}
 </style>
 
 <div id="login">
@@ -3528,9 +3536,21 @@ function recalc(s){
 }
 function sheet(rows){
   const ed=can("stage")==="write";
-  const yn=(v,si,fld)=>ed?'<button class="tog" data-si="'+si+'" data-tg="'+fld+'">'+
-      (v?'<span style="color:var(--ok);font-weight:700">TRUE</span>':'<span style="color:var(--ink3)">FALSE</span>')+'</button>'
-    :(v?'<span style="color:var(--ok);font-weight:700">TRUE</span>':'<span style="color:var(--ink3)">FALSE</span>');
+  /* ชีตเดิมเก็บเป็น TRUE/FALSE ซึ่งไม่บอกว่าหมายถึงอะไร
+     เปลี่ยนเป็นป้ายที่อ่านแล้วรู้เลยว่าหัวข้อนี้สรุปแล้วหรือยัง และเวลาถูกล็อกหรือยัง */
+  const YN={
+    cf:{on:["Final","This topic is agreed and will not change"],
+        off:["Draft","Still being worked on — click to mark it final"]},
+    lock:{on:["Locked","The time slot is fixed and should not be moved"],
+          off:["Open","The time can still move — click to lock it"]},
+  };
+  const yn=(v,si,fld)=>{
+    const w=YN[fld]||{on:["Yes",""],off:["No",""]};
+    const t=v?w.on:w.off;
+    const body='<span class="ynp'+(v?" on":"")+'">'+(v?"✓ ":"")+t[0]+'</span>';
+    return ed?'<button class="tog ynb" data-si="'+si+'" data-tg="'+fld+'" title="'+esc(t[1])+'">'+
+      body+'</button>':body;
+  };
   const cell=(v,si,pi,fld,ph)=>ed
     ?'<span contenteditable="plaintext-only" data-si="'+si+'" data-pi="'+pi+'" data-f="'+fld+
       '" data-ph="'+esc(ph||"")+'">'+esc(v||"")+'</span>'
@@ -3588,8 +3608,8 @@ function sheet(rows){
   const CW=[54,104,60,132,300,84,168,168,220,118,124,170,96,140,104,132];
   if(ed)CW.push(64);
   const total=CW.reduce((a,b)=>a+b,0);
-  const HD=['Que','Time','min','Build type','Topic','CF topic','Speaker (short name)','Full name',
-    'Position','Status SPK','Contact','MOD','Lock time','Coordinator','Slides','MC script'];
+  const HD=['Que','Time','min','Build type','Topic','Topic status','Speaker (short name)','Full name',
+    'Position','Status SPK','Contact','MOD','Time slot','Coordinator','Slides','MC script'];
   if(ed)HD.push("");
   return '<div class="tw" style="max-height:74vh;overflow:auto">'+
    '<table style="min-width:'+total+'px;table-layout:fixed">'+
