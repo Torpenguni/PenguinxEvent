@@ -709,6 +709,17 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
 .ynb{background:none;border:0;padding:0;cursor:pointer;font:inherit}
 .ynb:hover .ynp{border-color:var(--accent);color:var(--accent)}
 .ynb:hover .ynp.on{border-color:var(--ok);color:var(--ok)}
+/* ช่องเลือกเวลาในตารางเวที */
+table td.tcell{padding:4px 6px}
+.tpick{display:flex;flex-direction:column;gap:3px}
+.tpick input{width:100%;padding:3px 5px;border:1px solid var(--line2);border-radius:6px;
+  background:var(--paper);color:var(--ink);font:inherit;font-size:12px;
+  font-variant-numeric:tabular-nums}
+.tpick input:focus{outline:0;border-color:var(--accent);background:var(--card)}
+.tpick input::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer}
+.tpick input:hover::-webkit-calendar-picker-indicator{opacity:1}
+.tv{font-variant-numeric:tabular-nums;font-size:12.5px}
+.tv i{color:var(--ink3);font-style:normal;margin:0 3px}
 </style>
 
 <div id="login">
@@ -887,7 +898,7 @@ const ST={free:{l:"Free",c:"--s-free",t:"var(--ink)"},booked:{l:"Booked",c:"--s-
  deposit:{l:"Deposit paid",c:"--s-deposit",t:"#fff"},paid:{l:"Paid in full",c:"--s-paid",t:"#fff"}};
 const NEXT={free:"booked",booked:"deposit",deposit:"paid"};
 const Q={};
-let role="sales", me="Snoox", page="dash", sel=null, q="", dep=.5, day=1;
+let role="sales", me="—", page="dash", sel=null, q="", dep=.5, day=1;
 let fZone="", fPkg="";
 const cv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -947,7 +958,10 @@ function logoTile(co,px){
 
 /* ---------- shell ---------- */
 $("#lform").addEventListener("submit",e=>{
-  e.preventDefault(); role=$("#rl").value; showPick();
+  e.preventDefault(); role=$("#rl").value;
+  const r=(D.reps||[]).find(x=>x.active!==false&&x.kind!=="house");
+  me=r?r.name:"—";
+  showPick();
 });
 /* ───────── สร้างงานใหม่ ─────────
    กรอกข้อมูลตั้งต้นครั้งเดียว แล้วระบบวางโครงให้ทั้งงาน
@@ -1353,8 +1367,7 @@ function draw(){
 }
 let PAGEHOST=null;
 function deny(t){return '<div class="deny"><h3>Role '+ROLE[role].n+' No access '+esc(t)+'</h3>'+
- '<p>this menu is hidden in the left bar as well, following the table <code>role_permission</code></p>'+
- '<p>Permissions are stored as data, not hard-coded — change one row without redeploying</p></div>'}
+ '<p>This menu is hidden in the sidebar for this role</p></div>'}
 
 /* ---------- ภาพรวม ---------- */
 function money(){
@@ -2045,8 +2058,7 @@ function pPkg(){
     '<td class="num">'+B.filter(b=>b.zone===z).length+'</td>'+
     '<td class="num">'+B.filter(b=>b.zone===z&&b.st!=="free").length+'</td></tr>').join("")+
    '</tbody></table></div>'+
-   '<p class="rdonly">Zone names are used as filters on the floor plan and printed on hall signage '+
-   'in the schema this is <code>zone.name</code></p>'+
+   '<p class="rdonly">Zone names are used as filters on the floor plan and printed on hall signage</p>'+
    '<h2 class="sec">Add-ons</h2><div class="tw"><table><thead><tr>'+
    '<th>Items</th><th class="num">Price</th></tr></thead><tbody>'+
    (EV.addons||[]).map((a,i)=>'<tr><td>'+esc(a[0])+'</td><td class="num">'+
@@ -2086,8 +2098,8 @@ function pPkg(){
 function pDeals(){
   const list=DEALS.filter(mine);
   $("#page").innerHTML=(ROLE[role].scope==="own"
-    ?'<div class="note" style="margin-bottom:14px"><p>the sales role sees only their own deals — currently showing '+
-     list.length+' of '+DEALS.length+' deals, by <code>scope = own</code></p></div>':'')+
+    ?'<div class="note" style="margin-bottom:14px"><p>This role sees only their own deals — showing '+
+     list.length+' of '+DEALS.length+'</p></div>':'')+
    '<div class="tw"><table><thead><tr><th>Client</th><th>Package</th><th>Booths</th>'+
    '<th class="num">List price</th><th>Status</th><th>Sales</th><th>Contact</th></tr></thead><tbody>'+
    list.map(d=>'<tr><td><span style="display:flex;gap:9px;align-items:center">'+logoTile(d.co,28)+
@@ -3471,6 +3483,23 @@ function bindSheet(){
   P.querySelectorAll("[data-tg]").forEach(b=>b.addEventListener("click",()=>{
     const s=SES[+b.dataset.si]; s[b.dataset.tg]=!s[b.dataset.tg]; pStage();
   }));
+  /* ช่องเลือกเวลา เขียนกลับเป็น 09:00-09:40 แล้วคำนวณนาทีให้เอง */
+  P.querySelectorAll("[data-tp]").forEach(el=>el.addEventListener("change",()=>{
+    const s=SES[+el.dataset.si]; if(!s)return;
+    const box=el.closest(".tpick");
+    const a=box.querySelector('[data-tp="a"]').value;
+    let b=box.querySelector('[data-tp="b"]').value;
+    if(!a){ pStage(); return }
+    if(!b){                          // ใส่แต่เวลาเริ่ม ต่อความยาวเดิมให้
+      const len=+s.min||20, t=a.split(":"), m=+t[0]*60+ +t[1]+len;
+      b=String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+    }
+    if(b<=a){                        // เวลาจบไม่ควรก่อนเวลาเริ่ม ดันไปอีก 20 นาที
+      const t=a.split(":"), m=+t[0]*60+ +t[1]+20;
+      b=String(Math.floor(m/60)%24).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+    }
+    s.time=a+"-"+b; recalc(s); pStage();
+  }));
   P.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.armed){SES.splice(+b.dataset.del,1);pStage();return}
     P.querySelectorAll("[data-del]").forEach(x=>{delete x.dataset.armed;x.textContent="×";
@@ -3544,6 +3573,20 @@ function sheet(rows){
     lock:{on:["Locked","The time slot is fixed and should not be moved"],
           off:["Open","The time can still move — click to lock it"]},
   };
+  /* เวลาเดิมพิมพ์เป็นข้อความ 09:00-09:40 พิมพ์ผิดง่ายและระบบอ่านไม่ออก
+     เปลี่ยนเป็นช่องเลือกเวลาสองช่อง เบราว์เซอร์มีตัวเลือกเวลาให้กดเอง
+     นาทีคำนวณจากผลต่างให้เอง ไม่ต้องกรอกซ้ำ */
+  const tpick=(s,si)=>{
+    const m=/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/.exec(s.time||"");
+    const pad=t=>{const x=/^(\d{1,2}):(\d{2})$/.exec(t||"");
+      return x?String(+x[1]).padStart(2,"0")+":"+x[2]:""};
+    const a=pad(m?m[1]:(s.time||"").trim()), b=pad(m?m[2]:"");
+    if(!ed)return '<span class="tv">'+(a||"—")+(b?'<i>–</i>'+b:"")+'</span>';
+    return '<span class="tpick">'+
+      '<input type="time" value="'+a+'" data-si="'+si+'" data-tp="a" aria-label="Start time">'+
+      '<input type="time" value="'+b+'" data-si="'+si+'" data-tp="b" aria-label="End time">'+
+      '</span>';
+  };
   const yn=(v,si,fld)=>{
     const w=YN[fld]||{on:["Yes",""],off:["No",""]};
     const t=v?w.on:w.off;
@@ -3573,7 +3616,7 @@ function sheet(rows){
       body+='<tr>';
       if(i===0)body+=
         '<td'+span+' class="num">'+cell(s.no,si,-1,"no")+'</td>'+
-        '<td'+span+' class="num">'+cell(s.time,si,-1,"time","09:00-09:40")+'</td>'+
+        '<td'+span+' class="tcell">'+tpick(s,si)+'</td>'+
         '<td'+span+' class="num">'+cell(s.min,si,-1,"min")+'</td>'+
         '<td'+span+'><span class="dot" style="background:'+cv(SCOL[s.kind]||"--ink3")+'"></span>'+
           sel(s.kind,si,-1,"kind",KOPT)+'</td>'+
@@ -4125,9 +4168,6 @@ function pShare(){
   if(wr)h+='<h2 class="sec">Create a new event from this one</h2><div class="note">'+
    '<p>Cloning lives in one place with creating from scratch — press <b>All events</b> at the top '+
    'of the sidebar, then <b>Create new event</b>, and choose <b>Clone an existing event</b> at the top of the form</p></div>';
-  h+='<div class="note" style="margin-top:18px"><p><b>Access can be revoked instantly</b> — '+
-   'the system records who invited whom and when, in <code>event_share</code> with '+
-   '<code>invited_by</code> and <code>revoked_at</code></p></div>';
   $("#page").innerHTML=h;
   const tog=$("#scopetog");
   if(tog)tog.addEventListener("click",()=>{
@@ -4203,8 +4243,7 @@ function pUsers(){
      (wr?'<td><button class="rowdel" data-rtog="'+i+'" style="font-size:12.5px">'+
        (r.active?"Disable":"Enable")+'</button></td>':'')+'</tr>').join("")+
    '</tbody></table></div>'+
-   '<div class="note" style="margin-top:12px"><p>Disable rather than delete, because old deals still need to show who closed them '+
-   'in reality <code>sales_agent.active</code> in the schema</p></div>';
+   '<div class="note" style="margin-top:12px"><p>Disable rather than delete, so old deals still show who closed them</p></div>';
 
   $("#page").innerHTML=hh+'<h2 class="sec">Permission matrix</h2><div class="tw"><table><thead><tr><th>Module</th>'+
    RS.map(r=>'<th>'+ROLE[r].n+'</th>').join("")+'</tr></thead><tbody>'+
