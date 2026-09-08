@@ -70,8 +70,6 @@ nav.side .logo b{color:#fff}
 .evsel{margin:0 0 14px;padding:0 4px}
 .evsel select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);
 background:rgba(255,255,255,.05);color:#E7EDEA;font-size:13.5px}
-.navlab{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.32);
-padding:12px 10px 5px;font-weight:600}
 nav.side a{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;color:var(--nav-ink);
 text-decoration:none;font-size:14px;cursor:pointer;border:0;background:none;width:100%;text-align:left}
 nav.side a:hover{background:rgba(255,255,255,.06);color:#fff}
@@ -97,7 +95,7 @@ background:var(--card);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 .demo{font-size:11px;background:var(--soft);color:var(--accent);padding:3px 9px;border-radius:99px;font-weight:600}
 .page{padding:26px}
 @media(max-width:860px){#app.on{grid-template-columns:1fr}nav.side{position:static;height:auto;flex-direction:row;
-flex-wrap:wrap;align-items:center}nav.side .logo,.evsel,.navlab,.who{display:none}nav.side a{width:auto}}
+flex-wrap:wrap;align-items:center}nav.side .logo,.evsel,.who{display:none}nav.side a{width:auto}}
 
 /* ---------- bits ---------- */
 .tabs{display:flex;gap:4px;margin:0 0 20px;border-bottom:1px solid var(--line);
@@ -1317,7 +1315,7 @@ function draw(){
   $("#rl2").value=role; $("#wn").textContent=me; $("#wr").textContent=ROLE[role].n;
   const vis=NAV.filter(n=>navOK(n)&&modOn(n.id));
   if(!vis.some(n=>n.id===page))page=vis[0].id;
-  $("#nav").innerHTML='<div class="navlab">Task</div>'+vis.map(n=>{
+  $("#nav").innerHTML=vis.map(n=>{
     const c=n.id==="sales"?DEALS.filter(mine).length
       :n.id==="plan"?B.filter(x=>x.st==="free").length:"";
     return '<a class="'+(page===n.id?"on":"")+'" data-p="'+n.id+'">'+svg(n.id)+
