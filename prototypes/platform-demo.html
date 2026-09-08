@@ -711,12 +711,16 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
   border-top:1px solid var(--line)}
 .stgb .act{padding:6px 13px;font-size:13px}
 /* ปุ่มถอยหลัง เดินหน้า */
-.undo{display:flex;gap:5px;margin-left:16px}
-.undo button{width:31px;height:31px;border:1px solid var(--line2);border-radius:8px;
-  background:var(--card);color:var(--ink2);font-size:15px;cursor:pointer;line-height:1;
-  display:grid;place-items:center;transition:border-color .12s,color .12s}
+.undo{display:flex;gap:6px;margin-left:16px}
+.undo button{display:inline-flex;align-items:center;gap:6px;height:31px;padding:0 12px;
+  border:1px solid var(--line2);border-radius:8px;background:var(--card);color:var(--ink2);
+  font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;line-height:1;
+  transition:border-color .12s,color .12s,opacity .12s}
+.undo button span{font-size:15px;line-height:1}
 .undo button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
-.undo button:disabled{opacity:.32;cursor:default}
+.undo button:disabled{opacity:.3;cursor:default}
+@media(max-width:900px){.undo button{padding:0 9px}.undo button:not(:hover){font-size:0}
+  .undo button span{font-size:16px}}
 /* ป้ายสถานะแทน TRUE FALSE */
 .ynp{display:inline-block;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:99px;
   border:1px solid var(--line2);color:var(--ink3);background:var(--paper);white-space:nowrap}
@@ -836,8 +840,8 @@ table td.tcell{padding:4px 6px}
     <div class="top">
       <h1 id="ttl">Overview</h1><span class="sp"></span>
       <div class="undo">
-        <button id="ubk" title="Undo — Ctrl+Z" disabled>↺</button>
-        <button id="ufw" title="Redo — Ctrl+Shift+Z" disabled>↻</button>
+        <button id="ubk" disabled><span>↺</span>Undo</button>
+        <button id="ufw" disabled><span>↻</span>Redo</button>
       </div>
       <span class="demo">Demo</span>
       <div class="rolepick"><label for="rl2">Switch role</label><select id="rl2"></select></div>
@@ -1382,13 +1386,16 @@ function snapApply(n){
 }
 function undoStep(){ if(UNDO.at>0){ snapApply(UNDO.at-1); toastTL("Undone") } }
 function redoStep(){ if(UNDO.at<UNDO.list.length-1){ snapApply(UNDO.at+1); toastTL("Redone") } }
+const isMac=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent);
+const KZ=isMac?"⌘Z":"Ctrl+Z", KY=isMac?"⇧⌘Z":"Ctrl+Shift+Z";
 function paintUndo(){
   const b=document.getElementById("ubk"), f=document.getElementById("ufw");
   if(!b||!f)return;
+  const back=Math.max(0,UNDO.at), fwd=Math.max(0,UNDO.list.length-1-UNDO.at);
   b.disabled=UNDO.at<=0;
   f.disabled=UNDO.at>=UNDO.list.length-1;
-  b.title="Undo — Ctrl+Z"+(b.disabled?" (nothing to undo)":" ("+UNDO.at+" step"+(UNDO.at===1?"":"s")+" back)");
-  f.title="Redo — Ctrl+Shift+Z"+(f.disabled?" (nothing to redo)":"");
+  b.title=b.disabled?"Nothing to undo":"Undo · "+KZ+" · "+back+" step"+(back===1?"":"s")+" back";
+  f.title=f.disabled?"Nothing to redo":"Redo · "+KY+" · "+fwd+" step"+(fwd===1?"":"s")+" forward";
 }
 document.addEventListener("keydown",e=>{
   if(!(e.metaKey||e.ctrlKey))return;
