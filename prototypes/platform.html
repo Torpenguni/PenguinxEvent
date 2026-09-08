@@ -518,6 +518,52 @@ tr.gtr.sel td.gts,tr.gtr.sel td.gtd,tr.gtr.sel td.gtx3{background:var(--soft)}
 .mbar .mb:hover{border-color:var(--accent);color:var(--accent)}
 .mbar input[type=month]{border:1px solid var(--line2);border-radius:7px;padding:5px 9px;
   font-size:13px;background:var(--paper);color:var(--ink);font-family:inherit}
+/* การ์ดงาน โลโก้ และฟอร์มสร้างงานใหม่ */
+.evwrap{position:relative;display:flex}
+.evwrap .evcard{flex:1}
+.evlogo{position:absolute;top:14px;right:14px;background:var(--card);border:1px solid var(--line2);
+  border-radius:7px;font-size:11.5px;padding:4px 10px;cursor:pointer;color:var(--ink2);
+  font-family:inherit;z-index:2}
+.evlogo:hover{border-color:var(--accent);color:var(--accent)}
+.evmark.img{background:var(--paper);border:1px solid var(--line);padding:6px;
+  width:auto;min-width:64px;max-width:190px;height:64px}
+.evmark.img img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.evmark.plus{background:var(--soft);color:var(--accent);font-size:30px;font-weight:400}
+.evcard.evnew{border-top-color:var(--line2);border-style:dashed}
+.evcard.evnew b{color:var(--accent)}
+.side .evlogo{position:static;background:transparent;border:0;padding:0;margin:0 0 12px;cursor:default}
+.side .evlogo img{max-width:100%;max-height:52px;object-fit:contain;display:block;
+  background:#fff;border-radius:8px;padding:6px}
+/* ฟอร์มสร้างงานใหม่ */
+.nf{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:26px 28px;
+  box-shadow:var(--sh);grid-column:1/-1;text-align:left}
+.nf h2{margin:0 0 4px;font-size:20px}
+.nf .nfs{margin:0 0 20px;color:var(--ink2);font-size:13.5px}
+.nfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:14px 18px}
+.nff{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.nff>span{color:var(--ink2);font-weight:600;font-size:12.5px}
+.nff input{padding:9px 12px;border:1px solid var(--line2);border-radius:8px;
+  background:var(--paper);color:var(--ink);font:inherit;font-size:13.5px;width:100%}
+.nff input:focus{outline:0;border-color:var(--accent)}
+.nff input:disabled{opacity:.5}
+.nfrad{display:flex;gap:16px;padding:8px 0}
+.nfrad label{display:flex;align-items:center;gap:6px;font-size:13.5px;cursor:pointer}
+.nfrad input{accent-color:var(--accent);width:15px;height:15px}
+.nflogo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nfprev{min-width:76px;height:46px;border:1px dashed var(--line2);border-radius:8px;
+  display:grid;place-items:center;font-size:11px;color:var(--ink3);padding:4px 8px}
+.nfprev img{max-height:38px;max-width:150px;object-fit:contain;display:block}
+.nflogo input[type=file]{font-size:12px;max-width:210px}
+.nfchk{display:flex;align-items:center;gap:8px;margin:18px 0 0;font-size:13.5px;cursor:pointer}
+.nfchk input{accent-color:var(--accent);width:15px;height:15px}
+.nfnote{margin:16px 0 0;background:var(--soft);border-radius:10px;padding:13px 17px;font-size:13px}
+.nfnote b{display:block;margin-bottom:6px}
+.nfnote ul{margin:0;padding-left:18px;color:var(--ink2);line-height:1.7}
+.nfbtn{display:flex;align-items:center;gap:16px;margin-top:20px}
+.nfbtn .btn{width:auto;padding:11px 30px}
+.lnk{background:none;border:0;color:var(--ink2);cursor:pointer;font:inherit;
+  font-size:13.5px;text-decoration:underline}
+.lnk:hover{color:var(--accent)}
 </style>
 
 <div id="login">
@@ -556,6 +602,7 @@ tr.gtr.sel td.gts,tr.gtr.sel td.gtd,tr.gtr.sel td.gtx3{background:var(--soft)}
 <div id="app">
   <nav class="side">
     <div class="logo"><span class="lgw" role="img" aria-label="PenguinX event"><span class="lg1">Penguin<i>x</i></span><span class="lg2">event<b class="lgc"></b></span></span></div>
+    <div class="evlogo" id="evlogo" style="display:none"></div>
     <div class="evsel"><select id="ev"></select>
       <button id="allev" style="margin-top:7px;width:100%;background:none;border:1px solid rgba(255,255,255,.14);
       color:var(--nav-ink);padding:6px 10px;border-radius:7px;font-size:12.5px;cursor:pointer">← ทุกงาน</button></div>
@@ -581,6 +628,12 @@ let EV=EVENTS[0];
 const REPS=D.reps;
 const KINDN={inhouse:"เซลล์ในบริษัท",agent:"เซลล์นอก (agent)",house:"ส่วนกลาง / บูธฟรี"};
 let B=EV.booths, AR=EV.areas, DEALS=EV.deals, SES=EV.sessions;
+function showEvLogo(){
+  const box=document.getElementById("evlogo");
+  if(!box)return;
+  box.innerHTML=EV.logo?'<img src="'+EV.logo+'" alt="โลโก้ '+esc(EV.short)+'">':"";
+  box.style.display=EV.logo?"block":"none";
+}
 function useEvent(id){
   EV=EVENTS.find(e=>e.id===id)||EVENTS[0];
   B=EV.booths; AR=EV.areas; DEALS=EV.deals; SES=EV.sessions;
@@ -711,6 +764,163 @@ function logoTile(co,px){
 $("#lform").addEventListener("submit",e=>{
   e.preventDefault(); role=$("#rl").value; showPick();
 });
+/* ───────── สร้างงานใหม่ ─────────
+   กรอกข้อมูลตั้งต้นครั้งเดียว แล้วระบบวางโครงให้ทั้งงาน
+   ไทม์ไลน์ตั้งช่วงเป็น 12 เดือนก่อนวันงาน ถึง 1 เดือนหลังวันงาน ทุกงานเหมือนกัน */
+const TL_BEFORE=12, TL_AFTER=1;
+function evRange(dateStr){
+  const d=new Date(dateStr+"T00:00:00");
+  const mo=k=>{const x=new Date(d.getFullYear(),d.getMonth()+k,1);
+    return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")};
+  return {pre:[mo(-TL_BEFORE),mo(0)], post:[mo(0),mo(TL_AFTER)]};
+}
+function slugId(name){
+  const b=String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  let id=(b||"event").slice(0,24), n=1;
+  while(EVENTS.some(e=>e.id===id))id=(b||"event").slice(0,20)+"-"+(++n);
+  return id;
+}
+/* ผังบูธตั้งต้น เรียงเป็นตารางตามจำนวนบูธที่กรอก แบ่งโซนละ 24 บูธ */
+function seedBooths(n,price){
+  const out=[], perRow=12, Z="ABCDEFGHIJKLMNOP";
+  for(let i=0;i<n;i++){
+    const z=Z[Math.floor(i/24)]||"Z", k=i%24+1;
+    out.push({code:z+k,name:null,zone:z,x:i%perRow+1,y:Math.floor(i/perRow)+1,w:1,h:1,
+      food:false,st:"free",co:null,sales:null,pkg:null,product:null,contact:null,
+      phone:null,email:null,form:false,board:false,list:price});
+  }
+  return out;
+}
+function seedZoneNames(n){
+  const o={}, Z="ABCDEFGHIJKLMNOP";
+  for(let i=0;i<Math.ceil(n/24);i++)o[Z[i]]="โซน "+Z[i];
+  return o;
+}
+const cloneJ=o=>JSON.parse(JSON.stringify(o));
+
+function newEventFrom(f){
+  const id=slugId(f.short||f.name);
+  const tpl=D.timelineTemplate||[];
+  const ev={
+    id, name:f.name, short:f.short||f.name, venue:f.venue,
+    dates:fmtRange(f.d1,f.d2), event_date:f.d1, eventDate:f.d1, end_date:f.d2,
+    status:"planning", brands:f.brands, logo:f.logo||null,
+    owner:f.owner, client:f.owner==="client"?f.client:null,
+    sqm:f.sqm||null, boothCount:f.n||0,
+    booths:seedBooths(f.n||0,f.price||0), areas:[], deals:[], sessions:[],
+    sales:[], target:0, target_note:"ยังไม่ได้ตั้งเป้า",
+    budget:cloneJ(D.template||[]), catTotals:{},
+    tasks:cloneJ((EVENTS[0]&&EVENTS[0].tasks)||[]),
+    packages:f.copyPrice?cloneJ(EVENTS[0].packages||{}):{},
+    addons:f.copyPrice?cloneJ(EVENTS[0].addons||[]):[],
+    zoneNames:seedZoneNames(f.n||0),
+    manual:{name:"Exhibitor Manual "+(f.short||f.name)+".pdf",url:null},
+    timeline:cloneJ(tpl),
+    tlRange:evRange(f.d1), tlCols:[],
+    buildDays:1, strikeDays:1,
+  };
+  /* งบตั้งต้นเอาโครงหมวดมาให้ครบ แต่ยังไม่ใส่ตัวเลข ทีมกรอกเอง */
+  ev.budget.forEach(l=>{ l.fc=0; l.ac=0; l.st="planned"; l.sup=null; l.phone=null });
+  (ev.budget||[]).forEach(l=>{ ev.catTotals[l.cat]=ev.catTotals[l.cat]||0 });
+  return ev;
+}
+
+/* ── ฟอร์ม ── */
+let nfLogo=null;
+function pNewEvent(){
+  const y=new Date().getFullYear()+1;
+  $("#evgrid").innerHTML=
+   '<form class="nf" id="nform">'+
+   '<h2>สร้างงานใหม่</h2>'+
+   '<p class="nfs">กรอกครั้งเดียว ระบบวางโครงให้ทั้งงาน — ไทม์ไลน์มาตรฐาน '+
+     (D.timelineTemplate||[]).length+' รายการ ผังบูธ ผังงบประมาณ '+
+     (D.template||[]).length+' หมวดย่อย และรายการงานผู้ออกบูธ</p>'+
+   '<div class="nfg">'+
+    fld("ชื่องานเต็ม","<input id=nf_name required placeholder='เช่น Restech &amp; Thailand Restaurant Conference'>")+
+    fld("ชื่อย่อที่ใช้ในระบบ","<input id=nf_short required placeholder='เช่น Restech x TRC "+y+"'>")+
+    fld("แบรนด์ในงาน คั่นด้วยจุลภาค","<input id=nf_brands placeholder='เช่น Restech, Thailand Restaurant Conference'>")+
+    fld("สถานที่จัดงาน","<input id=nf_venue required placeholder='เช่น IMPACT Hall 6–7'>")+
+    fld("วันเริ่มงาน","<input type=date id=nf_d1 required>")+
+    fld("วันสิ้นสุดงาน","<input type=date id=nf_d2 required>")+
+    fld("งานนี้เป็นของใคร",
+      "<div class=nfrad>"+
+      "<label><input type=radio name=own value=own checked> งานของเราเอง</label>"+
+      "<label><input type=radio name=own value=client> งานของลูกค้า</label></div>")+
+    fld("ชื่อลูกค้า","<input id=nf_client placeholder='กรอกเมื่อเลือกงานของลูกค้า' disabled>")+
+    fld("จำนวนบูธที่จะขาย","<input type=number id=nf_n min=0 max=400 value=100>")+
+    fld("พื้นที่รวม ตร.ม.","<input type=number id=nf_sqm min=0 placeholder='เช่น 6000'>")+
+    fld("ราคาตั้งต่อบูธ บาท","<input type=number id=nf_price min=0 value=50000>")+
+    fld("โลโก้งาน",
+      "<div class=nflogo><span class=nfprev id=nf_prev>ยังไม่มีโลโก้</span>"+
+      "<input type=file id=nf_logo accept='image/*'>"+
+      "<button type=button id=nf_clear class=lnk>ลบโลโก้</button></div>")+
+   '</div>'+
+   '<label class="nfchk"><input type="checkbox" id="nf_copy" checked> '+
+     'ใช้แพ็กเกจและราคาของงานเดิมเป็นค่าตั้งต้น (แก้ทีหลังได้)</label>'+
+   '<div class="nfnote"><b>สิ่งที่ระบบจะสร้างให้อัตโนมัติ</b>'+
+    '<ul><li>ไทม์ไลน์ตั้งช่วง <b>'+TL_BEFORE+' เดือนก่อนวันงาน ถึง '+TL_AFTER+
+      ' เดือนหลังวันงาน</b> เหมือนกันทุกงาน</li>'+
+    '<li>งานในไทม์ไลน์เก็บเป็นระยะห่างจากวันงาน เลื่อนวันงานแล้วทั้งแผนขยับตามเอง</li>'+
+    '<li>ผังงบประมาณตามผังบัญชีมาตรฐาน ใส่หมวดครบแต่ตัวเลขเป็นศูนย์ รอทีมกรอก</li>'+
+    '<li>ผังบูธเรียงเป็นตารางตามจำนวนที่กรอก ลากจัดใหม่ทีหลังได้</li></ul></div>'+
+   '<div class="nfbtn"><button type="submit" class="btn">สร้างงาน</button>'+
+     '<button type="button" class="lnk" id="nf_cancel">ยกเลิก</button></div>'+
+   '</form>';
+  const P=document.getElementById("evgrid");
+  nfLogo=null;
+  P.querySelectorAll("[name=own]").forEach(r=>r.addEventListener("change",()=>{
+    const c=P.querySelector("#nf_client"); c.disabled=P.querySelector("[name=own]:checked").value!=="client";
+    if(!c.disabled)c.focus();
+  }));
+  P.querySelector("#nf_logo").addEventListener("change",e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f)return;
+    shrinkImg(f,320,url=>{ nfLogo=url;
+      P.querySelector("#nf_prev").innerHTML='<img src="'+url+'" alt="โลโก้งาน">' });
+  });
+  P.querySelector("#nf_clear").addEventListener("click",()=>{
+    nfLogo=null; P.querySelector("#nf_prev").textContent="ยังไม่มีโลโก้";
+    P.querySelector("#nf_logo").value="" });
+  P.querySelector("#nf_cancel").addEventListener("click",showPick);
+  P.querySelector("#nform").addEventListener("submit",e=>{
+    e.preventDefault();
+    const v=id=>(P.querySelector("#"+id)||{}).value;
+    const d1=v("nf_d1"), d2=v("nf_d2")||d1;
+    if(d2<d1){ alert("วันสิ้นสุดต้องไม่ก่อนวันเริ่มงาน"); return }
+    const own=P.querySelector("[name=own]:checked").value;
+    if(own==="client"&&!v("nf_client").trim()){ alert("กรอกชื่อลูกค้าด้วย"); return }
+    const brands=v("nf_brands").split(",").map(x=>x.trim()).filter(Boolean);
+    const ev=newEventFrom({
+      name:v("nf_name").trim(), short:v("nf_short").trim(), venue:v("nf_venue").trim(),
+      brands:brands.length?brands:[v("nf_short").trim()||v("nf_name").trim()],
+      d1, d2, owner:own, client:v("nf_client").trim(),
+      n:+v("nf_n")||0, sqm:+v("nf_sqm")||null, price:+v("nf_price")||0,
+      logo:nfLogo, copyPrice:P.querySelector("#nf_copy").checked });
+    EVENTS.push(ev);
+    enter(ev.id); go("tl");
+  });
+}
+const fld=(l,ctl)=>'<label class="nff"><span>'+l+'</span>'+ctl+'</label>';
+/* ย่อรูปก่อนเก็บ ไฟล์ใหญ่จะทำให้หน้าหนักเกินไป */
+function shrinkImg(file,max,cb){
+  const fr=new FileReader();
+  fr.onload=()=>{ const im=new Image();
+    im.onload=()=>{ const s=Math.min(1,max/Math.max(im.width,im.height));
+      const c=document.createElement("canvas");
+      c.width=Math.round(im.width*s); c.height=Math.round(im.height*s);
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      try{ cb(c.toDataURL("image/png")) }catch(err){ cb(fr.result) } };
+    im.onerror=()=>cb(fr.result);
+    im.src=fr.result };
+  fr.readAsDataURL(file);
+}
+/* เปลี่ยนโลโก้ของงานที่มีอยู่แล้ว จากการ์ดในหน้าเลือกงาน */
+function pickLogo(id){
+  const inp=document.createElement("input");
+  inp.type="file"; inp.accept="image/*";
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f)return;
+    shrinkImg(f,320,url=>{ const e=EVENTS.find(x=>x.id===id); if(e){e.logo=url; showPick()} }) };
+  inp.click();
+}
 function showPick(){
   $("#login").style.display="none";
   $("#app").classList.remove("on");
@@ -720,17 +930,32 @@ function showPick(){
     // หน้านี้ไม่ขึ้นตัวเลขยอดใด ๆ เพราะทุกบทบาทเห็นหน้านี้เหมือนกัน
     // ตัวเลขเงินอยู่หลังกำแพงสิทธิ์ในหน้า P&L และเป้ารายได้
     const h=hue(e.id);
-    return '<button class="evcard'+(e.status==="planning"?" plan":"")+'" data-e="'+e.id+'">'+
-     '<span class="evmark" style="background:hsl('+h+' 48% 34%)">'+esc(e.brands.map(b=>b[0]).join(""))+'</span>'+
+    const wr=can("user")==="write"||role==="admin";
+    return '<div class="evwrap"><button class="evcard'+(e.status==="planning"?" plan":"")+
+     '" data-e="'+e.id+'">'+
+     (e.logo?'<span class="evmark img"><img src="'+e.logo+'" alt="โลโก้ '+esc(e.short)+'"></span>'
+       :'<span class="evmark" style="background:hsl('+h+' 48% 34%)">'+
+        esc(e.brands.map(b=>b[0]).join(""))+'</span>')+
      '<b>'+esc(e.name)+'</b>'+
      '<span class="meta">'+esc(e.dates)+'</span>'+
      '<span class="meta">'+esc(e.venue)+'</span>'+
      '<span class="tags">'+e.brands.map(b=>'<span class="tg">'+esc(b)+'</span>').join("")+
        '<span class="tg" style="background:transparent;border:1px solid var(--line2);color:var(--ink2)">'+
        (e.status==="selling"?"กำลังขาย":"อยู่ระหว่างวางแผน")+'</span></span>'+
-     '<span class="go">เข้าจัดการงานนี้ →</span></button>'}).join("");
+     '<span class="go">เข้าจัดการงานนี้ →</span></button>'+
+     (wr?'<button class="evlogo" data-lg="'+e.id+'">'+
+        (e.logo?"เปลี่ยนโลโก้":"ใส่โลโก้งาน")+'</button>':'')+
+     '</div>'}).join("")+
+   (can("user")==="write"?'<button class="evcard evnew" id="evnew">'+
+     '<span class="evmark plus">+</span><b>สร้างงานใหม่</b>'+
+     '<span class="meta">กรอกข้อมูลตั้งต้นครั้งเดียว</span>'+
+     '<span class="meta">ระบบวางไทม์ไลน์ ผังบูธ และผังงบให้</span>'+
+     '<span class="go">เริ่มสร้าง →</span></button>':'');
   $("#evgrid").querySelectorAll("[data-e]").forEach(b=>
     b.addEventListener("click",()=>enter(b.dataset.e)));
+  $("#evgrid").querySelectorAll("[data-lg]").forEach(b=>
+    b.addEventListener("click",e=>{e.stopPropagation();pickLogo(b.dataset.lg)}));
+  const nb=$("#evnew"); if(nb)nb.addEventListener("click",pNewEvent);
 }
 function enter(id){
   useEvent(id);
@@ -739,9 +964,10 @@ function enter(id){
   $("#app").classList.add("on");
   $("#ev").innerHTML=EVENTS.map(e=>'<option value="'+e.id+'"'+(e.id===EV.id?" selected":"")+'>'+
     esc(e.short)+'</option>').join("");
+  showEvLogo();
   go("dash");
 }
-$("#ev").addEventListener("change",e=>{useEvent(e.target.value);go("dash")});
+$("#ev").addEventListener("change",e=>{useEvent(e.target.value);showEvLogo();go("dash")});
 $("#allev").addEventListener("click",showPick);
 $("#pout").addEventListener("click",()=>{$("#pick").classList.remove("on");$("#login").style.display="grid"});
 $("#out").addEventListener("click",()=>{$("#app").classList.remove("on");$("#login").style.display="grid"});
@@ -3558,7 +3784,14 @@ function weekMonth(k){ const d=tlWeekStart(k);
 function shiftMonth(ms,n){ const p=String(ms).split("-");
   const d=new Date(+p[0],+p[1]-1+n,1);
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0") }
-function tlRange(){ return EV.tlRange||(EV.tlRange={}) }
+function tlRange(){
+  if(!EV.tlRange){
+    /* ทุกงานเริ่มด้วยช่วงมาตรฐาน 12 เดือนก่อนวันงาน ถึง 1 เดือนหลังวันงาน */
+    const ev=effEventDate(EV);
+    EV.tlRange=ev.date?evRange(ev.date):{};
+  }
+  return EV.tlRange;
+}
 function monthBar(ph,lo,hi,nOut){
   const r=tlRange()[ph];
   const f=r?r[0]:weekMonth(lo), t=r?r[1]:weekMonth(hi);
@@ -3574,7 +3807,7 @@ function monthBar(ph,lo,hi,nOut){
    '<input type="month" id="mto" value="'+t+'">'+
    '<button class="mb" data-mv="b+">+ เดือน</button>'+
    '<span class="dbs">รวม '+n+' เดือน</span>'+
-   (r?'<button class="mb" id="mrst">คืนช่วงอัตโนมัติ</button>':'')+
+   '<button class="mb" id="mrst">คืนช่วงมาตรฐาน '+TL_BEFORE+' เดือนก่อน / '+TL_AFTER+' เดือนหลัง</button>'+
    (nOut?'<span class="dbw">มี '+nOut+' งานอยู่นอกช่วงนี้ ดูลูกศรท้ายแถว</span>':'')+
    '</div>';
 }
@@ -3582,7 +3815,7 @@ function wireMonthBar(P,ph,lo,hi,redraw){
   const cur=()=>tlRange()[ph]||[weekMonth(lo),weekMonth(hi)];
   const set=(a,b)=>{ if(((+b.split("-")[0])*12+ +b.split("-")[1])<
       ((+a.split("-")[0])*12+ +a.split("-")[1])){alert("เดือนสิ้นสุดต้องไม่ก่อนเดือนเริ่ม");return}
-    tlRange()[ph]=[a,b]; redraw() };
+    tlRange()[ph]=[a,b]; (EV.tlRangeSet=EV.tlRangeSet||{})[ph]=true; redraw() };
   const f=P.querySelector("#mfrom"), t=P.querySelector("#mto");
   if(f)f.addEventListener("change",()=>set(f.value,t.value));
   if(t)t.addEventListener("change",()=>set(f.value,t.value));
@@ -3594,7 +3827,11 @@ function wireMonthBar(P,ph,lo,hi,redraw){
     else set(c[0],shiftMonth(c[1],1));
   }));
   const rs=P.querySelector("#mrst");
-  if(rs)rs.addEventListener("click",()=>{ delete tlRange()[ph]; redraw() });
+  if(rs)rs.addEventListener("click",()=>{
+    const ev=effEventDate(EV);
+    if(ev.date)tlRange()[ph]=evRange(ev.date)[ph]; else delete tlRange()[ph];
+    if(EV.tlRangeSet)delete EV.tlRangeSet[ph];
+    redraw() });
 }
 function pTimeline(ph){
   tlEnter(ph);
@@ -3626,12 +3863,20 @@ function pTimeline(ph){
   }
   /* ช่วงสัปดาห์ที่ต้องวาด กว้างพอคลุมทุกงาน บวกสัปดาห์วันนี้ */
   const ra=R.map(r=>Math.min(r.a,r.b)), rb=R.map(r=>Math.max(r.a,r.b));
-  const lo=ph==="post"?Math.min(0,...ra):Math.min(-2,...ra,now<=0?now:0),
-        hi=ph==="post"?Math.max(1,...rb,now>=0?now:0):Math.max(0,...rb);
+  /* tLo tHi คือขอบเขตของงานจริง ใช้ยืดช่วงให้ไม่มีงานหลุด
+     lo hi คือช่วงที่วาดเมื่อยังไม่มีช่วงมาตรฐาน รวมสัปดาห์ปัจจุบันเข้าไปด้วย */
+  const tLo=ph==="post"?Math.min(0,...ra):Math.min(-2,...ra),
+        tHi=ph==="post"?Math.max(1,...rb):Math.max(0,...rb);
+  const lo=Math.min(tLo,ph==="post"?0:(now<=0?now:0)),
+        hi=Math.max(tHi,ph==="post"?(now>=0?now:0):0);
   const rg=tlRange()[ph];
+  EV.tlRangeSet=EV.tlRangeSet||{};
   let LO=lo, HI=hi;
   if(rg){ const a=monthWeek(rg[0],false), b=monthWeek(rg[1],true);
     if(a!=null&&b!=null&&b>=a){ LO=a; HI=b } }
+  /* ช่วงมาตรฐานตั้งไว้ก่อน แต่ถ้ามีงานเลยออกไปก็ยืดให้เอง งานจะได้ไม่หายไปเงียบ ๆ
+     เฉพาะตอนที่ผู้ใช้ยังไม่ได้ตั้งช่วงเอง */
+  if(!EV.tlRangeSet[ph]&&rg){ LO=Math.min(LO,tLo); HI=Math.max(HI,tHi) }
   const cols=[]; for(let k=LO;k<=HI;k++)cols.push(k);
   const outN=R.filter(r=>pB(r)<LO||pA(r)>HI).length;
   /* หัวเดือน รวมสัปดาห์ที่อยู่เดือนเดียวกัน */
