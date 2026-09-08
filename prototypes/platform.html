@@ -360,14 +360,23 @@ table.gt th.gtw.gtms,td.gtc.gtms{border-left:1px solid var(--line2)}
 th.gtshow{color:#B0790A;font-weight:800}
 
 /* สามคอลัมน์ซ้ายตรึงไว้ตลอด */
+/* ช่องเลขแถวแบบสเปรดชีต กดเพื่อเลือกทั้งแถว */
+table.gt th.gtno,table.gt td.gtno{width:36px;min-width:36px;padding:0;text-align:center;
+  position:sticky;left:0;background:var(--paper);z-index:3;
+  font-size:11.5px;color:var(--ink3);font-variant-numeric:tabular-nums;
+  border-right:1px solid var(--line);cursor:pointer;user-select:none}
+table.gt td.gtno:hover{background:var(--soft);color:var(--accent)}
+tr.gtr.sel td.gtno{background:var(--accent);color:#fff;font-weight:700}
+table.gt td.gtno.gtnog{background:var(--soft)}
+table.gt td.gtno.gtnog:hover{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 table.gt th.gtn,table.gt td.gtn{width:300px;min-width:300px;max-width:300px;padding:7px 12px;
-  text-align:left;position:sticky;left:0;background:var(--card);z-index:3;overflow:hidden}
+  text-align:left;position:sticky;left:36px;background:var(--card);z-index:3;overflow:hidden}
 table.gt th.gts,table.gt td.gts{width:104px;min-width:104px;padding:5px 7px;
-  position:sticky;left:300px;background:var(--card);z-index:3}
+  position:sticky;left:336px;background:var(--card);z-index:3}
 table.gt th.gtd,table.gt td.gtd{width:88px;min-width:88px;padding:7px 8px;font-size:12px;
-  color:var(--ink2);white-space:nowrap;position:sticky;left:404px;background:var(--card);z-index:3;
+  color:var(--ink2);white-space:nowrap;position:sticky;left:440px;background:var(--card);z-index:3;
   box-shadow:2px 0 0 -1px var(--line2)}
-table.gt th.gtn{z-index:5}table.gt th.gts{z-index:5}table.gt th.gtd{z-index:5}
+table.gt th.gtno{z-index:5}table.gt th.gtn{z-index:5}table.gt th.gts{z-index:5}table.gt th.gtd{z-index:5}
 /* หัวหมวดกินสามคอลัมน์รวมกัน ปุ่มจึงไม่ล้นไปทับช่องอื่น */
 table.gt td.gtgh{width:492px;min-width:492px;max-width:492px}
 table.gt td.gts select{width:100%;font-size:12px;padding:4px 6px;border-radius:7px}
@@ -510,9 +519,6 @@ th.gtx3:hover .gtdel2{opacity:1}
   display:inline-flex;align-items:center;gap:4px}
 .selbar button:hover{border-color:var(--accent);color:var(--accent)}
 .selbar button.dg:hover{border-color:var(--risk);color:var(--risk)}
-.selcb,.selcb2{width:14px;height:14px;margin:0 7px 0 0;vertical-align:-2px;cursor:pointer;
-  accent-color:var(--accent)}
-.selcb2{margin-left:2px}
 tr.gtr.sel td.gtn{background:var(--soft);box-shadow:inset 3px 0 0 var(--accent)}
 tr.gtr.sel td.gts,tr.gtr.sel td.gtd,tr.gtr.sel td.gtx3{background:var(--soft)}
 .goff{position:absolute;top:14px;font-size:11px;color:var(--ink3);left:1px;font-style:normal}
@@ -3867,16 +3873,24 @@ function selBar(n,wr){
    (n?'<button id="sclr" title="Esc">Cancel</button>':'')+
    '</div></div>';
 }
-const selBox=(r,wr)=>'<input type="checkbox" class="selcb"'+(tlSel.has(r)?" checked":"")+
-  ' aria-label="Select this row">';
+/* ช่องเลขแถวแบบสเปรดชีต กดที่เลขเพื่อเลือกทั้งแถว
+   Shift เลือกเป็นช่วง Cmd หรือ Ctrl เลือกทีละแถวแบบสลับ */
+const selNo=(i)=>'<td class="gtno" data-rn="'+i+'"><span>'+(i+1)+'</span></td>';
+const grpNo=(g)=>'<td class="gtno gtnog" data-gsel="'+esc(g)+'" title="Select whole category"></td>';
 function wireSel(P,list,redraw){
-  const boxes=[...P.querySelectorAll(".selcb")];
-  boxes.forEach((cb,bi)=>cb.addEventListener("click",e=>{
-    const r=list[bi];
+  P.querySelectorAll("td.gtno[data-rn]").forEach(td=>td.addEventListener("click",e=>{
+    const bi=+td.dataset.rn, r=list[bi];
+    if(!r)return;
     if(e.shiftKey&&tlAnchor!=null){
       const a=Math.min(tlAnchor,bi), b=Math.max(tlAnchor,bi);
       for(let k=a;k<=b;k++)tlSel.add(list[k]);
-    } else { if(tlSel.has(r))tlSel.delete(r); else tlSel.add(r); tlAnchor=bi }
+    } else if(e.metaKey||e.ctrlKey){
+      if(tlSel.has(r))tlSel.delete(r); else tlSel.add(r); tlAnchor=bi;
+    } else {
+      /* กดเปล่า ๆ เลือกแถวเดียวเหมือนสเปรดชีต กดซ้ำที่แถวเดิมคือยกเลิก */
+      const only=tlSel.size===1&&tlSel.has(r);
+      tlSel.clear(); if(!only)tlSel.add(r); tlAnchor=bi;
+    }
     redraw();
   }));
   P.querySelectorAll("[data-gsel]").forEach(cb=>cb.addEventListener("click",()=>{
@@ -4212,7 +4226,8 @@ function pTimeline(ph){
     'then drag to match what really happened</p>';
 
   h+='<div class="tw"><table class="gt"><thead>'+
-   '<tr><th class="gtn" rowspan="2">Task · team · note</th>'+
+   '<tr><th class="gtno" rowspan="2"></th>'+
+   '<th class="gtn" rowspan="2">Task · team · note</th>'+
    '<th class="gts" rowspan="2">Status</th><th class="gtd gtd2" rowspan="2">Due by<br><small>Plan / actual</small></th>'+
    mons.map(m=>'<th colspan="'+m.n+'" class="gtm">'+m.l+'</th>').join("")+
    colHead(wr)+'</tr><tr>'+
@@ -4221,6 +4236,7 @@ function pTimeline(ph){
    '</tr></thead><tbody>';
 
   const q=tlFilter.trim().toLowerCase();
+  let rowNo=0;                       // เลขแถวไล่ต่อเนื่องทั้งตาราง เหมือนสเปรดชีต
   const G=[]; R.forEach(r=>{if(!G.includes(r.grp))G.push(r.grp)});
   G.forEach(g=>{
     const idx=R.map((r,i)=>[r,i]).filter(([r])=>r.grp===g)
@@ -4230,9 +4246,7 @@ function pTimeline(ph){
     const ga=Math.min(...idx.map(([r])=>pA(r))),
           gb=Math.max(...idx.map(([r])=>pB(r)));
     const pct=Math.round(gd/idx.length*100);
-    h+='<tr class="gtg"><td class="gtn gtgh" colspan="3">'+
-      '<input type="checkbox" class="selcb2" data-gsel="'+esc(g)+'" aria-label="Select whole category"'+
-      (idx.every(([r])=>tlSel.has(r))?" checked":"")+'>'+
+    h+='<tr class="gtg">'+grpNo(g)+'<td class="gtn gtgh" colspan="3">'+
       '<button class="gtx" data-gt="'+esc(g)+'">'+(op?"▾":"▸")+'</button>'+
       (wr?'<span class="gtgn" contenteditable="plaintext-only" data-gn="'+esc(g)+'">'+esc(g)+'</span>'
          :'<span class="gtgn">'+esc(g)+'</span>')+
@@ -4248,7 +4262,7 @@ function pTimeline(ph){
     idx.forEach(([r,i])=>{
       const a=pA(r), b=pB(r), ha=hasAct(r), xa=ha?aA(r):0, xb=ha?aB(r):-1;
       const st=TLST[r.st]||TLST.plan, isLate=r.st!=="done"&&b<now, sl=slip(r);
-      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'"><td class="gtn">'+selBox(r,wr)+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'">'+selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-tn="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-tx="'+i+'" title="Delete this task">×</button>':'')+
         '<br><small class="gtnote"><b>'+(wr?'<span contenteditable="plaintext-only" data-tby="'+i+'">'+
@@ -4460,19 +4474,19 @@ function pTimelineOn(){
     'pick which one you are editing first, then drag on the time bar — it snaps to half hours</p>';
 
   h+='<div class="tw"><table class="gt onx"><thead><tr>'+
+   '<th class="gtno"></th>'+
    '<th class="gtn">Run-sheet item · team · note</th><th class="gts">Status</th><th class="gtd gtd2">Time<br><small>Plan / actual</small></th>'+
    HR.map(x=>'<th class="onh">'+String(x).padStart(2,"0")+'</th>').join("")+
    colHead(wr)+'</tr></thead><tbody>';
   const grps=[]; list.forEach(r=>{if(!grps.includes(r.grp))grps.push(r.grp)});
-  if(!grps.length)h+='<tr><td class="gtn" colspan="'+(3+HR.length+tlCols().length)+'" style="padding:22px 14px;'+
+  let rowNo=0;
+  if(!grps.length)h+='<tr><td class="gtn" colspan="'+(4+HR.length+tlCols().length)+'" style="padding:22px 14px;'+
     'color:var(--ink3)">No run-sheet items today — press + Add run-sheet item below</td></tr>';
   grps.forEach(g=>{
     const idx=R.map((r,i)=>[r,i]).filter(([r])=>r.d===onDay&&r.grp===g);
     const gd=idx.filter(([r])=>r.st==="done").length;
     const pct=Math.round(gd/idx.length*100);
-    h+='<tr class="gtg"><td class="gtn gtgh" colspan="3">'+
-      '<input type="checkbox" class="selcb2" data-gsel="'+esc(g)+'" aria-label="Select whole category"'+
-      (idx.every(([r])=>tlSel.has(r))?" checked":"")+'>'+
+    h+='<tr class="gtg">'+grpNo(g)+'<td class="gtn gtgh" colspan="3">'+
       '<span class="gtgn">'+esc(g)+'</span>'+
       '<span class="gtpb"><i style="width:'+pct+'%"></i></span><small>'+gd+'/'+idx.length+'</small>'+
       (wr?'<button class="gtx2" data-oa="'+esc(g)+'">+ Add run-sheet item</button>':'')+'</td>'+
@@ -4486,7 +4500,7 @@ function pTimelineOn(){
       const t1=hm(r.t1), t2=Math.max(hm(r.t2),t1+.5), st=TLST[r.st]||TLST.plan;
       const ha=hasActT(r), y1=ha?hm(r.at1):0, y2=ha?Math.max(hm(r.at2),y1+.5):0;
       const sm=slipMin(r);
-      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'"><td class="gtn">'+selBox(r,wr)+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'">'+selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-on="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-ox="'+i+'" title="Delete this run-sheet item">×</button>':'')+
         '<br><small class="gtnote"><b>'+(wr?'<span contenteditable="plaintext-only" data-oby="'+i+
