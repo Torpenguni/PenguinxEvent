@@ -5,19 +5,25 @@
 --s-free:#D8DCD3;--s-booked:#D08A0A;--s-deposit:#3E7BC4;--s-paid:#2F9E62;
 --risk:#C2412D;--warn:#D08A0A;--ok:#2F9E62;
 --nav:#11201C;--nav-ink:#C9D6D0;--nav-hi:#0E5C4A;
---sh:0 1px 2px rgba(25,29,26,.05),0 8px 24px -18px rgba(25,29,26,.35)}
+--sh:0 1px 2px rgba(25,29,26,.05),0 8px 24px -18px rgba(25,29,26,.35);
+--tl-plan:#8FA0AE;--tl-doing:#D8901A;--tl-done:#2F9E62;--tl-risk:#C2412D;
+--tl-grid:#EAECE3;--tl-alt:#F0F2E9;--tl-sum:#AEB8A9}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0E110C;--card:#181C16;--ink:#EDEFE8;--ink2:#A3AB9F;--ink3:#7C8279;
 --line:#282D24;--line2:#383E34;--accent:#63C9A8;--accent2:#7FD9BC;--soft:#1A2620;
 --s-free:#303629;--s-booked:#E0A63A;--s-deposit:#6FA3E0;--s-paid:#4FBE7F;
 --risk:#E27563;--warn:#E0A63A;--ok:#4FBE7F;
 --nav:#0A0F0C;--nav-ink:#9FB0A8;--nav-hi:#17493D;
---sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.9)}}
+--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.9);
+--tl-plan:#7C90A0;--tl-doing:#E0A63A;--tl-done:#4FBE7F;--tl-risk:#E27563;
+--tl-grid:#252A22;--tl-alt:#1E231C;--tl-sum:#4A5347}}
 :root[data-theme="dark"]{--paper:#0E110C;--card:#181C16;--ink:#EDEFE8;--ink2:#A3AB9F;--ink3:#7C8279;
 --line:#282D24;--line2:#383E34;--accent:#63C9A8;--accent2:#7FD9BC;--soft:#1A2620;
 --s-free:#303629;--s-booked:#E0A63A;--s-deposit:#6FA3E0;--s-paid:#4FBE7F;
 --risk:#E27563;--warn:#E0A63A;--ok:#4FBE7F;
 --nav:#0A0F0C;--nav-ink:#9FB0A8;--nav-hi:#17493D;
---sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.9)}
+--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.9);
+--tl-plan:#7C90A0;--tl-doing:#E0A63A;--tl-done:#4FBE7F;--tl-risk:#E27563;
+--tl-grid:#252A22;--tl-alt:#1E231C;--tl-sum:#4A5347}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;
 font-family:"IBM Plex Sans Thai","Noto Sans Thai",-apple-system,"Sukhumvit Set","Helvetica Neue",Thonburi,Arial,sans-serif}
@@ -336,44 +342,84 @@ font-size:12.5px;padding:6px 10px;border-radius:7px;cursor:pointer}
 .tlh div:first-child{font-size:11px;color:var(--ink2)}
 /* ── ไทม์ไลน์โครงการ ── */
 .tlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.tlleg{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--ink2);margin-left:auto}
-.tlleg i{display:inline-block;width:14px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
-table.gt{border-collapse:separate;border-spacing:0;font-size:13px}
-table.gt th,table.gt td{border-bottom:1px solid var(--line2);padding:0}
-table.gt th.gtm{padding:6px 8px;font-size:11px;letter-spacing:.04em;color:var(--ink2);
-  border-left:1px solid var(--line);text-align:center;white-space:nowrap}
-table.gt th.gtw{padding:4px 0;width:26px;min-width:26px;font-size:10px;font-weight:600;
-  color:var(--ink3);text-align:center}
-table.gt th.gtn,table.gt td.gtn{width:300px;min-width:300px;padding:7px 12px;text-align:left;
-  position:sticky;left:0;background:var(--card);z-index:3}
+.tlleg{display:flex;gap:15px;align-items:center;font-size:12px;color:var(--ink2);margin-left:auto}
+.tlleg i{display:inline-block;width:16px;height:8px;border-radius:99px;margin-right:6px;vertical-align:0}
+table.gt{border-collapse:separate;border-spacing:0;font-size:13px;background:var(--card)}
+table.gt th,table.gt td{padding:0;border-bottom:1px solid var(--tl-grid)}
+
+/* หัวเดือนและหัวสัปดาห์ */
+table.gt thead th{position:sticky;top:0;z-index:4;background:var(--card)}
+table.gt th.gtm{padding:7px 8px;font-size:11.5px;font-weight:700;letter-spacing:.03em;
+  color:var(--ink2);border-left:1px solid var(--line2);text-align:center;white-space:nowrap}
+table.gt th.gtw{padding:5px 0;width:28px;min-width:28px;font-size:10px;font-weight:600;
+  color:var(--ink3);text-align:center;border-left:1px solid var(--tl-grid)}
+table.gt th.gtw.gtalt{background:var(--tl-alt)}
+table.gt th.gtw.gtms,td.gtc.gtms{border-left:1px solid var(--line2)}
+th.gtshow{color:#B0790A;font-weight:800}
+
+/* สามคอลัมน์ซ้ายตรึงไว้ตลอด */
+table.gt th.gtn,table.gt td.gtn{width:300px;min-width:300px;max-width:300px;padding:7px 12px;
+  text-align:left;position:sticky;left:0;background:var(--card);z-index:3;overflow:hidden}
 table.gt th.gts,table.gt td.gts{width:104px;min-width:104px;padding:5px 7px;
   position:sticky;left:300px;background:var(--card);z-index:3}
-table.gt th.gtd,table.gt td.gtd{width:86px;min-width:86px;padding:7px 8px;font-size:12px;
+table.gt th.gtd,table.gt td.gtd{width:88px;min-width:88px;padding:7px 8px;font-size:12px;
   color:var(--ink2);white-space:nowrap;position:sticky;left:404px;background:var(--card);z-index:3;
-  box-shadow:1px 0 0 var(--line)}
-table.gt td.gts select{width:100%;font-size:12px;padding:4px 6px}
-.gtdel{background:none;border:0;color:var(--ink3);cursor:pointer;font-size:14px;line-height:1;
+  box-shadow:2px 0 0 -1px var(--line2)}
+table.gt th.gtn{z-index:5}table.gt th.gts{z-index:5}table.gt th.gtd{z-index:5}
+/* หัวหมวดกินสามคอลัมน์รวมกัน ปุ่มจึงไม่ล้นไปทับช่องอื่น */
+table.gt td.gtgh{width:492px;min-width:492px;max-width:492px}
+table.gt td.gts select{width:100%;font-size:12px;padding:4px 6px;border-radius:7px}
+td.gtd.gtlate{color:var(--tl-risk);font-weight:700}
+
+/* ช่องสัปดาห์ */
+td.gtc{height:36px;position:relative;border-left:1px solid var(--tl-grid)}
+td.gtc.gtalt{background:var(--tl-alt)}
+th.gtnow,td.gtnow{box-shadow:inset 1px 0 0 var(--accent)}
+td.gtnow{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+th.gtnow{background:color-mix(in srgb,var(--accent) 12%,var(--card))}
+
+/* แถบงาน ปลายมนเฉพาะหัวกับท้าย ตรงกลางต่อกันสนิท */
+td.gtc .gbar{position:absolute;left:-1px;right:-1px;top:11px;height:14px;display:block}
+td.gtc .gbar.ba{left:2px;border-radius:7px 0 0 7px}
+td.gtc .gbar.bb{right:2px;border-radius:0 7px 7px 0}
+td.gtc .gbar.ba.bb{border-radius:7px}
+/* แถบสรุปของหมวด เป็นเส้นบางๆ ไม่แย่งสายตาแถบงาน */
+td.gtc .gsum{position:absolute;left:-1px;right:-1px;top:16px;height:5px;display:block;
+  background:var(--tl-sum);opacity:.6}
+td.gtc .gsum.gsa{left:3px;border-radius:99px 0 0 99px}
+td.gtc .gsum.gsb{right:3px;border-radius:0 99px 99px 0}
+td.gtc .gsum.gsone{left:3px;right:3px;border-radius:99px}
+td.gtc.gsel{background:color-mix(in srgb,var(--accent) 25%,transparent)}
+
+/* แถวหัวหมวด */
+tr.gtg td{background:var(--soft)}
+tr.gtg td.gtn{background:var(--soft)}
+tr.gtg td.gtc{border-left-color:color-mix(in srgb,var(--accent) 12%,var(--tl-grid))}
+.gtgh{display:table-cell;white-space:nowrap}
+.gtgn{font-weight:700;font-size:13.5px;color:var(--ink);margin:0 8px 0 4px;
+  display:inline-block;vertical-align:middle}
+tr.gtg small{font-weight:600;color:var(--ink2);font-size:11.5px;margin-left:7px;vertical-align:middle}
+.gtpb{display:inline-block;vertical-align:middle;width:64px;height:6px;border-radius:99px;
+  background:color-mix(in srgb,var(--ink3) 30%,transparent);overflow:hidden}
+.gtpb i{display:block;height:100%;background:var(--tl-done);border-radius:99px}
+
+/* แถวงาน */
+tr.gtr:hover td.gtn,tr.gtr:hover td.gts,tr.gtr:hover td.gtd{background:var(--paper)}
+.gtnote{color:var(--ink3);font-weight:400;font-size:11.5px}
+.gtnote b{color:var(--ink2);font-weight:600}
+.gtdel{background:none;border:0;color:var(--ink3);cursor:pointer;font-size:15px;line-height:1;
   padding:0 4px;opacity:0;transition:opacity .12s}
 tr.gtr:hover .gtdel{opacity:1}
-td.gtd.gtlate{color:var(--risk);font-weight:700}
-td.gtc{height:34px;position:relative;border-left:1px solid var(--line2)}
-th.gtnow,td.gtnow{background:color-mix(in srgb,var(--accent) 9%,transparent)}
-th.gtshow{color:var(--accent);font-weight:800}
-td.gtc .gbar{position:absolute;inset:9px -1px;border-radius:3px;display:block}
-td.gtc .gbar.gsum{background:var(--ink3);opacity:.35;inset:14px -1px}
-td.gtc.gsel{background:color-mix(in srgb,var(--accent) 26%,transparent)}
-tr.gtg td{background:var(--bg2);font-weight:700}
-tr.gtg td.gtn,tr.gtg td.gts,tr.gtg td.gtd{background:var(--bg2)}
-tr.gtg small{font-weight:600;color:var(--ink3);font-size:11px}
-tr.gtr:hover td.gtn,tr.gtr:hover td.gts,tr.gtr:hover td.gtd{background:var(--bg2)}
-.gtnote{color:var(--ink3);font-weight:400;font-size:11px}
-.gtnote [contenteditable]{border-bottom:1px dashed var(--line);cursor:text}
-.gtx{background:none;border:0;color:var(--ink2);cursor:pointer;font-size:12px;padding:0 2px}
-.gtx2{background:none;border:1px dashed var(--line);border-radius:6px;color:var(--ink2);
-  cursor:pointer;font-size:12px;padding:3px 10px;margin-right:8px}
-table.gt td.gtn [contenteditable]{display:inline-block;border-bottom:1px dashed var(--line);
+.gtdel:hover{color:var(--tl-risk)}
+.gtx{background:none;border:0;color:var(--ink2);cursor:pointer;font-size:12px;padding:0 2px;
+  vertical-align:middle}
+.gtx2{background:var(--card);border:1px solid var(--line2);border-radius:7px;color:var(--ink2);
+  cursor:pointer;font-size:12px;padding:3px 10px;margin-left:10px;vertical-align:middle}
+.gtx2:hover{border-color:var(--accent);color:var(--accent)}
+table.gt td.gtn [contenteditable]{display:inline-block;border-bottom:1px dashed var(--line2);
   cursor:text;min-width:36px}
-table.gt th.gtn,table.gt th.gts,table.gt th.gtd{background:var(--card)}
+table.gt td.gtn [contenteditable]:focus{outline:0;border-bottom-color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 8%,transparent)}
 </style>
 
 <div id="login">
@@ -3154,8 +3200,8 @@ function pUsers(){
 /* ───────── ไทม์ไลน์โครงการ ───────── */
 /* สัปดาห์ที่ 0 คือสัปดาห์ที่จัดงาน ค่าลบคือก่อนงาน เก็บเป็นตัวเลขสัปดาห์
    ไม่ใช่วันที่ตายตัว พอเลื่อนวันงานทั้งแผนจึงขยับตามเอง */
-const TLST={plan:{l:"รอเริ่ม",c:"var(--ink3)"},doing:{l:"กำลังทำ",c:"var(--warn)"},
- done:{l:"เสร็จแล้ว",c:"var(--ok)"},risk:{l:"ติดปัญหา",c:"var(--risk)"}};
+const TLST={plan:{l:"รอเริ่ม",c:"var(--tl-plan)"},doing:{l:"กำลังทำ",c:"var(--tl-doing)"},
+ done:{l:"เสร็จแล้ว",c:"var(--tl-done)"},risk:{l:"ติดปัญหา",c:"var(--tl-risk)"}};
 const THM=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 let tlOpen={}, tlDrag=null, tlFilter="";
 
@@ -3187,10 +3233,13 @@ function pTimeline(){
         hi=Math.max(1,now,...R.map(r=>Math.max(r.a,r.b)));
   const cols=[]; for(let k=lo;k<=hi;k++)cols.push(k);
   /* หัวเดือน รวมสัปดาห์ที่อยู่เดือนเดียวกัน */
-  const mons=[]; cols.forEach(k=>{ const d=tlWeekStart(k), key=d.getFullYear()+"-"+d.getMonth();
+  const mons=[], band={};
+  cols.forEach(k=>{ const d=tlWeekStart(k), key=d.getFullYear()+"-"+d.getMonth();
     const last=mons[mons.length-1];
-    if(last&&last.key===key)last.n++; else mons.push({key,n:1,
-      l:THM[d.getMonth()]+" "+String(d.getFullYear()+543).slice(-2)}) });
+    let first=false;
+    if(last&&last.key===key)last.n++; else { mons.push({key,n:1,
+      l:THM[d.getMonth()]+" "+String(d.getFullYear()+543).slice(-2)}); first=true }
+    band[k]=(mons.length%2?"":" gtalt")+(first?" gtms":"") });
 
   const done=R.filter(r=>r.st==="done").length;
   const late=R.filter(r=>r.st!=="done"&&Math.max(r.a,r.b)<now).length;
@@ -3218,7 +3267,7 @@ function pTimeline(){
    '<th class="gts" rowspan="2">สถานะ</th><th class="gtd" rowspan="2">เสร็จภายใน</th>'+
    mons.map(m=>'<th colspan="'+m.n+'" class="gtm">'+m.l+'</th>').join("")+'</tr><tr>'+
    cols.map(k=>{const d=tlWeekStart(k), w=Math.floor((d.getDate()-1)/7)+1;
-     return '<th class="gtw'+(k===now?" gtnow":"")+(k===0?" gtshow":"")+'">W'+w+'</th>'}).join("")+
+     return '<th class="gtw'+band[k]+(k===now?" gtnow":"")+(k===0?" gtshow":"")+'">W'+w+'</th>'}).join("")+
    '</tr></thead><tbody>';
 
   const q=tlFilter.trim().toLowerCase();
@@ -3229,13 +3278,18 @@ function pTimeline(){
     const gd=idx.filter(([r])=>r.st==="done").length, op=tlOpen[g]!==false;
     const ga=Math.min(...idx.map(([r])=>Math.min(r.a,r.b))),
           gb=Math.max(...idx.map(([r])=>Math.max(r.a,r.b)));
-    h+='<tr class="gtg"><td class="gtn"><button class="gtx" data-gt="'+esc(g)+'">'+(op?"▾":"▸")+'</button> '+
-      (wr?'<span contenteditable="plaintext-only" data-gn="'+esc(g)+'">'+esc(g)+'</span>':esc(g))+
-      ' <small>'+gd+'/'+idx.length+'</small>'+
-      (wr&&op?' <button class="gtx2" data-ga="'+esc(g)+'">+ เพิ่มงาน</button>':'')+'</td>'+
-      '<td class="gts"></td><td class="gtd"></td>'+
-      cols.map(k=>'<td class="gtc'+(k===now?" gtnow":"")+'">'+
-        (k>=ga&&k<=gb?'<i class="gbar gsum"></i>':'')+'</td>').join("")+'</tr>';
+    const pct=Math.round(gd/idx.length*100);
+    h+='<tr class="gtg"><td class="gtn gtgh" colspan="3">'+
+      '<button class="gtx" data-gt="'+esc(g)+'">'+(op?"▾":"▸")+'</button>'+
+      (wr?'<span class="gtgn" contenteditable="plaintext-only" data-gn="'+esc(g)+'">'+esc(g)+'</span>'
+         :'<span class="gtgn">'+esc(g)+'</span>')+
+      '<span class="gtpb"><i style="width:'+pct+'%"></i></span>'+
+      '<small>'+gd+'/'+idx.length+'</small>'+
+      (wr&&op?'<button class="gtx2" data-ga="'+esc(g)+'">+ เพิ่มงาน</button>':'')+'</td>'+
+      cols.map(k=>'<td class="gtc'+band[k]+(k===now?" gtnow":"")+'">'+
+        (k===ga&&k===gb?'<i class="gsum gsone"></i>'
+         :k===ga?'<i class="gsum gsa"></i>':k===gb?'<i class="gsum gsb"></i>'
+         :(k>ga&&k<gb?'<i class="gsum"></i>':''))+'</td>').join("")+'</tr>';
     if(!op)return;
     idx.forEach(([r,i])=>{
       const a=Math.min(r.a,r.b), b=Math.max(r.a,r.b);
@@ -3253,8 +3307,9 @@ function pTimeline(){
         :'<span style="color:'+st.c+';font-weight:700">'+st.l+'</span>')+'</td>'+
       '<td class="gtd'+(isLate?" gtlate":"")+'">'+tlDate(b)+
         (isLate?'<br><small>เลย '+(now-b)+' สัปดาห์</small>':'')+'</td>'+
-      cols.map(k=>'<td class="gtc'+(k===now?" gtnow":"")+'" data-r="'+i+'" data-k="'+k+'">'+
-        (k>=a&&k<=b?'<i class="gbar" style="background:'+(isLate?"var(--risk)":st.c)+'"></i>':'')+
+      cols.map(k=>'<td class="gtc'+band[k]+(k===now?" gtnow":"")+'" data-r="'+i+'" data-k="'+k+'">'+
+        (k>=a&&k<=b?'<i class="gbar'+(k===a?" ba":"")+(k===b?" bb":"")+
+          '" style="background:'+(isLate?"var(--tl-risk)":st.c)+'"></i>':'')+
         '</td>').join("")+'</tr>';
     });
   });
