@@ -564,6 +564,39 @@ tr.gtr.sel td.gts,tr.gtr.sel td.gtd,tr.gtr.sel td.gtx3{background:var(--soft)}
 .lnk{background:none;border:0;color:var(--ink2);cursor:pointer;font:inherit;
   font-size:13.5px;text-decoration:underline}
 .lnk:hover{color:var(--accent)}
+/* ไฟล์ผังพื้นที่ */
+.pfbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}
+.pfbar.has{border-color:var(--line2)}
+.pfl{font-weight:700}
+.pfs{color:var(--ink2)}
+.pfic{width:42px;height:42px;border-radius:8px;display:grid;place-items:center;font-size:11px;
+  font-weight:800;letter-spacing:.02em;background:var(--soft);color:var(--accent);flex:0 0 auto}
+.pfic.pdf{background:color-mix(in srgb,var(--risk) 14%,transparent);color:var(--risk)}
+.pfic.cad{background:color-mix(in srgb,var(--s-deposit) 16%,transparent);color:var(--s-deposit)}
+.pfic.img{font-size:19px}
+.pfn{display:flex;flex-direction:column;gap:2px;min-width:180px;max-width:420px}
+.pfn b{font-size:13.5px}
+.pfn small{color:var(--ink3);font-size:11.5px;line-height:1.4}
+.pfsw{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink2)}
+.pfsw input{accent-color:var(--accent);width:15px;height:15px}
+.pfrg{display:flex;align-items:center;gap:7px;color:var(--ink2);font-size:12.5px}
+.pfrg input{width:96px;accent-color:var(--accent)}
+.pfup{background:var(--accent);color:#fff;border-radius:8px;padding:7px 15px;cursor:pointer;
+  font-weight:600;font-size:13px;margin-left:auto;white-space:nowrap}
+.pfup.sm{background:var(--card);color:var(--ink2);border:1px solid var(--line2);font-weight:500;
+  margin-left:0;padding:6px 13px}
+.pfup.sm:hover{border-color:var(--accent);color:var(--accent)}
+.pfup input{display:none}
+.pfdl{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:6px 13px;
+  cursor:pointer;font:inherit;font-size:13px;color:var(--ink2);margin-left:auto}
+.pfdl:hover{border-color:var(--accent);color:var(--accent)}
+.pfx{background:none;border:0;color:var(--ink3);font-size:17px;cursor:pointer;padding:0 4px;line-height:1}
+.pfx:hover{color:var(--risk)}
+#planbg{position:absolute;inset:0;background-repeat:no-repeat;background-position:center;
+  pointer-events:none;display:none;z-index:0}
+.pw{position:relative}
+.pw svg{position:relative;z-index:1}
 </style>
 
 <div id="login">
@@ -1226,6 +1259,80 @@ function shown(){
   return B.filter(b=>(!s||b.code.toLowerCase().includes(s)||(b.co||"").toLowerCase().includes(s))
     &&(!fZone||b.zone===fZone)&&(!fPkg||b.pkg===fPkg));
 }
+/* ───────── ไฟล์ผังพื้นที่ ─────────
+   รับได้ทั้งไฟล์ภาพ PDF และไฟล์จาก CAD
+   ไฟล์ภาพเอามาวางเป็นพื้นหลังใต้ผังบูธได้เลย จะได้วางบูธทับของจริง
+   PDF กับ CAD เก็บไว้ให้ทีมโหลดต่อ พร้อมบอกวิธีทำให้ใช้เป็นพื้นหลังได้ */
+const PLAN_MAX=12*1024*1024;
+const IMG_EXT=/\.(png|jpe?g|webp|gif|svg)$/i;
+const isPlanImg=f=>f&&(IMG_EXT.test(f.name||"")||/^image\//.test(f.type||""));
+function planFile(){ return EV.planFile||null }
+function fsize(n){ return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB" }
+function planBar(wr){
+  const f=planFile();
+  if(!f)return wr?'<div class="pfbar"><span class="pfl">ไฟล์ผังพื้นที่</span>'+
+    '<span class="pfs">ยังไม่ได้อัปโหลด รับไฟล์ภาพ PDF และไฟล์จาก CAD (DWG DXF)</span>'+
+    '<label class="pfup">อัปโหลดไฟล์ผัง<input type="file" id="pfin" '+
+    'accept=".pdf,.dwg,.dxf,.png,.jpg,.jpeg,.webp,.svg,image/*,application/pdf"></label></div>':'';
+  const img=f.kind==="img";
+  return '<div class="pfbar has">'+
+   '<span class="pfic '+esc(f.kind)+'">'+(img?"▦":f.kind==="pdf"?"PDF":"CAD")+'</span>'+
+   '<span class="pfn"><b>'+esc(f.name)+'</b><small>'+fsize(f.size)+
+     (img?' · ใช้เป็นพื้นหลังผังได้':f.kind==="pdf"
+       ?' · PDF เก็บไว้ให้ทีมโหลด ถ้าจะใช้เป็นพื้นหลังให้ export เป็น PNG แล้วอัปทับ'
+       :' · ไฟล์ CAD เก็บไว้ให้ทีมโหลด ถ้าจะใช้เป็นพื้นหลังให้ export เป็น PDF หรือ PNG')+
+     '</small></span>'+
+   (img?'<label class="pfsw"><input type="checkbox" id="pfshow"'+(f.show!==false?" checked":"")+
+       '> แสดงเป็นพื้นหลัง</label>'+
+      '<label class="pfrg">ความเข้ม <input type="range" id="pfop" min="5" max="100" value="'+
+       (f.op==null?45:f.op)+'"></label>'+
+      '<label class="pfrg">ขนาด <input type="range" id="pfsc" min="30" max="300" value="'+
+       (f.sc==null?100:f.sc)+'"></label>':'')+
+   '<button class="pfdl" id="pfget">เปิดไฟล์</button>'+
+   (wr?'<label class="pfup sm">เปลี่ยนไฟล์<input type="file" id="pfin" '+
+     'accept=".pdf,.dwg,.dxf,.png,.jpg,.jpeg,.webp,.svg,image/*,application/pdf"></label>'+
+     '<button class="pfx" id="pfdel" title="เอาไฟล์ออก">×</button>':'')+
+   '</div>';
+}
+function wirePlanBar(P,redraw){
+  const inp=P.querySelector("#pfin");
+  if(inp)inp.addEventListener("change",e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f)return;
+    if(f.size>PLAN_MAX){ alert("ไฟล์ใหญ่เกิน "+fsize(PLAN_MAX)+" ลองลดความละเอียดหรือ export เฉพาะหน้าที่ใช้"); return }
+    const ext=(f.name.match(/\.(\w+)$/)||[,""])[1].toLowerCase();
+    const kind=isPlanImg(f)?"img":(ext==="pdf"||/pdf/.test(f.type))?"pdf":"cad";
+    const done=url=>{ EV.planFile={name:f.name,size:f.size,kind,url,show:true,op:45,sc:100};
+      redraw(); toastTL("อัปโหลด "+f.name+" แล้ว") };
+    if(kind==="img")shrinkImg(f,2400,done);
+    else { const fr=new FileReader(); fr.onload=()=>done(fr.result); fr.readAsDataURL(f) }
+  });
+  const g=P.querySelector("#pfget");
+  if(g)g.addEventListener("click",()=>{
+    const f=planFile(); if(!f)return;
+    const a=document.createElement("a"); a.href=f.url; a.download=f.name;
+    a.target="_blank"; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove();
+  });
+  const d=P.querySelector("#pfdel");
+  if(d)d.addEventListener("click",()=>{
+    if(!confirm("เอาไฟล์ผังออกจากงานนี้?"))return;
+    EV.planFile=null; redraw() });
+  const sh=P.querySelector("#pfshow");
+  if(sh)sh.addEventListener("change",()=>{ planFile().show=sh.checked; redraw() });
+  const op=P.querySelector("#pfop");
+  if(op)op.addEventListener("input",()=>{ planFile().op=+op.value; applyPlanBg() });
+  const sc=P.querySelector("#pfsc");
+  if(sc)sc.addEventListener("input",()=>{ planFile().sc=+sc.value; applyPlanBg() });
+}
+/* ปรับพื้นหลังโดยไม่วาดผังใหม่ทั้งอัน เลื่อนแถบแล้วเห็นผลทันที */
+function applyPlanBg(){
+  const el=document.getElementById("planbg"); const f=planFile();
+  if(!el)return;
+  if(!f||f.kind!=="img"||f.show===false){ el.style.display="none"; return }
+  el.style.display="block";
+  el.style.opacity=(f.op==null?45:f.op)/100;
+  el.style.backgroundImage='url("'+f.url+'")';
+  el.style.backgroundSize=(f.sc==null?100:f.sc)+"%";
+}
 function pPlan(){
   const ovr=overdueBooths(), wrn=warnBooths();
   $("#page").innerHTML=
@@ -1254,8 +1361,10 @@ function pPlan(){
    ((fZone||fPkg)?'<p class="rdonly" style="margin:0 0 10px">แสดง '+shown().length+' บูธ จากทั้งหมด '+
      B.length+' · '+[fZone?(EV.zoneNames||{})[fZone]:"",fPkg].filter(Boolean).map(esc).join(" · ")+
      '</p>':'')+
-   '<div class="planhost"><div class="pw"><svg id="plan"></svg></div>'+
+   planBar(can("floorplan")==="write")+
+   '<div class="planhost"><div class="pw"><div id="planbg"></div><svg id="plan"></svg></div>'+
    '<aside class="side2" id="sd" hidden></aside></div>';
+  wirePlanBar($("#page"),pPlan);
   $("#q").addEventListener("input",e=>{q=e.target.value;paint()});
   $("#fz").addEventListener("change",e=>{fZone=e.target.value;pPlan()});
   $("#fp").addEventListener("change",e=>{fPkg=e.target.value;pPlan()});
@@ -1268,6 +1377,7 @@ function pPlan(){
   const X0=Math.min(...xs.map(o=>o.x))-1,Y0=Math.min(...xs.map(o=>o.y))-1;
   const X1=Math.max(...xs.map(o=>o.x+o.w))+1,Y1=Math.max(...xs.map(o=>o.y+o.h))+1;
   $("#plan").setAttribute("viewBox",X0+" "+Y0+" "+(X1-X0)+" "+(Y1-Y0));
+  applyPlanBg();
   paint(); sidebar();
 }
 /* ตัดรหัสบูธเป็นบรรทัดให้พอดีความกว้าง แล้วคืนขนาดตัวอักษรที่ใช้ได้ */
@@ -3984,14 +4094,6 @@ function pTimeline(ph){
   });
   h+='</tbody></table></div>';
   if(wr)h+='<div class="addbar"><button id="tlgadd">+ เพิ่มหมวด</button></div>';
-  h+='<h2 class="sec">ที่มาและวิธีคิด</h2><div class="note">'+
-   '<p>โครงนี้ถอดมาจากชีต <b>Project Timeline งาน Caf con</b> ทั้ง 9 หมวด '+
-   'ตั้งแต่วันจัดงาน โปรโมทผู้ชม เชิญแขก ทีมงาน ดูแลผู้ออกบูธ กิจกรรม งานออกแบบ งานบนเวที ไปจนถึงประชุมใหญ่</p>'+
-   '<p>ต่างจากชีตตรงที่ไม่ได้ผูกกับเดือนตายตัว แต่เก็บเป็น <b>สัปดาห์ที่ห่างจากวันงาน</b> '+
-   'พอเลื่อนวันงานหรือโคลนไปปีหน้า ทั้งแผนขยับตามเองโดยไม่ต้องลากใหม่'+
-   (ev.date?' ตอนนี้วันงานคือ '+ev.date+(ev.rolled?" (เลื่อนจาก "+ev.orig+" มาปีหน้าให้อัตโนมัติ)":""):"")+'</p>'+
-   '<p>ช่อง Date เดิมในชีตที่กรอกว่า TBC / DONE / pending ปนกับวันที่จริง '+
-   'แยกออกเป็นสถานะกับกำหนดส่ง กำหนดส่งคำนวณจากปลายแถบเอง จะได้เตือนเลยกำหนดได้</p></div>';
   $("#page").innerHTML=h;
   const P=$("#page");
   const iso=k=>ymd(tlWeekStart(k));
@@ -4230,16 +4332,6 @@ function pTimelineOn(){
   });
   h+='</tbody></table></div>';
   if(wr)h+='<div class="addbar"><button id="ongadd">+ เพิ่มหมวดในวันนี้</button></div>';
-  h+='<h2 class="sec">ทำไมช่วงนี้หน้าตาไม่เหมือนอีกสองช่วง</h2><div class="note">'+
-   '<p>ก่อนงานกับหลังงานวัดกันเป็นสัปดาห์ เลื่อนได้ทีละอาทิตย์ก็ยังทัน '+
-   'แต่ช่วงหน้างานทุกอย่างชนกันในวันเดียว ถ้าใช้ตารางสัปดาห์เหมือนกันจะไม่เห็นอะไรเลย '+
-   'ช่วงนี้จึงแยกเป็นรายวันและไล่เป็นชั่วโมง</p>'+
-   '<p>วันถูกคำนวณจากวันจัดงานเอง มีวันเซ็ตอัปก่อนหนึ่งวันและวันรื้อถอนต่อท้ายหนึ่งวัน '+
-   'ตรงกับที่ชีตเดิมเขียนไว้ว่า Set up Day มาก่อน Show Day หนึ่งวัน '+
-   'เลื่อนวันจัดงานเมื่อไหร่ วันในตารางนี้ขยับตามเอง</p>'+
-   '<p>คิวที่ทำซ้ำทุกวัน เช่น บรีฟทีมงานเช้าหรือประชุมสรุปวัน '+
-   'ใช้ปุ่มคัดลอกคิวไปวันอื่นแทนการพิมพ์ใหม่ทีละวัน</p></div>';
-
   $("#page").innerHTML=h; const P=$("#page");
   tlCtx={ wr, redraw:pTimelineOn, list:()=>list,
     toTSV(rows){
