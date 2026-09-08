@@ -371,16 +371,19 @@ table.gt td.gtno:hover{background:var(--soft);color:var(--accent)}
 tr.gtr.sel td.gtno{background:var(--accent);color:#fff;font-weight:700}
 table.gt td.gtno.gtnog{background:var(--soft)}
 table.gt td.gtno.gtnog:hover{background:color-mix(in srgb,var(--accent) 22%,transparent)}
-table.gt th.gtn,table.gt td.gtn{width:300px;min-width:300px;max-width:300px;padding:7px 12px;
+table.gt th.gtn,table.gt td.gtn{width:240px;min-width:240px;max-width:240px;padding:7px 12px;
   text-align:left;position:sticky;left:36px;background:var(--card);z-index:3;overflow:hidden}
 table.gt th.gts,table.gt td.gts{width:104px;min-width:104px;padding:5px 7px;
-  position:sticky;left:336px;background:var(--card);z-index:3}
+  position:sticky;left:276px;background:var(--card);z-index:3}
+table.gt th.gtby,table.gt td.gtby{width:124px;min-width:124px;max-width:124px;
+  position:sticky;left:380px;background:var(--card);z-index:3}
 table.gt th.gtd,table.gt td.gtd{width:88px;min-width:88px;padding:7px 8px;font-size:12px;
-  color:var(--ink2);white-space:nowrap;position:sticky;left:440px;background:var(--card);z-index:3;
+  color:var(--ink2);white-space:nowrap;position:sticky;left:504px;background:var(--card);z-index:3;
   box-shadow:2px 0 0 -1px var(--line2)}
-table.gt th.gtno{z-index:5}table.gt th.gtn{z-index:5}table.gt th.gts{z-index:5}table.gt th.gtd{z-index:5}
-/* หัวหมวดกินสามคอลัมน์รวมกัน ปุ่มจึงไม่ล้นไปทับช่องอื่น */
-table.gt td.gtgh{width:492px;min-width:492px;max-width:492px}
+table.gt th.gtno{z-index:5}table.gt th.gtn{z-index:5}table.gt th.gts{z-index:5}
+table.gt th.gtby{z-index:5}table.gt th.gtd{z-index:5}
+/* หัวหมวดกินสี่คอลัมน์รวมกัน ปุ่มจึงไม่ล้นไปทับช่องอื่น */
+table.gt td.gtgh{width:556px;min-width:556px;max-width:556px}
 table.gt td.gts select{width:100%;font-size:12px;padding:4px 6px;border-radius:7px}
 table.gt th.gtd2,table.gt td.gtd2{width:126px;min-width:126px}
 table.gt th.gtd2 small{display:block;font-weight:600;font-size:10.5px;color:var(--ink3);margin-top:1px}
@@ -802,6 +805,8 @@ table td.tcell{padding:4px 6px}
 .mb:hover{border-color:var(--accent);color:var(--accent)}
 .mb.on{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .mbtog{margin-left:auto;font-variant-numeric:tabular-nums}
+/* [hidden] แพ้ display:flex ต้องเขียนกำกับ ไม่งั้นกล่องกางค้างตลอด */
+.mbset[hidden]{display:none}
 .mbset{display:flex;align-items:center;gap:6px;width:100%;background:var(--card);
   border:1px solid var(--line);border-radius:9px;padding:8px 12px}
 .mbset input[type=month]{border:1px solid var(--line2);border-radius:7px;padding:5px 9px;
@@ -865,15 +870,16 @@ td.gtc .gplan.pk,td.gtc .gact.pk{cursor:ew-resize}
 .onbar.pk{box-shadow:0 0 0 2px var(--ink);outline:1px solid var(--card);cursor:ew-resize}
 
 /* คอลัมน์ฝ่ายที่รับผิดชอบ ติ๊กได้หลายฝ่าย แสดงเป็นป้ายเล็กๆ */
-table.gt th.gtby{width:150px;min-width:150px}
-td.gtby{width:150px;min-width:150px;vertical-align:middle;padding:5px 8px}
-.tmb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;width:100%;text-align:left;
+table.gt th.gtby{padding:7px 8px;text-align:left;vertical-align:top}
+td.gtby{vertical-align:middle;padding:5px 8px}
+.tmb{display:flex;flex-wrap:wrap;gap:4px 5px;align-items:center;width:100%;text-align:left;
  background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 6px;
  cursor:pointer;font:inherit;color:inherit;min-height:30px}
 .tmb:hover{border-color:var(--line2);background:var(--card)}
 .tmb.ro{cursor:default}
-.tmc{font-size:11.5px;font-weight:600;background:var(--soft);color:var(--accent);
- padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tmc{font-size:11px;font-weight:600;background:var(--soft);color:var(--accent);
+ padding:1px 7px;border-radius:99px;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.tmmore{font-size:11px;color:var(--ink3);font-weight:600}
 .tmnone{font-size:12px;color:var(--ink3)}
 .ctxm.tmm{padding:6px;max-height:60vh;overflow:auto;min-width:186px}
 .tmm .tmh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
