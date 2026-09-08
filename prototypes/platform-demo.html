@@ -501,7 +501,6 @@ th.gtx3:hover .gtdel2{opacity:1}
   border-color:var(--accent);background:var(--card);border-radius:99px;padding:9px 18px;
   box-shadow:0 10px 34px -10px rgba(0,0,0,.4),0 2px 8px -4px rgba(0,0,0,.25);
   max-width:calc(100vw - 40px);flex-wrap:nowrap;overflow-x:auto}
-.selbar.on .selhint{display:none}
 .selbar.on b{white-space:nowrap}
 .selbar.on button{white-space:nowrap;flex:0 0 auto}
 @media(max-width:700px){.selbar.on{left:12px;right:12px;transform:none;max-width:none}}
@@ -511,7 +510,6 @@ th.gtx3:hover .gtdel2{opacity:1}
   display:inline-flex;align-items:center;gap:4px}
 .selbar button:hover{border-color:var(--accent);color:var(--accent)}
 .selbar button.dg:hover{border-color:var(--risk);color:var(--risk)}
-.selhint{margin-left:auto;color:var(--ink3);font-size:11.5px}
 .selcb,.selcb2{width:14px;height:14px;margin:0 7px 0 0;vertical-align:-2px;cursor:pointer;
   accent-color:var(--accent)}
 .selcb2{margin-left:2px}
@@ -3860,15 +3858,14 @@ function selBar(n,wr){
   /* พอเลือกแถวแล้วแถบจะลอยติดขอบล่างจอ เลื่อนตารางไปไกลแค่ไหนก็ยังกดยกเลิกได้
      ห่อด้วย selwrap ไว้กันหน้ากระตุกตอนแถบหลุดออกจากผัง */
   return '<div class="selwrap"><div class="selbar'+(n?" on":"")+'">'+
-   '<b>'+(n?"selected "+n+" rows":"No rows selected")+'</b>'+
+   '<b>'+(n?n+(n===1?" row":" rows")+" selected":"No rows selected")+'</b>'+
    /* ปุ่มลัดยังใช้ได้เหมือนเดิม แค่ไม่ขึ้นป้ายบอกบนปุ่ม */
    '<button id="scopy" title="Ctrl+C">Copy'+(n?"":" all")+'</button>'+
    (wr?'<button id="spaste" title="Ctrl+V">Paste</button>':'')+
    (wr&&n?'<button id="sdup">Duplicate</button>'+
           '<button id="sdel" class="dg" title="Delete">Delete</button>':'')+
    (n?'<button id="sclr" title="Esc">Cancel</button>':'')+
-   '<span class="selhint">Tick in front of a task to select · hold Shift to select a range · '+
-   'Copy and paste straight into Google Sheets, and paste back in too</span></div></div>';
+   '</div></div>';
 }
 const selBox=(r,wr)=>'<input type="checkbox" class="selcb"'+(tlSel.has(r)?" checked":"")+
   ' aria-label="Select this row">';
