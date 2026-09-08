@@ -491,9 +491,18 @@ table.gt td.gtx3 [contenteditable]:focus,table.gt th.gtx3 [contenteditable]:focu
 .gtdel2{opacity:.45;font-size:13px}
 th.gtx3:hover .gtdel2{opacity:1}
 /* เลือกแถว คัดลอก วาง */
-.selbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 13px;margin-bottom:12px;
+.selwrap{min-height:52px;margin-bottom:12px}
+.selbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 13px;
   border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
-.selbar.on{border-color:var(--accent);background:var(--soft)}
+/* เลือกแถวแล้วแถบลอยติดขอบล่างจอ กดยกเลิกได้ตลอดไม่ว่าจะเลื่อนไปไหน */
+.selbar.on{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;
+  border-color:var(--accent);background:var(--card);border-radius:99px;padding:9px 18px;
+  box-shadow:0 10px 34px -10px rgba(0,0,0,.4),0 2px 8px -4px rgba(0,0,0,.25);
+  max-width:calc(100vw - 40px);flex-wrap:nowrap;overflow-x:auto}
+.selbar.on .selhint{display:none}
+.selbar.on b{white-space:nowrap}
+.selbar.on button{white-space:nowrap;flex:0 0 auto}
+@media(max-width:700px){.selbar.on{left:12px;right:12px;transform:none;max-width:none}}
 .selbar b{font-weight:700;color:var(--ink)}
 .selbar button{background:var(--card);border:1px solid var(--line2);border-radius:7px;
   padding:5px 11px;font-size:12.5px;cursor:pointer;color:var(--ink);font-family:inherit;
@@ -3679,14 +3688,16 @@ function tsvParse(txt){
 
 /* แถบเครื่องมือที่โผล่มาเมื่อเลือกแถว */
 function selBar(n,wr){
-  return '<div class="selbar'+(n?" on":"")+'">'+
+  /* พอเลือกแถวแล้วแถบจะลอยติดขอบล่างจอ เลื่อนตารางไปไกลแค่ไหนก็ยังกดยกเลิกได้
+     ห่อด้วย selwrap ไว้กันหน้ากระตุกตอนแถบหลุดออกจากผัง */
+  return '<div class="selwrap"><div class="selbar'+(n?" on":"")+'">'+
    '<b>'+(n?"เลือกไว้ "+n+" แถว":"ยังไม่ได้เลือกแถว")+'</b>'+
    '<button id="scopy">คัดลอก'+(n?"":"ทั้งหมด")+' <kbd>Ctrl</kbd><kbd>C</kbd></button>'+
    (wr?'<button id="spaste">วาง <kbd>Ctrl</kbd><kbd>V</kbd></button>':'')+
    (wr&&n?'<button id="sdup">ทำซ้ำ</button><button id="sdel" class="dg">ลบ <kbd>Del</kbd></button>':'')+
    (n?'<button id="sclr">ยกเลิก <kbd>Esc</kbd></button>':'')+
    '<span class="selhint">ติ๊กหน้าชื่องานเพื่อเลือก · กด Shift ค้างเพื่อเลือกเป็นช่วง · '+
-   'คัดลอกแล้ววางลง Google Sheets ได้เลย และวางกลับเข้ามาก็ได้</span></div>';
+   'คัดลอกแล้ววางลง Google Sheets ได้เลย และวางกลับเข้ามาก็ได้</span></div></div>';
 }
 const selBox=(r,wr)=>'<input type="checkbox" class="selcb"'+(tlSel.has(r)?" checked":"")+
   ' aria-label="เลือกแถวนี้">';
