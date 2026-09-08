@@ -18,6 +18,8 @@ r.get('/:code/full', need('floorplan'), async (req, res, next) => {
     if (!ev) return res.status(404).json({ error: 'ไม่พบงานนี้' })
     const id = ev.id
     const seeMoney = (req.perms?.budget?.level ?? 'none') !== 'none'
+    // เป้ารายได้แยกสิทธิ์จากงบ เซลล์ต้องเห็นเป้าเพื่อดู run rate แต่ไม่เห็น Feasibility
+    const seeTarget = (req.perms?.target?.level ?? 'none') !== 'none'
     const seePrice = (req.perms?.price?.level ?? 'none') !== 'none'
     const own = req.perms?.deal?.scope === 'own'
     const myAgent = req.user.agent_id ?? null
@@ -70,8 +72,8 @@ r.get('/:code/full', need('floorplan'), async (req, res, next) => {
       dates: S.dates ?? null, venue: ev.venue, status: ev.status,
       brands: brands.rows.map((b) => b.name),
       eventDate: ev.start_date, event_date: ev.start_date, end_date: ev.end_date,
-      target: seeMoney ? Number(ev.revenue_goal ?? 0) : null,
-      target_note: S.targetNote ?? null,
+      target: seeTarget ? Number(ev.revenue_goal ?? 0) : null,
+      target_note: seeTarget ? (S.targetNote ?? null) : null,
       logo: S.logo ?? null, manual: S.manual ?? null,
       tlRange: S.tlRange ?? null, tlCols: S.tlCols ?? [],
       buildDays: S.buildDays ?? 1, strikeDays: S.strikeDays ?? 1,

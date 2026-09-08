@@ -1,0 +1,54 @@
+<div id="login">
+  <form class="lbox" id="lform">
+    <div class="logo"><span class="lgw" role="img" aria-label="PenguinX event"><span class="lg1">Penguin<i>x</i></span><span class="lg2">event<b class="lgc"></b></span></span></div>
+    <h1>Sign in</h1>
+    <p class="sub">Internal system — invited accounts only</p>
+    <div class="f"><label for="em">Email</label>
+      <input id="em" type="email" value="snoox@penguinx.co" autocomplete="username"></div>
+    <div class="f"><label for="pw">Password</label>
+      <input id="pw" type="password" value="demo1234" autocomplete="current-password"></div>
+    <div class="f"><label for="rl">Role <span style="color:var(--ink3);font-weight:400">— pick one in this demo to see what each role can do</span></label>
+      <select id="rl">
+        <option value="sales">Sales</option>
+        <option value="operations">Operations</option>
+        <option value="exec">Executive</option>
+        <option value="admin">Administrator</option>
+      </select></div>
+    <button class="btn" type="submit">Sign in</button>
+    <p class="hint">In production there is no self sign-up — an admin invites by email and the first login forces a password reset.
+    Passwords and tokens are stored hashed and can be revoked per device · this is a demo, just press Sign in</p>
+  </form>
+</div>
+
+<div id="pick"><div class="pwrap">
+  <div class="logo"><span class="lgw" role="img" aria-label="PenguinX event"><span class="lg1">Penguin<i>x</i></span><span class="lg2">event<b class="lgc"></b></span></span></div>
+  <h1>Choose an event</h1>
+  <p class="sub">You have access to these events</p>
+  <div class="evgrid" id="evgrid"></div>
+  <p class="out">Signed in as <b id="pwho">—</b> · <button id="pout">Sign out</button></p>
+</div></div>
+
+<div id="app">
+  <nav class="side">
+    <div class="logo"><span class="lgw" role="img" aria-label="PenguinX event"><span class="lg1">Penguin<i>x</i></span><span class="lg2">event<b class="lgc"></b></span></span></div>
+    <div class="evlogo" id="evlogo" style="display:none"></div>
+    <div class="evsel"><select id="ev"></select>
+      <button id="allev" style="margin-top:7px;width:100%;background:none;border:1px solid rgba(255,255,255,.14);
+      color:var(--nav-ink);padding:6px 10px;border-radius:7px;font-size:12.5px;cursor:pointer">← All events</button></div>
+    <div id="nav"></div>
+    <div class="who"><b id="wn">—</b><span id="wr">—</span>
+      <button id="out">Sign out</button></div>
+  </nav>
+  <main>
+    <div class="top">
+      <h1 id="ttl">Overview</h1><span class="sp"></span>
+      <div class="undo">
+        <button id="ubk" disabled><span>↺</span>Undo</button>
+        <button id="ufw" disabled><span>↻</span>Redo</button>
+      </div>
+      <span class="demo">Demo</span>
+      <div class="rolepick"><label for="rl2">Switch role</label><select id="rl2"></select></div>
+    </div>
+    <div class="page" id="page"></div>
+  </main>
+</div>

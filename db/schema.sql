@@ -15,12 +15,8 @@ create table role (
 insert into role (code, name, sort) values
   ('admin',      'ผู้ดูแลระบบ',   1),
   ('exec',       'ผู้บริหาร',      2),
-  ('finance',    'บัญชีการเงิน',   3),
-  ('sales_lead', 'หัวหน้าเซลล์',   4),
-  ('sales',      'เซลล์',          5),
-  ('marketing',  'การตลาด',        6),
-  ('operations', 'ปฏิบัติการ',     7),
-  ('viewer',     'ดูอย่างเดียว',   8);
+  ('operations', 'ปฏิบัติการ',     3),
+  ('sales',      'เซลล์',          4);
 
 -- สิทธิ์เก็บเป็นข้อมูล ไม่ฝังในโค้ด จะได้แก้ได้โดยไม่ต้องขึ้นระบบใหม่
 create table role_permission (
@@ -35,7 +31,7 @@ create table role_permission (
 );
 
 insert into role_permission (role, module, level, scope) values
-  -- ผู้ดูแลระบบ
+  -- ผู้ดูแลระบบ ทำได้ทุกอย่างรวมถึงจัดการผู้ใช้และสิทธิ์
   ('admin','floorplan','write','all'),  ('admin','deal','write','all'),
   ('admin','price','approve','all'),    ('admin','document','write','all'),
   ('admin','payment','write','all'),    ('admin','budget','write','all'),
@@ -45,37 +41,29 @@ insert into role_permission (role, module, level, scope) values
   ('admin','share','write','all'),
   ('admin','target','write','all'),
 
-  -- ผู้บริหาร เห็นทุกอย่างแต่ไม่แก้
+  -- ผู้บริหาร เห็นทุกอย่าง เป็นเจ้าของตัวเลขเงินและอนุมัติส่วนลด
+  -- รับงานเดิมของบัญชีการเงินมาไว้ที่นี่ ทีมเล็กไม่ต้องแยกอีกบทบาท
   ('exec','floorplan','read','all'),    ('exec','deal','read','all'),
-  ('exec','price','approve','all'),     ('exec','document','read','all'),
-  ('exec','payment','read','all'),      ('exec','budget','read','all'),
+  ('exec','price','approve','all'),     ('exec','document','write','all'),
+  ('exec','payment','write','all'),     ('exec','budget','write','all'),
   ('exec','stage','read','all'),        ('exec','marketing','read','all'),
   ('exec','exhibitor','read','all'),    ('exec','movein','read','all'),
   ('exec','user','none','all'),         ('exec','audit','read','all'),
   ('exec','share','read','all'),
-  ('exec','target','read','all'),
+  ('exec','target','write','all'),
 
-  -- บัญชีการเงิน เจ้าของเอกสารและตัวเลข แต่ไม่ย้ายบูธ
-  ('finance','floorplan','read','all'), ('finance','deal','read','all'),
-  ('finance','price','read','all'),     ('finance','document','write','all'),
-  ('finance','payment','write','all'),  ('finance','budget','write','all'),
-  ('finance','stage','none','all'),     ('finance','marketing','none','all'),
-  ('finance','exhibitor','read','all'), ('finance','movein','none','all'),
-  ('finance','user','none','all'),      ('finance','audit','read','all'),
-  ('finance','share','none','all'),
-  ('finance','target','write','all'),
+  -- ปฏิบัติการ ดูแลผังงาน เวที ผู้ออกบูธ และงานก่อสร้าง
+  -- รับงานเดิมของการตลาด (เวทีและช่องทางสื่อ) มารวมไว้ที่นี่
+  ('operations','floorplan','write','all'), ('operations','deal','read','all'),
+  ('operations','price','none','all'),      ('operations','document','write','all'),
+  ('operations','payment','none','all'),    ('operations','budget','none','all'),
+  ('operations','stage','write','all'),     ('operations','marketing','write','all'),
+  ('operations','exhibitor','write','all'), ('operations','movein','write','all'),
+  ('operations','user','none','all'),       ('operations','audit','none','all'),
+  ('operations','share','write','all'),
+  ('operations','target','none','all'),
 
-  -- หัวหน้าเซลล์ เห็นดีลทุกคน อนุมัติส่วนลดได้ แต่ยังไม่เห็นงบทั้งงาน
-  ('sales_lead','floorplan','write','all'), ('sales_lead','deal','write','all'),
-  ('sales_lead','price','approve','all'),   ('sales_lead','document','write','all'),
-  ('sales_lead','payment','read','all'),    ('sales_lead','budget','none','all'),
-  ('sales_lead','stage','read','all'),      ('sales_lead','marketing','read','all'),
-  ('sales_lead','exhibitor','read','all'),  ('sales_lead','movein','none','all'),
-  ('sales_lead','user','none','all'),       ('sales_lead','audit','none','all'),
-  ('sales_lead','share','none','all'),
-  ('sales_lead','target','read','all'),
-
-  -- เซลล์ จองบูธและดูแลดีลของตัวเอง ไม่เห็น Feasibility
+  -- เซลล์ จองบูธและดูแลดีลของตัวเอง เห็นเป้าของตัวเอง ไม่เห็น Feasibility
   ('sales','floorplan','write','all'),  ('sales','deal','write','own'),
   ('sales','price','read','all'),       ('sales','document','write','own'),
   ('sales','payment','read','own'),     ('sales','budget','none','all'),
@@ -83,37 +71,7 @@ insert into role_permission (role, module, level, scope) values
   ('sales','exhibitor','read','own'),   ('sales','movein','none','all'),
   ('sales','user','none','all'),        ('sales','audit','none','all'),
   ('sales','share','none','all'),
-  ('sales','target','none','all'),
-
-  -- การตลาด
-  ('marketing','floorplan','read','all'), ('marketing','deal','read','all'),
-  ('marketing','price','none','all'),     ('marketing','document','none','all'),
-  ('marketing','payment','none','all'),   ('marketing','budget','none','all'),
-  ('marketing','stage','write','all'),    ('marketing','marketing','write','all'),
-  ('marketing','exhibitor','read','all'), ('marketing','movein','none','all'),
-  ('marketing','user','none','all'),      ('marketing','audit','none','all'),
-  ('marketing','share','none','all'),
-  ('marketing','target','none','all'),
-
-  -- ปฏิบัติการ ดูแลผู้ออกบูธและงานก่อสร้าง
-  ('operations','floorplan','write','all'), ('operations','deal','read','all'),
-  ('operations','price','none','all'),      ('operations','document','none','all'),
-  ('operations','payment','none','all'),    ('operations','budget','none','all'),
-  ('operations','stage','write','all'),     ('operations','marketing','none','all'),
-  ('operations','exhibitor','write','all'), ('operations','movein','write','all'),
-  ('operations','user','none','all'),       ('operations','audit','none','all'),
-  ('operations','share','write','all'),
-  ('operations','target','none','all'),
-
-  -- ดูอย่างเดียว
-  ('viewer','floorplan','read','all'),  ('viewer','deal','none','all'),
-  ('viewer','price','none','all'),      ('viewer','document','none','all'),
-  ('viewer','payment','none','all'),    ('viewer','budget','none','all'),
-  ('viewer','stage','read','all'),      ('viewer','marketing','none','all'),
-  ('viewer','exhibitor','none','all'),  ('viewer','movein','none','all'),
-  ('viewer','user','none','all'),       ('viewer','audit','none','all'),
-  ('viewer','share','none','all'),
-  ('viewer','target','none','all');
+  ('sales','target','read','own');
 
 -- ---------------------------------------------------------------- คน & องค์กร
 

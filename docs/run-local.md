@@ -35,11 +35,8 @@ node apps/api/src/index.js
 | อีเมล | บทบาท |
 |---|---|
 | `admin@penguinx.local` | ผู้ดูแลระบบ |
-| `exec@penguinx.local` | ผู้บริหาร |
-| `finance@penguinx.local` | บัญชีการเงิน |
-| `marketing@penguinx.local` | การตลาด |
-| `operations@penguinx.local` | ปฏิบัติการ |
-| `sales_lead@penguinx.local` | หัวหน้าเซลล์ |
+| `exec@penguinx.local` | ผู้บริหาร รวมงานบัญชีการเงินเดิม |
+| `operations@penguinx.local` | ปฏิบัติการ รวมงานการตลาดเดิม |
 | ชื่อเซลล์แต่ละคน เช่น `snoox@penguinx.local` | เซลล์ ผูกกับดีลของตัวเอง |
 
 ## ตรวจว่าใช้ได้

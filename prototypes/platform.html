@@ -844,10 +844,7 @@ table td.tcell{padding:4px 6px}
     <div class="f"><label for="rl">Role <span style="color:var(--ink3);font-weight:400">— pick one in this demo to see what each role can do</span></label>
       <select id="rl">
         <option value="sales">Sales</option>
-        <option value="sales_lead">Sales lead</option>
-        <option value="finance">Finance</option>
         <option value="operations">Operations</option>
-        <option value="marketing">Marketing</option>
         <option value="exec">Executive</option>
         <option value="admin">Administrator</option>
       </select></div>
@@ -911,12 +908,9 @@ function useEvent(id){
 }
 const ROLE={
  admin:{n:"Administrator",p:{timeline:"write",price:"approve",share:"write",floorplan:"write",deal:"write",budget:"write",target:"write",stage:"write",exhibitor:"write",user:"write"},scope:"all"},
- exec:{n:"Executive",p:{timeline:"read",price:"approve",share:"read",floorplan:"read",deal:"read",budget:"read",target:"read",stage:"read",exhibitor:"read",user:"none"},scope:"all"},
- finance:{n:"Finance",p:{timeline:"read",price:"read",share:"none",floorplan:"read",deal:"read",budget:"write",target:"write",stage:"none",exhibitor:"read",user:"none"},scope:"all"},
- sales_lead:{n:"Sales lead",p:{timeline:"read",price:"approve",share:"none",floorplan:"write",deal:"write",budget:"none",target:"read",stage:"read",exhibitor:"read",user:"none"},scope:"all"},
- sales:{n:"Sales",p:{timeline:"read",price:"read",share:"none",floorplan:"write",deal:"write",budget:"none",target:"none",stage:"read",exhibitor:"read",user:"none"},scope:"own"},
- marketing:{n:"Marketing",p:{timeline:"write",price:"none",share:"none",floorplan:"read",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"read",user:"none"},scope:"all"},
- operations:{n:"Operations",p:{timeline:"write",price:"none",share:"write",floorplan:"write",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"write",user:"none"},scope:"all"}};
+ exec:{n:"Executive",p:{timeline:"read",price:"approve",share:"read",floorplan:"read",deal:"read",budget:"write",target:"write",stage:"read",exhibitor:"read",user:"none"},scope:"all"},
+ operations:{n:"Operations",p:{timeline:"write",price:"none",share:"write",floorplan:"write",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"write",user:"none"},scope:"all"},
+ sales:{n:"Sales",p:{timeline:"read",price:"read",share:"none",floorplan:"write",deal:"write",budget:"none",target:"read",stage:"read",exhibitor:"read",user:"none"},scope:"own"}};
 /* ไอคอนเมนู วาดเป็น SVG เส้นหนา 1.7 ปลายมน ใช้ currentColor
    จึงกลืนกับสีข้อความทั้งบนแถบเข้มและแถบสว่างโดยไม่ต้องทำสองชุด */
 const ICON={
@@ -4434,7 +4428,7 @@ function pUsers(){
   const M=[["floorplan","Floor plan"],["price","Packages & pricing"],["deal","Deals & clients"],["target","Target & run rate"],["budget","Feasibility"],
    ["stage","Stage"],["exhibitor","Exhibitor care"],["timeline","Project timeline"],
    ["share","Share event"],["user","Users & permissions"]];
-  const RS=["sales","sales_lead","finance","marketing","operations","exec","admin"];
+  const RS=["sales","operations","exec","admin"];
   const LV={write:["Can edit","--ok"],approve:["Can approve","--ok"],
     read:["Can view","--ink2"],none:["—","--ink3"]};
   const wr=can("user")==="write";
