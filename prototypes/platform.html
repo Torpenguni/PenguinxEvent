@@ -76,7 +76,9 @@ nav.side a{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radi
 text-decoration:none;font-size:14px;cursor:pointer;border:0;background:none;width:100%;text-align:left}
 nav.side a:hover{background:rgba(255,255,255,.06);color:#fff}
 nav.side a.on{background:var(--nav-hi);color:#fff;font-weight:600}
-nav.side a .ic{width:18px;text-align:center;opacity:.85;font-size:14px}
+nav.side a svg.ic{width:19px;height:19px;flex:0 0 19px;opacity:.78;transition:opacity .12s}
+nav.side a:hover svg.ic,nav.side a.on svg.ic{opacity:1}
+nav.side a .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 nav.side a .cnt{margin-left:auto;font-size:11.5px;background:rgba(255,255,255,.1);padding:1px 7px;border-radius:99px}
 nav.side a.on .cnt{background:rgba(255,255,255,.2)}
 .who{margin-top:auto;padding:12px 10px 4px;border-top:1px solid rgba(255,255,255,.09);font-size:13px}
@@ -692,24 +694,48 @@ const ROLE={
  sales:{n:"Sales",p:{timeline:"read",price:"read",share:"none",floorplan:"write",deal:"write",budget:"none",target:"none",stage:"read",exhibitor:"read",user:"none"},scope:"own"},
  marketing:{n:"Marketing",p:{timeline:"write",price:"none",share:"none",floorplan:"read",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"read",user:"none"},scope:"all"},
  operations:{n:"Operations",p:{timeline:"write",price:"none",share:"write",floorplan:"write",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"write",user:"none"},scope:"all"}};
+/* ไอคอนเมนู วาดเป็น SVG เส้นหนา 1.7 ปลายมน ใช้ currentColor
+   จึงกลืนกับสีข้อความทั้งบนแถบเข้มและแถบสว่างโดยไม่ต้องทำสองชุด */
+const ICON={
+ dash:'<rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>'+
+      '<rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>',
+ sales:'<path d="M3 17.5 9 11l4 4 8-8.5"/><path d="M21 6.5h-5m5 0v5"/>'+
+      '<path d="M3 21h18"/>',
+ plan:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9.5h18M9.5 3v18"/>'+
+      '<rect x="12.5" y="12.5" width="5.5" height="5.5" rx="1" fill="currentColor" stroke="none" opacity=".9"/>',
+ money:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>'+
+      '<path d="M6 9.5v5M18 9.5v5"/>',
+ stage:'<path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/>'+
+      '<path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/>',
+ exh:'<path d="M8 4h8a1 1 0 0 1 1 1v1H7V5a1 1 0 0 1 1-1z"/>'+
+      '<path d="M17 6h1.5A1.5 1.5 0 0 1 20 7.5v12A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-12A1.5 1.5 0 0 1 5.5 6H7"/>'+
+      '<path d="m8.5 13 2.2 2.2L15.5 10.5"/>',
+ tl:'<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>'+
+      '<path d="M6.5 13h6M6.5 17h9"/>',
+ set:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/>'+
+      '<circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/>',
+};
+const svg=k=>'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
+  'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+
+  (ICON[k]||'')+'</svg>';
 const NAV=[
- {id:"dash",  ic:"◧", t:"Overview",     m:null},
- {id:"sales", ic:"◐", t:"Sales",     tabs:[
+ {id:"dash",  t:"Overview",     m:null},
+ {id:"sales", t:"Sales",     tabs:[
     ["mon","Sales overview","deal"],["board","Board","deal"],
     ["grid","Working grid","deal"],["opp","Opportunities","deal"],
     ["perf","Rep performance","deal"]]},
- {id:"plan",  ic:"▦", t:"Floor plan",     tabs:[
+ {id:"plan",  t:"Floor plan",     tabs:[
     ["map","Plan","floorplan"],["pkg","Packages & pricing","price"]]},
- {id:"money", ic:"₿", t:"Money",       tabs:[
+ {id:"money", t:"Money",       tabs:[
     ["pnl","P&L","budget"],["target","Target & run rate","target"],
     ["income","Revenue by package","budget"],["cost","Expense budget","budget"]]},
- {id:"stage", ic:"◈", t:"Stage",       m:"stage"},
- {id:"exh",   ic:"✓", t:"Exhibitor",  tabs:[
+ {id:"stage", t:"Stage",       m:"stage"},
+ {id:"exh",   t:"Exhibitor",  tabs:[
     ["list","Follow up","exhibitor"],["portal","Exhibitor view","exhibitor"],
     ["setup","Checklist setup","exhibitor"]]},
- {id:"tl",    ic:"▤", t:"Timeline",  tabs:[
+ {id:"tl",    t:"Timeline",  tabs:[
     ["pre","Pre-event","timeline"],["on","On-site","timeline"],["post","Post-event","timeline"]]},
- {id:"set",   ic:"⚿", t:"Settings",    tabs:[
+ {id:"set",   t:"Settings",    tabs:[
     ["share","Share event","share"],["users","Users & permissions","user"],
     ["export","Export data",null]]},
 ];
@@ -1031,8 +1057,8 @@ function draw(){
   $("#nav").innerHTML='<div class="navlab">Task</div>'+vis.map(n=>{
     const c=n.id==="sales"?DEALS.filter(mine).length
       :n.id==="plan"?B.filter(x=>x.st==="free").length:"";
-    return '<a class="'+(page===n.id?"on":"")+'" data-p="'+n.id+'"><span class="ic">'+n.ic+
-      '</span>'+n.t+(c!==""?'<span class="cnt">'+c+'</span>':'')+'</a>';
+    return '<a class="'+(page===n.id?"on":"")+'" data-p="'+n.id+'">'+svg(n.id)+
+      '<span class="lb">'+n.t+'</span>'+(c!==""?'<span class="cnt">'+c+'</span>':'')+'</a>';
   }).join("");
   $("#nav").querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>go(a.dataset.p)));
   const n=NAV.find(x=>x.id===page);
