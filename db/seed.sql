@@ -4,14 +4,14 @@
 begin;
 
 insert into event (code, name, edition_year, venue, hall, start_date, end_date, status, revenue_goal)
-values ('restech-trc-2026', 'Restech & Thailand Restaurant Conference', 2026,
-        'IMPACT', 'Hall 6-7', '2026-08-27', '2026-08-29', 'selling', 13066200)
+values ('restech-trc-2027', 'Restech & Thailand Restaurant Conference', 2027,
+        'IMPACT', 'Hall 6-7', '2027-08-21', '2027-08-24', 'selling', 13066200)
 on conflict (code) do nothing;
 
 insert into event_brand (event_id, code, name)
 select e.id, x.code, x.name
   from event e, (values ('restech','Restech'), ('trc','Thailand Restaurant Conference')) as x(code,name)
- where e.code = 'restech-trc-2026'
+ where e.code = 'restech-trc-2027'
 on conflict do nothing;
 
 -- ราคาตามชีต Feasibility ของ Restech x TRC 2026
@@ -25,7 +25,7 @@ select e.id, t.code, t.name, t.tier, t.build, t.w, t.d, t.price, t.cost
     ('std3x3',   'Standard 3x3',          'standard', 'shell_scheme', 3, 3,   50000, 3250),
     ('food2x2',  'Food 2x2',              'food',     'shell_scheme', 2, 2,   23000, 2550)
   ) as t(code,name,tier,build,w,d,price,cost)
- where e.code = 'restech-trc-2026'
+ where e.code = 'restech-trc-2027'
 on conflict do nothing;
 
 -- หมวดงบตามชีต
@@ -38,7 +38,7 @@ select e.id, c.side, c.code, c.name, c.sort
     ('expense','conference','เวทีและวิทยากร',4),
     ('expense','admin','บริหารงาน',5)
   ) as c(side,code,name,sort)
- where e.code = 'restech-trc-2026'
+ where e.code = 'restech-trc-2027'
 on conflict do nothing;
 
 -- เช็กลิสต์ผู้ออกบูธตามชีต Exhibitor Manual
@@ -58,7 +58,7 @@ select e.id, t.code, t.label, t.phase, t.applies, t.days, t.sort
     ('design',     'แบบก่อสร้าง',            'build','raw_space',   21,11),
     ('insurance',  'ค่าประกันการตกแต่ง',     'build','raw_space',   14,12)
   ) as t(code,label,phase,applies,days,sort)
- where e.code = 'restech-trc-2026'
+ where e.code = 'restech-trc-2027'
 on conflict do nothing;
 
 -- เงื่อนไขแพ็กเกจ ตามที่ปรากฏในชีต Feasibility ของ Restech x TRC
@@ -89,7 +89,7 @@ select bt.id, b.label, b.kind, b.sort
     ('food2x2',  'บูธมุมราคาเพิ่ม 2,000',                  'optional',   3),
     ('food2x2',  'บัตร Exhibitor 2 ใบ',                    'limit',      4)
   ) as b(code, label, kind, sort) on b.code = bt.code
- where e.code = 'restech-trc-2026'
+ where e.code = 'restech-trc-2027'
 on conflict do nothing;
 
 -- ของขายเสริม ราคาตามชีต
@@ -102,7 +102,7 @@ select e.id, a.code, a.name, a.price
     ('video',           'ภาพวิดีโอบูธ',                                    5000),
     ('workshop',        'Workshop Package',                              100000)
   ) as a(code, name, price)
- where e.code = 'restech-trc-2026'
+ where e.code = 'restech-trc-2027'
 on conflict do nothing;
 
 commit;
