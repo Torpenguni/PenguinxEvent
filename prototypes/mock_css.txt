@@ -830,4 +830,59 @@ table td.tcell{padding:4px 6px}
 .ctxm hr{border:0;border-top:1px solid var(--line2);margin:4px 6px}
 @media(max-width:700px){.selchip{left:12px;right:12px;transform:none;justify-content:space-between}
   .selk{display:none}}
+
+
+/* ป้ายบอกว่าบันทึกแล้ว อยู่ข้างปุ่มถอยหลังเดินหน้า เงียบๆ ไม่แย่งสายตา */
+.svst{font-size:12px;color:var(--ink3);white-space:nowrap;padding:0 2px}
+.svst.on::before{content:"";display:inline-block;width:6px;height:6px;border-radius:99px;
+background:var(--ok);margin-right:6px;vertical-align:1px}
+.svst.bad{color:var(--risk);font-weight:600}
+
+/* กล่องช่วงเวลาที่กดเปิด ขึ้นหน้าสุดและกางเต็ม อ่านทั้งชื่อและคนพูดได้
+   ช่วงสั้นๆ กล่องเตี้ยกว่าตัวหนังสือ ปกติเลยเห็นแค่บรรทัดแรก */
+.tl .col.hasopen{z-index:6}
+.ev.open{height:auto!important;min-height:64px;overflow:visible;z-index:9;
+ box-shadow:0 10px 30px rgba(0,0,0,.34);outline:2px solid var(--card);outline-offset:1px;
+ padding-bottom:10px}
+.ev.open .n{white-space:normal}
+.ev.evtiny .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev.evtiny .fa{display:none}
+.ev.evtiny.open .fa{display:flex}
+.ev.evtiny.open .n{white-space:normal}
+
+/* แถบที่กดเลือกไว้ มีขอบและหัวท้ายให้จับ บอกว่าลากได้แล้ว */
+td.gtc .gplan.pk{box-shadow:0 0 0 1.5px var(--ink);border-radius:5px}
+td.gtc .gact.pk{box-shadow:0 0 0 2px var(--ink);outline:1px solid var(--card)}
+td.gtc .gplan.pk.ba::before,td.gtc .gact.pk.ba::before,
+td.gtc .gplan.pk.bb::after,td.gtc .gact.pk.bb::after{
+ content:"";position:absolute;top:50%;width:5px;height:15px;margin-top:-7.5px;
+ background:var(--ink);border:1.5px solid var(--card);border-radius:3px}
+td.gtc .gplan.pk.ba::before,td.gtc .gact.pk.ba::before{left:-3px}
+td.gtc .gplan.pk.bb::after,td.gtc .gact.pk.bb::after{right:-3px}
+td.gtc .gplan.pk,td.gtc .gact.pk{cursor:ew-resize}
+
+.onplan.pk{box-shadow:0 0 0 1.5px var(--ink);cursor:ew-resize}
+.onbar.pk{box-shadow:0 0 0 2px var(--ink);outline:1px solid var(--card);cursor:ew-resize}
+
+/* คอลัมน์ฝ่ายที่รับผิดชอบ ติ๊กได้หลายฝ่าย แสดงเป็นป้ายเล็กๆ */
+table.gt th.gtby{width:150px;min-width:150px}
+td.gtby{width:150px;min-width:150px;vertical-align:middle;padding:5px 8px}
+.tmb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;width:100%;text-align:left;
+ background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 6px;
+ cursor:pointer;font:inherit;color:inherit;min-height:30px}
+.tmb:hover{border-color:var(--line2);background:var(--card)}
+.tmb.ro{cursor:default}
+.tmc{font-size:11.5px;font-weight:600;background:var(--soft);color:var(--accent);
+ padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tmnone{font-size:12px;color:var(--ink3)}
+.ctxm.tmm{padding:6px;max-height:60vh;overflow:auto;min-width:186px}
+.tmm .tmh{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+ color:var(--ink3);padding:6px 9px 8px}
+.tmm .tmi{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+ background:transparent;border:0;color:inherit;font:inherit;font-size:13.5px;
+ padding:7px 9px;border-radius:7px;cursor:pointer}
+.tmm .tmi:hover{background:var(--soft)}
+.tmm .tmi.on{font-weight:600}
+.tmm .tmi.dg{color:var(--risk)}
+.tmm .tmk{width:14px;font-style:normal;color:var(--accent);font-weight:700}
 </style>

@@ -29,5 +29,15 @@ for data,out in (('app4.json','platform.html'),('demo.json','demo.html')):
             if out=='platform.html': found.append(e['id'])
     d=json.dumps(D,ensure_ascii=False)
     p=css+'\n'+html+'\n'+js.replace('__DATA__',d)
-    open(out,'w').write(p); print(out,round(len(p)/1024),'KB')
+    open(out,'w',encoding='utf-8').write(p); print(out,round(len(p)/1024),'KB')
+    # ฉบับเอาไปวางบนโฮสต์เอง ต้องเป็นเอกสารเต็มและประกาศ charset ให้ชัด
+    # ไม่งั้นเซิร์ฟเวอร์ที่ไม่ส่ง charset มาด้วย เบราว์เซอร์จะเดาผิดแล้วภาษาไทยพัง
+    doc=('<!doctype html>\n<html lang="th">\n<head>\n'
+         '<meta charset="utf-8">\n'
+         '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+         '<meta name="robots" content="noindex,nofollow">\n'
+         '</head>\n<body>\n'+p+'\n</body>\n</html>\n')
+    os.makedirs('dist',exist_ok=True)
+    name='index.html' if out=='platform.html' else 'demo.html'
+    open(os.path.join('dist',name),'w',encoding='utf-8').write(doc)
 print("ฝังโลโก้:", ", ".join(found) if found else "ยังไม่มีไฟล์โลโก้ใน prototypes/logos/")

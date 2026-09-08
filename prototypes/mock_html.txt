@@ -46,6 +46,7 @@
         <button id="ubk" disabled><span>↺</span>Undo</button>
         <button id="ufw" disabled><span>↻</span>Redo</button>
       </div>
+      <span id="svst" class="svst"></span>
       <span class="demo">Demo</span>
       <div class="rolepick"><label for="rl2">Switch role</label><select id="rl2"></select></div>
     </div>
