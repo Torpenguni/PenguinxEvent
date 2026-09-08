@@ -681,6 +681,21 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
 .slg{display:flex;align-items:center;gap:7px;color:var(--ink2);cursor:help}
 .slg i{width:14px;height:14px;border-radius:4px;display:inline-block;flex:0 0 14px}
 .slgh{margin-left:auto;color:var(--ink3);font-size:11.5px}
+/* การ์ดเวที แก้ชื่อได้ */
+.stgc{display:flex;flex-direction:column;gap:4px}
+.stgn{font-size:17px;line-height:1.35;font-weight:700;display:inline-block;
+  border-bottom:1px dashed transparent;cursor:text;max-width:100%}
+.stgn[contenteditable]{border-bottom-color:var(--line2)}
+.stgn[contenteditable]:hover{border-bottom-color:var(--accent)}
+.stgn[contenteditable]:focus{outline:0;border-bottom-color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.stgn1{font-size:16px;font-weight:700;border-bottom:1px dashed var(--line2);cursor:text}
+.stgn1:hover{border-bottom-color:var(--accent)}
+.stgn1:focus{outline:0;border-bottom-color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.stgb{display:flex;gap:9px;align-items:center;margin-top:11px;padding-top:11px;
+  border-top:1px solid var(--line)}
+.stgb .act{padding:6px 13px;font-size:13px}
 </style>
 
 <div id="login">
@@ -3290,23 +3305,57 @@ function pStage(){
   stg===null?stageList():stageOne();
 }
 
+/* เปลี่ยนชื่อเวที ต้องไล่แก้ทุกช่วงที่อ้างชื่อเดิมด้วย ไม่งั้นช่วงจะหลุดจากเวที */
+function renameStage(oldName,newName){
+  const n=String(newName||"").trim();
+  if(!n||n===oldName)return false;
+  if(SG().includes(n)){ alert("There is already a stage with that name"); return false }
+  EV.stages=(EV.stages||SG()).map(x=>x===oldName?n:x);
+  SES.forEach(s=>{ if(s.stage===oldName)s.stage=n });
+  return true;
+}
 function stageList(){
+  const wr=can("stage")==="write";
   $("#page").innerHTML='<h2 class="sec">Choose a stage</h2><div class="cards">'+
    SG().map((g,i)=>{
      const all=SES.filter(s=>s.stage===g);
      const real=all.filter(s=>["talk","keynote","panel","workshop"].includes(s.kind));
      const ppl=new Set(); all.forEach(s=>s.people.forEach(p=>ppl.add(p.n)));
      const bad=real.filter(s=>!s.title||!s.cf||!s.people.length).length;
-     return '<button class="c" data-g="'+i+'" style="--t:'+cv("--accent")+
-      ';cursor:pointer;text-align:left;font:inherit;color:inherit">'+
-      '<b style="font-size:17px;line-height:1.35">'+g+'</b>'+
+     return '<div class="c stgc" style="--t:'+cv("--accent")+'">'+
+      (wr?'<b class="stgn" contenteditable="plaintext-only" data-sn="'+esc(g)+
+          '" title="Click to rename this stage">'+esc(g)+'</b>'
+         :'<b class="stgn">'+esc(g)+'</b>')+
       '<span>'+all.length+' slots · '+real.length+' slots with content · '+ppl.size+' people</span>'+
       '<small style="color:'+(bad?cv("--risk"):cv("--ok"))+'">'+
-       (bad?bad+" slots not ready":"Every slot covered")+'</small></button>'}).join("")+'</div>'+
+       (bad?bad+" slots not ready":"Every slot covered")+'</small>'+
+      '<span class="stgb"><button class="act" data-g="'+i+'">Open stage →</button>'+
+      (wr&&!all.length?'<button class="rowdel" data-sx="'+esc(g)+'">Remove</button>':'')+
+      '</span></div>'}).join("")+'</div>'+
+   (wr?'<div class="addbar"><button id="stgadd">+ Add stage</button></div>':'')+
    '<h2 class="sec">all three stages at once</h2>'+timelineHTML(1)+
    '<div style="margin-top:10px"><div class="seg">'+[1,2,3].map(d=>
     '<button data-d="'+d+'" aria-pressed="'+(day===d)+'">day '+d+'</button>').join("")+'</div></div>';
   $("#page").querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{stg=+b.dataset.g;pStage()}));
+  $("#page").querySelectorAll("[data-sn]").forEach(el=>{
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();el.blur()}
+      if(e.key==="Escape"){el.textContent=el.dataset.sn;el.blur()} });
+    el.addEventListener("blur",()=>{
+      if(!renameStage(el.dataset.sn,el.textContent))el.textContent=el.dataset.sn;
+      pStage();
+    });
+  });
+  $("#page").querySelectorAll("[data-sx]").forEach(b=>b.addEventListener("click",()=>{
+    const g=b.dataset.sx;
+    if(SES.some(s=>s.stage===g)){ alert("This stage still has sessions on it"); return }
+    EV.stages=(EV.stages||SG()).filter(x=>x!==g); pStage();
+  }));
+  const sa=$("#stgadd");
+  if(sa)sa.addEventListener("click",()=>{
+    const base="New stage"; let n=base, k=1;
+    while(SG().includes(n))n=base+" "+(++k);
+    EV.stages=(EV.stages||SG()).concat(n); pStage();
+  });
   bindDay(()=>{ $("#page").innerHTML=""; pStage() });
 }
 
@@ -3342,10 +3391,13 @@ function timelineHTML(){
 
 function stageOne(){
   const g=SG()[stg], rows=SES.filter(s=>s.stage===g&&s.day===day);
+  const wrS=can("stage")==="write";
   const real=rows.filter(s=>["talk","keynote","panel","workshop"].includes(s.kind));
   $("#page").innerHTML='<div class="bar2">'+
    '<button class="act" id="back">← All stages</button>'+
-   '<b style="font-size:16px">'+esc(g)+'</b>'+
+   (wrS?'<b class="stgn1" contenteditable="plaintext-only" data-sn1="'+esc(g)+
+        '" title="Click to rename this stage">'+esc(g)+'</b>'
+       :'<b style="font-size:16px">'+esc(g)+'</b>')+
    '<div class="seg">'+[1,2,3].map(d=>{
      const dt=(SES.find(x=>x.day===d)||{}).date;
      const lbl=dt?dt.slice(8)+" Aug":"";
@@ -3361,6 +3413,15 @@ function stageOne(){
     card(real.filter(s=>s.title&&!s.cf).length,"Topic not confirmed","--warn")+'</div>'+
    (sview==="table"?sheet(rows):oneTimeline(g));
   $("#back").addEventListener("click",()=>{stg=null;pStage()});
+  $("#page").querySelectorAll("[data-sn1]").forEach(el=>{
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();el.blur()}
+      if(e.key==="Escape"){el.textContent=el.dataset.sn1;el.blur()} });
+    el.addEventListener("blur",()=>{
+      const n=el.textContent.trim();
+      if(renameStage(el.dataset.sn1,n))stg=SG().indexOf(n);
+      pStage();
+    });
+  });
   bindDay(pStage);
   if(sview==="table")bindSheet();
   $("#page").querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>{sview=b.dataset.v;pStage()}));
