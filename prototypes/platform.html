@@ -318,7 +318,7 @@ svg#plan{display:block;min-width:740px;width:100%;height:auto}
 .bt.dim{opacity:.15}.bt text{pointer-events:none;font-weight:600}
 .ar rect{fill:var(--line);opacity:.5}.ar text{fill:var(--ink2);font-weight:600;pointer-events:none}
 .tl{position:relative;display:grid;grid-template-columns:56px repeat(3,1fr);min-width:800px}
-.gut{position:relative;border-right:1px solid var(--line)}
+.gut{position:relative;border-right:1px solid var(--line2);z-index:2;background:var(--card)}
 .hr{position:absolute;left:0;font-size:11px;color:var(--ink3);padding-left:8px;font-variant-numeric:tabular-nums}
 .col{position:relative;border-right:1px solid var(--line)}.col:last-child{border:0}
 .ev{position:absolute;left:4px;right:4px;border-radius:6px;padding:5px 8px;overflow:hidden;cursor:pointer;
@@ -619,6 +619,68 @@ table.gt td.gtno[draggable]:active{cursor:grabbing}
 tr.dragging{opacity:.4}
 tr.dropab td{box-shadow:inset 0 2px 0 var(--accent)}
 tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
+/* คำอธิบายสิทธิ์ในหน้าแชร์ */
+.scopehelp{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.scopehelp .sh1{font-size:12.5px;color:var(--ink2);line-height:1.55}
+.scopehelp .sh1 b{color:var(--ink)}
+.shwarn{margin-top:4px;font-size:12.5px;line-height:1.6;background:color-mix(in srgb,var(--risk) 9%,transparent);
+  border-left:3px solid var(--risk);border-radius:0 8px 8px 0;padding:9px 13px;color:var(--ink)}
+.shok{margin-top:4px;font-size:12.5px;color:var(--ok);font-weight:600}
+.ihelp{width:19px;height:19px;border-radius:50%;border:1px solid var(--line2);background:var(--card);
+  color:var(--ink3);font-size:11.5px;font-weight:700;cursor:pointer;margin-left:9px;
+  line-height:1;font-family:Georgia,serif;vertical-align:2px}
+.ihelp:hover,.ihelp.on{border-color:var(--accent);color:var(--accent)}
+/* ฟอร์มสร้างงานใหม่ ส่วนโคลนและสรุป */
+.nfsrc{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:0 0 18px;
+  background:var(--paper);border-radius:10px;padding:11px 15px}
+.nfsrc label{display:flex;align-items:center;gap:7px;font-size:13.5px;cursor:pointer}
+.nfsrc input[type=radio]{accent-color:var(--accent);width:15px;height:15px}
+.nfsrc select{padding:7px 11px;border:1px solid var(--line2);border-radius:8px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:13px;margin-left:auto}
+.nfcopy{display:flex;flex-direction:column;gap:7px;background:var(--soft);border-radius:10px;
+  padding:13px 16px;margin:0 0 16px;font-size:13px}
+.nfcopy>b{margin-bottom:3px}
+.nfcopy label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.nfcopy input{accent-color:var(--accent);width:15px;height:15px}
+.nfnever{color:var(--ink3);font-size:12px;margin-top:4px;font-style:italic}
+.nfsum{background:var(--card);border:1px solid var(--accent);border-radius:10px;
+  padding:14px 18px;margin:16px 0 0;font-size:13.5px}
+.nfsum ul{margin:8px 0 0;padding-left:20px;line-height:1.8;color:var(--ink2)}
+.nfsum b{color:var(--ink)}
+/* การ์ดสิ่งที่ต้องทำต่อ บนหน้าภาพรวม */
+.actw{padding:0;overflow:hidden;margin-bottom:18px}
+.acth{padding:15px 20px 13px;border-bottom:1px solid var(--line)}
+.acth b{font-size:15.5px}
+.acth span{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+.actrow{display:flex;align-items:center;gap:15px;width:100%;padding:12px 20px;background:none;
+  border:0;border-bottom:1px solid var(--line2);cursor:pointer;text-align:left;font:inherit;
+  color:var(--ink);transition:background .12s}
+.actrow:last-child{border-bottom:0}
+.actrow:hover{background:var(--paper)}
+.actn{flex:0 0 46px;text-align:center;font-size:19px;font-weight:800;
+  font-variant-numeric:tabular-nums;border-radius:8px;padding:5px 0}
+.actrow.risk .actn{background:color-mix(in srgb,var(--risk) 14%,transparent);color:var(--risk)}
+.actrow.warn .actn{background:color-mix(in srgb,var(--warn) 17%,transparent);color:var(--warn)}
+.actt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.actt b{font-size:13.5px;font-weight:600}
+.actt small{color:var(--ink3);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.actgo{flex:0 0 auto;font-size:12.5px;color:var(--accent);font-weight:600;white-space:nowrap}
+.actdone{display:flex;align-items:center;gap:15px;padding:17px 20px;margin-bottom:18px}
+.actok{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok);font-size:19px;font-weight:700}
+.actdone b{font-size:15px;display:block}
+.actdone span{font-size:12.5px;color:var(--ink2)}
+/* เส้นชั่วโมงบนตารางเวที และคำอธิบายสี */
+.tl{position:relative}
+.hrlines{position:absolute;inset:0;pointer-events:none;z-index:0}
+.hrlines .hl{position:absolute;left:56px;right:0;border-top:1px solid var(--line2)}
+.hrlines .hl.half{border-top-style:dashed;border-top-color:var(--line);opacity:.75}
+.tl .col{z-index:1}
+.sleg{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 12px;
+  padding:9px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:12.5px}
+.slg{display:flex;align-items:center;gap:7px;color:var(--ink2);cursor:help}
+.slg i{width:14px;height:14px;border-radius:4px;display:inline-block;flex:0 0 14px}
+.slgh{margin-left:auto;color:var(--ink3);font-size:11.5px}
 </style>
 
 <div id="login">
@@ -745,9 +807,20 @@ const NAV=[
     ["pre","Pre-event","timeline"],["on","On-site","timeline"],["post","Post-event","timeline"]]},
  {id:"set",   t:"Settings",    tabs:[
     ["share","Share event","share"],["users","Users & permissions","user"],
-    ["export","Export data",null]]},
+    ["modules","Modules","user"],["export","Export data",null]]},
 ];
 /* แท็บที่บทบาทนี้เห็น ถ้าไม่เหลือสักแท็บก็ซ่อนเมนูทั้งอัน */
+/* โมดูลที่เปิดใช้ในงานนี้ ปิดแล้วแค่ซ่อนเมนู ไม่ลบข้อมูล เปิดกลับมาข้อมูลอยู่ครบ
+   ภาพรวมกับตั้งค่าปิดไม่ได้ ไม่งั้นจะไม่มีทางเปิดโมดูลอื่นกลับมา
+   การปิดโมดูลไม่ใช่การให้สิทธิ์ สิทธิ์ยังบังคับที่เซิร์ฟเวอร์เหมือนเดิม */
+const MODULES=[["sales","Sales"],["plan","Floor plan"],["money","Money"],
+ ["stage","Stage"],["exh","Exhibitor"],["tl","Timeline"]];
+const FIXED=["dash","set"];
+function modOn(id){
+  if(FIXED.includes(id))return true;
+  const m=EV.modules||{};
+  return m[id]!==false;
+}
 function navTabs(n){
   if(!n.tabs)return null;
   return n.tabs.filter(t=>can(t[2])!=="none");
@@ -776,7 +849,7 @@ const PAGE={
  "exh:portal":()=>{exhView="portal";pExh()},
  "exh:setup":pTaskSetup,
  "tl:pre":()=>pTimeline("pre"), "tl:on":pTimelineOn, "tl:post":()=>pTimeline("post"),
- "set:share":pShare, "set:users":pUsers, "set:export":pExport,
+ "set:share":pShare, "set:users":pUsers, "set:modules":pModules, "set:export":pExport,
 };
 const ST={free:{l:"Free",c:"--s-free",t:"var(--ink)"},booked:{l:"Booked",c:"--s-booked",t:"#fff"},
  deposit:{l:"Deposit paid",c:"--s-deposit",t:"#fff"},paid:{l:"Paid in full",c:"--s-paid",t:"#fff"}};
@@ -912,6 +985,19 @@ function pNewEvent(){
   $("#evgrid").innerHTML=
    '<form class="nf" id="nform">'+
    '<h2>Create new event</h2>'+
+   '<div class="nfsrc"><label><input type="radio" name="src" value="blank" checked> Start from scratch</label>'+
+   '<label><input type="radio" name="src" value="clone"> Clone an existing event</label>'+
+   '<select id="nf_from">'+EVENTS.map(x=>'<option value="'+x.id+'">'+esc(x.short)+'</option>').join("")+
+   '</select></div>'+
+   '<div id="nf_copy" class="nfcopy" hidden><b>What to copy across</b>'+
+   [["plan","Floor plan and zones"],["pkg","Booth types and package pricing"],
+    ["budget","Budget categories and line items"],["tasks","Exhibitor checklist"],
+    ["tl","Project timeline structure"]].map(([k,l])=>
+     '<label><input type="checkbox" class="cp" value="'+k+'" checked> '+l+'</label>').join("")+
+   '<span class="nfnever">Clients, deals, money figures and stage schedule are never copied</span></div>'+
+   '<div class="nfcopy"><b>Modules to switch on</b>'+
+   MODULES.map(([k,l])=>'<label><input type="checkbox" class="md" value="'+k+'" checked> '+l+'</label>').join("")+
+   '</div>'+
    '<p class="nfs">Fill this in once and the system lays out the whole event — a standard timeline of '+
      (D.timelineTemplate||[]).length+' items, a floor plan and a budget of '+
      (D.template||[]).length+' sub-categories, and the exhibitor checklist</p>'+
@@ -943,7 +1029,8 @@ function pNewEvent(){
     '<li>Timeline tasks are stored as a distance from the show date, so moving the date shifts the whole plan</li>'+
     '<li>A budget on the standard chart of accounts — every category present, all figures zero, waiting for the team</li>'+
     '<li>A floor plan laid out as a grid from the booth count you enter — rearrange it later</li></ul></div>'+
-   '<div class="nfbtn"><button type="submit" class="btn">Create event</button>'+
+   '<div id="nf_sum" class="nfsum" hidden></div>'+
+   '<div class="nfbtn"><button type="submit" class="btn" id="nf_go">Review and create</button>'+
      '<button type="button" class="lnk" id="nf_cancel">Cancel</button></div>'+
    '</form>';
   const P=document.getElementById("evgrid");
@@ -961,6 +1048,15 @@ function pNewEvent(){
     nfLogo=null; P.querySelector("#nf_prev").textContent="No logo yet";
     P.querySelector("#nf_logo").value="" });
   P.querySelector("#nf_cancel").addEventListener("click",showPick);
+  /* เลือกต้นทาง เริ่มจากศูนย์ หรือโคลนจากงานเดิม */
+  const copyBox=P.querySelector("#nf_copy"), fromSel=P.querySelector("#nf_from");
+  const srcMode=()=>P.querySelector("[name=src]:checked").value;
+  const syncSrc=()=>{ const cl=srcMode()==="clone";
+    copyBox.hidden=!cl; fromSel.disabled=!cl; fromSel.style.opacity=cl?1:.45 };
+  P.querySelectorAll("[name=src]").forEach(r=>r.addEventListener("change",()=>{syncSrc();P.querySelector("#nf_sum").hidden=true}));
+  syncSrc();
+
+  let confirmed=false;
   P.querySelector("#nform").addEventListener("submit",e=>{
     e.preventDefault();
     const v=id=>(P.querySelector("#"+id)||{}).value;
@@ -969,15 +1065,74 @@ function pNewEvent(){
     const own=P.querySelector("[name=own]:checked").value;
     if(own==="client"&&!v("nf_client").trim()){ alert("Enter the client name too"); return }
     const brands=v("nf_brands").split(",").map(x=>x.trim()).filter(Boolean);
+    const clone=srcMode()==="clone";
+    const from=clone?EVENTS.find(x=>x.id===fromSel.value):null;
+    const parts=[...P.querySelectorAll(".cp:checked")].map(x=>x.value);
+    const mods=[...P.querySelectorAll(".md:checked")].map(x=>x.value);
+
+    /* ขั้นแรกแสดงสรุปให้ยืนยันก่อน กดอีกทีถึงสร้างจริง */
+    if(!confirmed){
+      const L=[];
+      if(clone&&from){
+        const N={plan:(from.booths||[]).length+" booths and "+Object.keys(from.zoneNames||{}).length+" zones",
+          pkg:Object.keys(from.packages||{}).length+" booth types and packages",
+          budget:(from.budget||[]).length+" budget lines",
+          tasks:(from.tasks||[]).length+" checklist items",
+          tl:(from.timeline||[]).length+" timeline tasks"};
+        L.push("<b>Cloning from "+esc(from.short)+"</b>");
+        parts.forEach(k=>L.push("Copy "+N[k]));
+        if(!parts.length)L.push("Nothing selected to copy — the event will start empty");
+        L.push("<i>Clients, deals, money figures and the stage schedule are not copied</i>");
+      }else{
+        L.push("<b>Starting from scratch</b>");
+        L.push("Standard timeline of "+(D.timelineTemplate||[]).length+" tasks");
+        L.push("Standard chart of accounts, "+(D.template||[]).length+" lines, all figures zero");
+        L.push((+v("nf_n")||0)+" booths laid out as a grid");
+      }
+      L.push("Modules on: "+(mods.length?mods.map(k=>(MODULES.find(m=>m[0]===k)||[,k])[1]).join(", "):"none"));
+      P.querySelector("#nf_sum").innerHTML='<b>Check before creating</b><ul>'+
+        L.map(x=>'<li>'+x+'</li>').join("")+'</ul>';
+      P.querySelector("#nf_sum").hidden=false;
+      P.querySelector("#nf_go").textContent="Create event";
+      confirmed=true;
+      P.querySelector("#nf_sum").scrollIntoView({block:"nearest"});
+      return;
+    }
+
     const ev=newEventFrom({
       name:v("nf_name").trim(), short:v("nf_short").trim(), venue:v("nf_venue").trim(),
       brands:brands.length?brands:[v("nf_short").trim()||v("nf_name").trim()],
       d1, d2, owner:own, client:v("nf_client").trim(),
       n:+v("nf_n")||0, sqm:+v("nf_sqm")||null, price:+v("nf_price")||0,
-      logo:nfLogo, copyPrice:P.querySelector("#nf_copy").checked });
+      logo:nfLogo, copyPrice:false });
+    if(clone&&from)cloneInto(ev,from,parts);
+    ev.modules=Object.fromEntries(MODULES.map(([k])=>[k,mods.includes(k)]));
     EVENTS.push(ev);
-    enter(ev.id); go("tl");
+    enter(ev.id); go(mods.includes("tl")?"tl":"dash");
   });
+}
+/* คัดลอกเฉพาะโครง ไม่เอาลูกค้า ดีล และตัวเลขเงิน */
+function cloneInto(ev,from,parts){
+  const J=o=>JSON.parse(JSON.stringify(o));
+  if(parts.includes("plan")){
+    ev.booths=J(from.booths||[]).map(b=>Object.assign({},b,{
+      name:null,st:"free",co:null,sales:null,product:null,
+      contact:null,phone:null,email:null,form:false,board:false}));
+    ev.zoneNames=J(from.zoneNames||{});
+    ev.areas=J(from.areas||[]);
+    ev.boothCount=ev.booths.length;
+  }
+  if(parts.includes("pkg")){ ev.packages=J(from.packages||{}); ev.addons=J(from.addons||[]) }
+  if(parts.includes("budget")){
+    ev.budget=J(from.budget||[]).map(l=>Object.assign({},l,{fc:0,ac:0,st:"planned",sup:null,phone:null}));
+    ev.catTotals={};
+  }
+  if(parts.includes("tasks"))ev.tasks=J(from.tasks||[]);
+  if(parts.includes("tl")){
+    ev.timeline=J(from.timeline||[]).map(t=>{
+      const c=Object.assign({},t,{st:"",note:t.note||""});
+      delete c.aa; delete c.ab; delete c.at1; delete c.at2; return c});
+  }
 }
 const fld=(l,ctl)=>'<label class="nff"><span>'+l+'</span>'+ctl+'</label>';
 /* ย่อรูปก่อนเก็บ ไฟล์ใหญ่จะทำให้หน้าหนักเกินไป */
@@ -1060,7 +1215,7 @@ function go(p){page=p;sel=null;dealOpen=null;costOpen=null;exhOpen=null;
   draw()}
 function draw(){
   $("#rl2").value=role; $("#wn").textContent=me; $("#wr").textContent=ROLE[role].n;
-  const vis=NAV.filter(navOK);
+  const vis=NAV.filter(n=>navOK(n)&&modOn(n.id));
   if(!vis.some(n=>n.id===page))page=vis[0].id;
   $("#nav").innerHTML='<div class="navlab">Task</div>'+vis.map(n=>{
     const c=n.id==="sales"?DEALS.filter(mine).length
@@ -1101,8 +1256,76 @@ function money(){
     if(b.st!=="free"){con+=b.list||0;got+=(b.list||0)*(b.st==="paid"?1:b.st==="deposit"?dep:0)}});
   return {list,con,got,out:con-got};
 }
+/* ───────── สิ่งที่ต้องทำต่อ ─────────
+   รวมสัญญาณที่กระจายอยู่ตามหน้าต่าง ๆ มาไว้ที่เดียว
+   ทุกบรรทัดกดแล้วเด้งไปหน้าที่เกี่ยวข้องทันที เห็นเฉพาะโมดูลที่เปิดและมีสิทธิ์ดู */
+function actionItems(){
+  const out=[];
+  const push=(o)=>{ if(o.n>0)out.push(o) };
+  if(modOn("plan")&&can("floorplan")!=="none"){
+    const ov=overdueBooths(), wn=warnBooths();
+    push({n:ov.length,k:"risk",t:"Booths past the deposit deadline",
+      s:ov.slice(0,5).map(b=>b.code).join(", ")+(ov.length>5?" and more":""),
+      go:"plan",tab:"map",btn:"Open floor plan"});
+    push({n:wn.length,k:"warn",t:"Booths due within 7 days",
+      s:wn.slice(0,5).map(b=>b.code).join(", ")+(wn.length>5?" and more":""),
+      go:"plan",tab:"map",btn:"Open floor plan"});
+  }
+  if(modOn("tl")&&can("timeline")!=="none"){
+    const now=tlNowWeek();
+    const late=(EV.timeline||[]).filter(r=>(r.ph||"pre")!=="on"&&r.st!=="done"&&pB(r)<now);
+    const slip=(EV.timeline||[]).filter(r=>slip_(r)>0);
+    push({n:late.length,k:"risk",t:"Timeline tasks past their due week",
+      s:late.slice(0,3).map(r=>r.name).join(" · "),go:"tl",tab:"pre",btn:"Open timeline"});
+    push({n:slip.length,k:"warn",t:"Timeline tasks running behind plan",
+      s:slip.slice(0,3).map(r=>r.name).join(" · "),go:"tl",tab:"pre",btn:"Open timeline"});
+  }
+  if(modOn("exh")&&can("exhibitor")!=="none"){
+    const req=(EV.tasks||[]).filter(t=>t.req&&t.by==="exhibitor");
+    const behind=DEALS.filter(d=>d.stage!=="lost"&&req.some(t=>!(d.tasks||{})[t.code]));
+    push({n:behind.length,k:"warn",t:"Exhibitors with required items still missing",
+      s:behind.slice(0,3).map(d=>d.co).join(" · "),go:"exh",tab:"list",btn:"Open exhibitor list"});
+  }
+  if(modOn("sales")&&can("deal")!=="none"){
+    const list=DEALS.filter(mine), open=list.filter(d=>!["paid","lost"].includes(d.stage));
+    const od=open.filter(overdue), st=list.filter(isStale);
+    push({n:od.length,k:"risk",t:"Deals past their agreed next step",
+      s:od.slice(0,3).map(d=>d.co).join(" · "),go:"sales",tab:"mon",btn:"Open sales"});
+    push({n:st.length,k:"warn",t:"Deals with no contact logged in the last 14 days",
+      s:st.length===list.length
+        ? "every deal — the old sheet never recorded contact history, so nothing has been logged yet"
+        : st.slice(0,3).map(d=>d.co).join(" · "),
+      go:"sales",tab:"mon",btn:"Open sales"});
+  }
+  return out.sort((a,b)=>(a.k==="risk"?0:1)-(b.k==="risk"?0:1)||b.n-a.n);
+}
+const slip_=(r)=>hasAct(r)?aB(r)-pB(r):null;
+
+function actionCard(){
+  const L=actionItems();
+  if(!L.length)return '<div class="w actdone"><div class="actok">✓</div>'+
+    '<div><b>Everything is up to date</b><span>No overdue booths, no late timeline tasks, '+
+    'no missing exhibitor items and no deals waiting on us</span></div></div>';
+  const risk=L.filter(x=>x.k==="risk").reduce((a,x)=>a+x.n,0);
+  return '<div class="w actw"><div class="acth"><b>Needs attention</b>'+
+    '<span>'+L.length+' thing'+(L.length===1?"":"s")+' to deal with'+
+    (risk?' · '+f(risk)+' already overdue':'')+'</span></div>'+
+    L.map((x,i)=>'<button class="actrow '+x.k+'" data-act="'+i+'">'+
+      '<span class="actn">'+f(x.n)+'</span>'+
+      '<span class="actt"><b>'+esc(x.t)+'</b>'+(x.s?'<small>'+esc(x.s)+'</small>':'')+'</span>'+
+      '<span class="actgo">'+esc(x.btn)+' →</span></button>').join("")+'</div>';
+}
+function wireAction(P){
+  const L=actionItems();
+  P.querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click",()=>{
+    const x=L[+b.dataset.act]; if(!x)return;
+    if(x.tab)tab[x.go]=x.tab;
+    go(x.go);
+  }));
+}
 function pDash(){
   const seeMoney=can("budget")!=="none";
+  const ACT=actionCard();
   const m=money(), held=B.filter(x=>x.st!=="free");
   const qn=Object.values(Q).reduce((s,x)=>s+x.length,0);
   const real=SES.filter(s=>["talk","keynote","panel","workshop"].includes(s.kind));
@@ -1116,7 +1339,7 @@ function pDash(){
              ["booked","Booked","--s-booked"],["free","Free","--s-free"]];
   const segs=SEG.map(([k,l,c])=>({l,c:cv(c),n:B.filter(b=>b.st===k).length}));
 
-  let h='<div class="wg">';
+  let h=ACT+'<div class="wg">';
 
   // โดนัทสถานะบูธ
   h+=w('Booths by status','w4',
@@ -1194,6 +1417,7 @@ function pDash(){
   if(!seeMoney)h+='<div class="note" style="margin-top:16px"><p>Role '+ROLE[role].n+
     ' cannot see money figures, so the revenue widget is replaced by a booth count</p></div>';
   $("#page").innerHTML=h;
+  wireAction($("#page"));
 }
 const w=(title,cls,body)=>'<section class="w '+cls+'"><h3>'+title+'</h3><div class="body">'+body+'</div></section>';
 
@@ -3037,6 +3261,26 @@ const SKIND={keynote:"Keynote",panel:"Panel Talk",talk:"Talk",workshop:"Workshop
  ceremony:"Ceremony",networking:"Networking",break:"Break",registration:"Register"};
 const SCOL={keynote:"--accent",panel:"--s-deposit",talk:"--s-deposit",workshop:"--risk",
  ceremony:"--warn",networking:"--s-booked",break:"--ink3",registration:"--ink3"};
+/* คำอธิบายสีของช่วงบนเวที ไม่งั้นกล่องสีไม่บอกอะไรเลย
+   talk กับ panel ใช้สีเดียวกันเพราะเป็นเนื้อหาบนเวทีเหมือนกัน ต่างแค่จำนวนคนพูด */
+const SLEG=[["keynote","Keynote","The headline session of the day"],
+ ["talk","Talk / panel","Content sessions, one speaker or several"],
+ ["workshop","Workshop","Hands-on session, usually ticketed separately"],
+ ["ceremony","Ceremony","Opening, closing and awards"],
+ ["networking","Networking","Networking night and matching sessions"],
+ ["registration","Registration","Doors, check-in and house-keeping"],
+ ["break","Break","Breaks and stage turnaround"]];
+function stageLegend(){
+  const used=new Set(SES.map(s=>s.kind));
+  const seen=new Set();
+  const rows=SLEG.filter(([k])=>{
+    if(!used.has(k)&&k!=="talk")return false;
+    const c=SCOL[k]; if(seen.has(c))return false; seen.add(c); return true});
+  return '<div class="sleg">'+rows.map(([k,n,d])=>
+    '<span class="slg" title="'+esc(d)+'"><i style="background:'+cv(SCOL[k]||"--ink3")+'"></i>'+
+    esc(n)+'</span>').join("")+
+    '<span class="slgh">Every block is one slot · height is how long it runs</span></div>';
+}
 let stg=null, sview="table";
 function pStage(){
   if(!SES.length){$("#page").innerHTML='<div class="deny" style="border-left-color:var(--warn)">'+
@@ -3069,10 +3313,18 @@ function stageList(){
 function timelineHTML(){
   const T0=560,T1=1330,PX=2.3,H=(T1-T0)*PX;
   const hh=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
-  let h='<div class="pw" style="padding:0"><div class="tlh"><div>Time</div>'+
+  let h=stageLegend()+'<div class="pw" style="padding:0"><div class="tlh"><div>Time</div>'+
    SG().map(s=>'<div>'+s+'</div>').join("")+'</div><div class="tl" style="height:'+H+'px">'+
    '<div class="gut" style="height:'+H+'px">';
   for(let m=Math.ceil(T0/60)*60;m<=T1;m+=60)h+='<div class="hr" style="top:'+((m-T0)*PX-7)+'px">'+hh(m)+'</div>';
+  h+='</div>';
+  /* เส้นชั่วโมงพาดยาวทับทุกคอลัมน์ อ่านง่ายกว่ามีตัวเลขอยู่ช่องซ้ายอย่างเดียว */
+  h+='<div class="hrlines">';
+  for(let m=Math.ceil(T0/60)*60;m<=T1;m+=60){
+    const half=m+30;
+    h+='<div class="hl" style="top:'+((m-T0)*PX)+'px"></div>';
+    if(half<=T1)h+='<div class="hl half" style="top:'+((half-T0)*PX)+'px"></div>';
+  }
   h+='</div>';
   SG().forEach(g=>{h+='<div class="col" style="height:'+H+'px">';
     SES.filter(s=>s.day===day&&s.stage===g).forEach(s=>{
@@ -3552,9 +3804,26 @@ function drawExhPanel(){
 
 /* ---------- แชร์งาน ---------- */
 const HOME='penguinx.co';
-const SCOPES=[["","Whole event, at the level granted"],["floorplan","Floor plan only"],["deal","Deals & clients only"],
- ["stage","Stage only"],["budget","Budget only"],["exhibitor","Exhibitor care only"],
- ["movein","Build work only"]];
+/* ขอบเขตที่แชร์ได้ พร้อมคำอธิบายว่าเห็นอะไรและเห็นเงินหรือไม่
+   money:true คือเห็นตัวเลขเงินและคอมมิชชัน ต้องเตือนตอนเชิญคนนอก */
+const SCOPES=[
+ ["","Whole event, at the level granted",
+  "Every module they are allowed to see — floor plan, deals, budget, stage, exhibitors and timeline",true],
+ ["floorplan","Floor plan only",
+  "Booth layout, zones and booth status. No client names, no prices, no budget",false],
+ ["deal","Deals & clients only",
+  "Client list, deal stages and next steps. Deal values only, not the event budget",true],
+ ["stage","Stage only",
+  "Stage schedule, sessions and speakers. Nothing about booths, clients or money",false],
+ ["budget","Budget only",
+  "The P&L and every budget line, planned against actual",true],
+ ["exhibitor","Exhibitor care only",
+  "The exhibitor checklist and what each one still owes us. No prices, no budget",false],
+ ["movein","Build work only",
+  "Build-up and teardown schedule for contractors. Floor plan without any commercial detail",false]];
+const PERMS=[["view","View only","Can read everything in the scope below, cannot change anything"],
+ ["edit","Can edit","Can change data inside the scope below, cannot invite other people"]];
+const scopeInfo=(k)=>(SCOPES.find(x=>x[0]===k)||SCOPES[0]);
 const SHARES={};
 function shareList(){ return SHARES[EV.id]=SHARES[EV.id]||[] }
 /* ───────── ส่งออกข้อมูล ─────────
@@ -3638,6 +3907,53 @@ function dsList(){
           g.length,g.reduce((a,d)=>a+(d.list||0),0)]}))},
   ].filter(x=>!x.m||can(x.m)!=="none");
 }
+/* หน้าเปิดปิดโมดูลของงานนี้ */
+function pModules(){
+  const wr=can("user")==="write";
+  const m=EV.modules||(EV.modules={});
+  const count={
+    sales:(EV.deals||[]).length, plan:(EV.booths||[]).length,
+    money:(EV.budget||[]).length, stage:(EV.sessions||[]).length,
+    exh:(EV.tasks||[]).length, tl:(EV.timeline||[]).length,
+  };
+  const WHAT={
+    sales:"Deals, board, working grid, opportunities and rep performance",
+    plan:"Booth layout, zones, packages and pricing",
+    money:"P&L, revenue target, run rate and expense budget",
+    stage:"Stage schedule, sessions and speakers",
+    exh:"Exhibitor checklist, portal preview and checklist setup",
+    tl:"Project timeline for all three phases",
+  };
+  let h='<div class="note" style="margin-bottom:16px"><p>'+
+   '<b>Turn off what this event does not use</b> and the menu disappears from the sidebar '+
+   'for this event only. Other events are not affected.</p>'+
+   '<p>Turning a module off only hides it. Nothing is deleted — the row counts below stay '+
+   'exactly as they are and come back the moment you switch it on again.</p></div>';
+  h+='<div class="tw"><table><thead><tr><th>Module</th><th>What it covers</th>'+
+   '<th class="num">Rows kept</th><th class="num">On</th></tr></thead><tbody>'+
+   MODULES.map(([id,name])=>{
+     const on=m[id]!==false;
+     return '<tr><td><b>'+esc(name)+'</b></td>'+
+      '<td style="color:var(--ink2);font-size:12.5px">'+esc(WHAT[id])+'</td>'+
+      '<td class="num">'+f(count[id]||0)+'</td>'+
+      '<td class="num">'+(wr
+        ?'<button class="tog" data-mod="'+id+'">'+(on
+          ?'<span style="color:var(--ok);font-weight:700">On</span>'
+          :'<span style="color:var(--ink3)">Off</span>')+'</button>'
+        :(on?"On":"Off"))+'</td></tr>'}).join("")+
+   '</tbody></table></div>';
+  h+='<div class="note" style="margin-top:16px"><p><b>Overview and Settings cannot be turned off</b> — '+
+   'without Settings there would be no way to switch anything back on</p>'+
+   '<p><b>Hiding a menu is not a permission</b> — what each role may see is still enforced on the '+
+   'server on every request, exactly as before. This only tidies the sidebar.</p></div>';
+  $("#page").innerHTML=h;
+  $("#page").querySelectorAll("[data-mod]").forEach(b=>b.addEventListener("click",()=>{
+    const id=b.dataset.mod;
+    m[id]=m[id]===false;            // ปิดอยู่ให้เปิด เปิดอยู่ให้ปิด
+    if(page===id&&m[id]===false)page="dash";
+    draw();
+  }));
+}
 function pExport(){
   const L=dsList();
   const hidden=[{m:"budget",t:"Budget"},{m:"deal",t:"Deals & clients"},
@@ -3711,8 +4027,19 @@ function pShare(){
    '<select id="sp"><option value="view">View only</option><option value="edit">Can edit</option></select>'+
    '<select id="ss">'+SCOPES.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join("")+'</select>'+
    '<button class="act go" id="sadd" style="padding:9px 18px">Send invitation</button></div>'+
-   '<p class="simnote" style="margin:12px 0 0">Outside the domain '+HOME+
+   '<div id="scopehelp" class="scopehelp"></div>'+
+   '<p class="simnote" style="margin:10px 0 0">Outside the domain '+HOME+
    ' will be flagged as external and always default to view-only</p></div>';
+  h+='<h2 class="sec">What each level of access can see'+
+   '<button class="ihelp" id="scopetog" title="Show the full comparison">i</button></h2>'+
+   '<div class="tw" id="scopetab" hidden><table><thead><tr><th>Scope</th><th>What they see</th>'+
+   '<th class="num">Money figures</th></tr></thead><tbody>'+
+   SCOPES.map(x=>'<tr><td><b>'+esc(x[1])+'</b></td>'+
+     '<td style="color:var(--ink2);font-size:12.5px">'+esc(x[2])+'</td>'+
+     '<td class="num">'+(x[3]
+       ?'<span style="color:var(--risk);font-weight:700">Visible</span>'
+       :'<span style="color:var(--ok);font-weight:600">Hidden</span>')+'</td></tr>').join("")+
+   '</tbody></table></div>';
   h+='<h2 class="sec">People with access</h2>';
   h+=rows.length?'<div class="tw"><table><thead><tr><th>Email</th><th>Permission</th>'+
     '<th>What they see</th><th>Status</th><th>Invited on</th>'+(wr?'<th></th>':'')+
@@ -3733,17 +4060,30 @@ function pShare(){
      (wr?'<td><button class="rowdel" data-srm="'+i+'">Revoke</button></td>':'')+'</tr>').join("")+
     '</tbody></table></div>'
    :'<div class="note"><p>This event has not been shared with anyone — only team members with an account can get in</p></div>';
-  if(wr)h+='<h2 class="sec">Create a new event from an old one</h2><div class="note">'+
-   '<p>The old event already has a floor plan, booth types, budget categories and exhibitor checklist — cloning is faster than starting over</p>'+
-   '<div class="bar2" style="margin:12px 0 0"><button class="act" id="clone">Clone '+esc(EV.short)+
-   ' is next year’s event</button><span style="font-size:13px;color:var(--ink2);align-self:center">'+
-   'Copies the floor plan, booth types, budget categories and checklist — not clients or money</span></div></div>';
-  h+='<h2 class="sec">Watch out</h2><div class="note" style="border-left-color:var(--risk)">'+
-   '<p><b>outside people given "Whole event" will see the money figures too</b> To let a contractor or client view the plan '+
-   'Options "Floor plan only"</p>'+
-   '<p><b>Access can be revoked instantly</b> it records who invited whom and when — in the schema that is '+
-   '<code>event_share</code> which has both <code>invited_by</code> and <code>revoked_at</code></p></div>';
+  if(wr)h+='<h2 class="sec">Create a new event from this one</h2><div class="note">'+
+   '<p>Cloning lives in one place with creating from scratch — press <b>All events</b> at the top '+
+   'of the sidebar, then <b>Create new event</b>, and choose <b>Clone an existing event</b> at the top of the form</p></div>';
+  h+='<div class="note" style="margin-top:18px"><p><b>Access can be revoked instantly</b> — '+
+   'the system records who invited whom and when, in <code>event_share</code> with '+
+   '<code>invited_by</code> and <code>revoked_at</code></p></div>';
   $("#page").innerHTML=h;
+  const tog=$("#scopetog");
+  if(tog)tog.addEventListener("click",()=>{
+    const t=$("#scopetab"); t.hidden=!t.hidden; tog.classList.toggle("on",!t.hidden)});
+  /* คำอธิบายใต้ช่องเลือก เปลี่ยนทันทีที่เลือก จะได้ไม่ต้องเลื่อนไปอ่านที่อื่น */
+  const help=$("#scopehelp");
+  function drawHelp(){
+    if(!help)return;
+    const p=PERMS.find(x=>x[0]===$("#sp").value)||PERMS[0];
+    const sc=scopeInfo($("#ss").value);
+    help.innerHTML='<div class="sh1"><b>'+esc(p[1])+'</b> · '+esc(p[2])+'</div>'+
+      '<div class="sh1"><b>'+esc(sc[1])+'</b> · '+esc(sc[2])+'</div>'+
+      (sc[3]?'<div class="shwarn">This scope shows revenue, deal values and commission. '+
+        'Think twice before giving it to anyone outside the company — pick '+
+        '<b>Floor plan only</b> if a contractor or client just needs to see the layout.</div>'
+       :'<div class="shok">No money figures are visible with this scope</div>');
+  }
+  if(help){ drawHelp(); ["#sp","#ss"].forEach(k=>{const el=$(k); if(el)el.addEventListener("change",drawHelp)}) }
   const add=$("#sadd");
   if(add)add.addEventListener("click",()=>{
     const em=$("#sem").value.trim().toLowerCase();
