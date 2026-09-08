@@ -490,6 +490,34 @@ table.gt td.gtx3 [contenteditable]:focus,table.gt th.gtx3 [contenteditable]:focu
   border-bottom-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
 .gtdel2{opacity:.45;font-size:13px}
 th.gtx3:hover .gtdel2{opacity:1}
+/* เลือกแถว คัดลอก วาง */
+.selbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 13px;margin-bottom:12px;
+  border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:13px}
+.selbar.on{border-color:var(--accent);background:var(--soft)}
+.selbar b{font-weight:700;color:var(--ink)}
+.selbar button{background:var(--card);border:1px solid var(--line2);border-radius:7px;
+  padding:5px 11px;font-size:12.5px;cursor:pointer;color:var(--ink);font-family:inherit;
+  display:inline-flex;align-items:center;gap:4px}
+.selbar button:hover{border-color:var(--accent);color:var(--accent)}
+.selbar button.dg:hover{border-color:var(--risk);color:var(--risk)}
+.selbar kbd{font:inherit;font-size:10.5px;font-weight:700;background:var(--paper);
+  border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--ink2)}
+.selhint{margin-left:auto;color:var(--ink3);font-size:11.5px}
+.selcb,.selcb2{width:14px;height:14px;margin:0 7px 0 0;vertical-align:-2px;cursor:pointer;
+  accent-color:var(--accent)}
+.selcb2{margin-left:2px}
+tr.gtr.sel td.gtn{background:var(--soft);box-shadow:inset 3px 0 0 var(--accent)}
+tr.gtr.sel td.gts,tr.gtr.sel td.gtd,tr.gtr.sel td.gtx3{background:var(--soft)}
+.goff{position:absolute;top:14px;font-size:11px;color:var(--ink3);left:1px;font-style:normal}
+.goff.r{left:auto;right:1px}
+.tltoast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99;
+  background:var(--nav);color:#fff;padding:10px 18px;border-radius:9px;font-size:13.5px;
+  font-weight:600;box-shadow:var(--sh);max-width:80vw}
+.mbar .mb{background:var(--paper);border:1px solid var(--line2);border-radius:7px;padding:5px 10px;
+  font-size:12.5px;cursor:pointer;color:var(--ink2);font-family:inherit}
+.mbar .mb:hover{border-color:var(--accent);color:var(--accent)}
+.mbar input[type=month]{border:1px solid var(--line2);border-radius:7px;padding:5px 9px;
+  font-size:13px;background:var(--paper);color:var(--ink);font-family:inherit}
 </style>
 
 <div id="login">
@@ -747,6 +775,7 @@ function draw(){
     tab[n.id]=b.dataset.tb; draw();
   }));
   // ให้ฟังก์ชันเดิมเขียนลง #tabbody โดยไม่ต้องแก้ทุกอัน
+  if(page!=="tl"){ tlCtx=null; tlSel.clear() }
   const real=document.getElementById("tabbody");
   const proxy={set innerHTML(v){real.innerHTML=v},get innerHTML(){return real.innerHTML},
     querySelectorAll:(q)=>real.querySelectorAll(q),querySelector:(q)=>real.querySelector(q)};
@@ -3277,6 +3306,137 @@ function pUsers(){
 }
 
 /* ───────── ไทม์ไลน์โครงการ ───────── */
+/* ───────── คัดลอกวาง แบบเดียวกับ Google Sheets ─────────
+   เลือกแถวด้วยช่องติ๊กหน้าชื่องาน แล้ว Ctrl+C ได้ TSV ที่วางลงชีตได้เลย
+   Ctrl+V รับ TSV จากชีตกลับเข้ามาเป็นแถวใหม่ ไม่ต้องพิมพ์ทีละช่อง */
+let tlSel=new Set(), tlAnchor=null, tlCtx=null, tlView=null;
+/* ย้ายไปอีกช่วงแล้วล้างการเลือกทิ้ง ไม่งั้นคัดลอกข้ามช่วงกันมั่ว */
+function tlEnter(v){ if(tlView!==v){ tlView=v; tlSel.clear(); tlAnchor=null } }
+
+const stKey=l=>{ const k=Object.keys(TLST).find(x=>TLST[x].l===String(l||"").trim());
+  return k&&k!=="plan"?k:"" };
+function parseDate(v){
+  const t=String(v||"").trim(); if(!t)return null;
+  let m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m)return fixBE(+m[1],+m[2],+m[3]);
+  m=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if(m){ let y=+m[3]; if(y<100)y+=2000; return fixBE(y,+m[2],+m[1]) }
+  return null;
+}
+function fixBE(y,mo,d){ if(y>2400)y-=543;            // ปีพุทธในชีตไทย
+  const x=new Date(y,mo-1,d); return isNaN(x)?null:x }
+function parseTime(v){
+  const m=String(v||"").trim().match(/^(\d{1,2})[:.](\d{2})$/);
+  if(!m)return null; const h=+m[1],mi=+m[2];
+  return (h>=0&&h<=24&&mi>=0&&mi<60)?mh(h+mi/60):null;
+}
+function weekOf(v){ const d=parseDate(v); if(!d)return null;
+  return Math.round((monday(d)-tlShowWeek())/604800000) }
+const tsvLine=a=>a.map(x=>String(x==null?"":x).replace(/[\t\r\n]/g," ")).join("\t");
+function tsvParse(txt){
+  return String(txt).replace(/\r/g,"").split("\n").filter(l=>l.trim())
+    .map(l=>l.split("\t"));
+}
+
+/* แถบเครื่องมือที่โผล่มาเมื่อเลือกแถว */
+function selBar(n,wr){
+  return '<div class="selbar'+(n?" on":"")+'">'+
+   '<b>'+(n?"เลือกไว้ "+n+" แถว":"ยังไม่ได้เลือกแถว")+'</b>'+
+   '<button id="scopy">คัดลอก'+(n?"":"ทั้งหมด")+' <kbd>Ctrl</kbd><kbd>C</kbd></button>'+
+   (wr?'<button id="spaste">วาง <kbd>Ctrl</kbd><kbd>V</kbd></button>':'')+
+   (wr&&n?'<button id="sdup">ทำซ้ำ</button><button id="sdel" class="dg">ลบ <kbd>Del</kbd></button>':'')+
+   (n?'<button id="sclr">ยกเลิก <kbd>Esc</kbd></button>':'')+
+   '<span class="selhint">ติ๊กหน้าชื่องานเพื่อเลือก · กด Shift ค้างเพื่อเลือกเป็นช่วง · '+
+   'คัดลอกแล้ววางลง Google Sheets ได้เลย และวางกลับเข้ามาก็ได้</span></div>';
+}
+const selBox=(r,wr)=>'<input type="checkbox" class="selcb"'+(tlSel.has(r)?" checked":"")+
+  ' aria-label="เลือกแถวนี้">';
+function wireSel(P,list,redraw){
+  const boxes=[...P.querySelectorAll(".selcb")];
+  boxes.forEach((cb,bi)=>cb.addEventListener("click",e=>{
+    const r=list[bi];
+    if(e.shiftKey&&tlAnchor!=null){
+      const a=Math.min(tlAnchor,bi), b=Math.max(tlAnchor,bi);
+      for(let k=a;k<=b;k++)tlSel.add(list[k]);
+    } else { if(tlSel.has(r))tlSel.delete(r); else tlSel.add(r); tlAnchor=bi }
+    redraw();
+  }));
+  P.querySelectorAll("[data-gsel]").forEach(cb=>cb.addEventListener("click",()=>{
+    const g=cb.dataset.gsel, rows=list.filter(r=>r.grp===g);
+    const all=rows.every(r=>tlSel.has(r));
+    rows.forEach(r=>all?tlSel.delete(r):tlSel.add(r)); redraw();
+  }));
+  const b=id=>P.querySelector(id);
+  if(b("#sclr"))b("#sclr").addEventListener("click",()=>{tlSel.clear();redraw()});
+  if(b("#scopy"))b("#scopy").addEventListener("click",()=>doCopy(true));
+  if(b("#spaste"))b("#spaste").addEventListener("click",async()=>{
+    try{ const t=await navigator.clipboard.readText();
+      if(t)applyPaste(t); else alert("คลิปบอร์ดว่าง ลองกด Ctrl+V แทน") }
+    catch(err){ alert("เบราว์เซอร์ไม่ให้อ่านคลิปบอร์ดจากปุ่ม กด Ctrl+V แทนได้เลย") }});
+  if(b("#sdel"))b("#sdel").addEventListener("click",()=>{
+    if(!confirm("ลบ "+tlSel.size+" แถวที่เลือกไว้?"))return;
+    const ALL=tlRows(); [...tlSel].forEach(r=>{const k=ALL.indexOf(r); if(k>=0)ALL.splice(k,1)});
+    tlSel.clear(); redraw()});
+  if(b("#sdup"))b("#sdup").addEventListener("click",()=>{
+    const ALL=tlRows(), add=[...tlSel].map(r=>Object.assign({},r,{name:r.name+" (สำเนา)"}));
+    add.forEach(r=>ALL.push(r)); tlSel.clear(); add.forEach(r=>tlSel.add(r)); redraw()});
+}
+function doCopy(viaButton){
+  if(!tlCtx)return;
+  const rows=tlSel.size?tlCtx.list().filter(r=>tlSel.has(r)):tlCtx.list();
+  if(!rows.length)return;
+  const txt=tlCtx.toTSV(rows);
+  if(viaButton){
+    navigator.clipboard.writeText(txt).then(()=>toastTL("คัดลอก "+rows.length+" แถวแล้ว วางลงชีตได้เลย"))
+      .catch(()=>{ legacyCopy(txt); toastTL("คัดลอก "+rows.length+" แถวแล้ว") });
+  }
+  return txt;
+}
+function legacyCopy(t){                       // สำรองไว้ถ้าเบราว์เซอร์ไม่ให้ใช้ clipboard API
+  const ta=document.createElement("textarea"); ta.value=t;
+  ta.style.cssText="position:fixed;opacity:0"; document.body.appendChild(ta);
+  ta.select(); try{document.execCommand("copy")}catch(e){} ta.remove();
+}
+function applyPaste(txt){
+  if(!tlCtx)return;
+  const rows=tsvParse(txt); if(!rows.length)return;
+  const n=tlCtx.fromTSV(rows);
+  toastTL(n?"วางเพิ่ม "+n+" แถว":"อ่านข้อมูลที่วางไม่ออก ต้องเป็นตารางคั่นด้วยแท็บ");
+}
+let tlToast=null;
+function toastTL(msg){
+  if(tlToast)tlToast.remove();
+  const d=document.createElement("div"); d.className="tltoast"; d.textContent=msg;
+  document.body.appendChild(d); tlToast=d;
+  setTimeout(()=>{ if(d===tlToast){d.remove();tlToast=null} },2600);
+}
+/* ติดตั้งครั้งเดียว หน้าอื่นไม่โดนกระทบเพราะเช็ค tlCtx ก่อนเสมอ */
+document.addEventListener("copy",e=>{
+  if(!tlCtx||!tlSel.size)return;
+  if(String(getSelection())) return;            // ผู้ใช้เลือกข้อความอยู่ ปล่อยให้เบราว์เซอร์ทำงานปกติ
+  const t=doCopy(false); if(!t)return;
+  e.clipboardData.setData("text/plain",t); e.preventDefault();
+  toastTL("คัดลอก "+tlSel.size+" แถวแล้ว วางลงชีตได้เลย");
+});
+document.addEventListener("paste",e=>{
+  if(!tlCtx||!tlCtx.wr)return;
+  const a=document.activeElement;
+  if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
+  const t=(e.clipboardData||window.clipboardData).getData("text");
+  if(!t)return; e.preventDefault(); applyPaste(t);
+});
+document.addEventListener("keydown",e=>{
+  if(!tlCtx)return;
+  const a=document.activeElement;
+  if(a&&(a.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))return;
+  if(e.key==="Escape"&&tlSel.size){ tlSel.clear(); tlCtx.redraw() }
+  else if((e.key==="Delete"||e.key==="Backspace")&&tlSel.size&&tlCtx.wr){
+    e.preventDefault();
+    if(!confirm("ลบ "+tlSel.size+" แถวที่เลือกไว้?"))return;
+    const ALL=tlRows(); [...tlSel].forEach(r=>{const k=ALL.indexOf(r); if(k>=0)ALL.splice(k,1)});
+    tlSel.clear(); tlCtx.redraw();
+  }
+});
 /* สัปดาห์ที่ 0 คือสัปดาห์ที่จัดงาน ค่าลบคือก่อนงาน เก็บเป็นตัวเลขสัปดาห์
    ไม่ใช่วันที่ตายตัว พอเลื่อนวันงานทั้งแผนจึงขยับตามเอง */
 const TLST={plan:{l:"รอเริ่ม",c:"var(--tl-plan)"},doing:{l:"กำลังทำ",c:"var(--tl-doing)"},
@@ -3316,7 +3476,6 @@ function tlFill(ph){
   return add.length;
 }
 /* ───── แก้ได้ทุกอย่าง: วันจัดงาน ช่วงเวลาที่วาด และคอลัมน์ของตัวเอง ───── */
-let tlPad={pre:[0,0],post:[0,0]};
 
 /* วันจัดงานเป็นตัวตั้งของทั้งไทม์ไลน์ แก้ตรงนี้แล้วทุกแถบขยับตาม */
 function tlDateBar(wr){
@@ -3387,7 +3546,58 @@ function wireCols(P,R,redraw){
 }
 /* เลี่ยง Date.now ในบางสภาพแวดล้อม ใช้ตัวนับของเราเอง */
 let _ck=0; function Date2(){ return (++_ck)+"" }
+/* เดือนกับสัปดาห์แปลงกลับไปมาได้ จะได้ให้ผู้ใช้กำหนดช่วงเป็นเดือนตรงๆ */
+function monthWeek(ms,end){
+  const p=String(ms||"").split("-"), y=+p[0], m=+p[1];
+  if(!y||!m)return null;
+  const d=end?new Date(y,m,0):new Date(y,m-1,1);
+  return Math.round((monday(d)-tlShowWeek())/604800000);
+}
+function weekMonth(k){ const d=tlWeekStart(k);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0") }
+function shiftMonth(ms,n){ const p=String(ms).split("-");
+  const d=new Date(+p[0],+p[1]-1+n,1);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0") }
+function tlRange(){ return EV.tlRange||(EV.tlRange={}) }
+function monthBar(ph,lo,hi,nOut){
+  const r=tlRange()[ph];
+  const f=r?r[0]:weekMonth(lo), t=r?r[1]:weekMonth(hi);
+  const [y1,m1]=f.split("-").map(Number), [y2,m2]=t.split("-").map(Number);
+  const n=(y2-y1)*12+(m2-m1)+1;
+  return '<div class="dbar dbar2 mbar">'+
+   '<span class="dbl">เดือนที่แสดง</span>'+
+   '<button class="mb" data-mv="a-">− เดือน</button>'+
+   '<input type="month" id="mfrom" value="'+f+'">'+
+   '<button class="mb" data-mv="a+">+ เดือน</button>'+
+   '<span class="dbs">ถึง</span>'+
+   '<button class="mb" data-mv="b-">− เดือน</button>'+
+   '<input type="month" id="mto" value="'+t+'">'+
+   '<button class="mb" data-mv="b+">+ เดือน</button>'+
+   '<span class="dbs">รวม '+n+' เดือน</span>'+
+   (r?'<button class="mb" id="mrst">คืนช่วงอัตโนมัติ</button>':'')+
+   (nOut?'<span class="dbw">มี '+nOut+' งานอยู่นอกช่วงนี้ ดูลูกศรท้ายแถว</span>':'')+
+   '</div>';
+}
+function wireMonthBar(P,ph,lo,hi,redraw){
+  const cur=()=>tlRange()[ph]||[weekMonth(lo),weekMonth(hi)];
+  const set=(a,b)=>{ if(((+b.split("-")[0])*12+ +b.split("-")[1])<
+      ((+a.split("-")[0])*12+ +a.split("-")[1])){alert("เดือนสิ้นสุดต้องไม่ก่อนเดือนเริ่ม");return}
+    tlRange()[ph]=[a,b]; redraw() };
+  const f=P.querySelector("#mfrom"), t=P.querySelector("#mto");
+  if(f)f.addEventListener("change",()=>set(f.value,t.value));
+  if(t)t.addEventListener("change",()=>set(f.value,t.value));
+  P.querySelectorAll("[data-mv]").forEach(b=>b.addEventListener("click",()=>{
+    const c=cur(), k=b.dataset.mv;
+    if(k==="a-")set(shiftMonth(c[0],-1),c[1]);
+    else if(k==="a+")set(shiftMonth(c[0],1),c[1]);
+    else if(k==="b-")set(c[0],shiftMonth(c[1],-1));
+    else set(c[0],shiftMonth(c[1],1));
+  }));
+  const rs=P.querySelector("#mrst");
+  if(rs)rs.addEventListener("click",()=>{ delete tlRange()[ph]; redraw() });
+}
 function pTimeline(ph){
+  tlEnter(ph);
   const wr=can("timeline")==="write", ALL=tlRows(), now=tlNowWeek();
   const R=ALL.filter(r=>(r.ph||"pre")===ph);
   const PH={pre:{t:"ก่อนงาน",d:"งานที่ต้องเสร็จก่อนถึงวันจัดงาน นับถอยหลังเป็นสัปดาห์"},
@@ -3418,9 +3628,12 @@ function pTimeline(ph){
   const ra=R.map(r=>Math.min(r.a,r.b)), rb=R.map(r=>Math.max(r.a,r.b));
   const lo=ph==="post"?Math.min(0,...ra):Math.min(-2,...ra,now<=0?now:0),
         hi=ph==="post"?Math.max(1,...rb,now>=0?now:0):Math.max(0,...rb);
-  const pad=tlPad[ph]||[0,0];
-  const LO=lo-pad[0], HI=hi+pad[1];
+  const rg=tlRange()[ph];
+  let LO=lo, HI=hi;
+  if(rg){ const a=monthWeek(rg[0],false), b=monthWeek(rg[1],true);
+    if(a!=null&&b!=null&&b>=a){ LO=a; HI=b } }
   const cols=[]; for(let k=LO;k<=HI;k++)cols.push(k);
+  const outN=R.filter(r=>pB(r)<LO||pA(r)>HI).length;
   /* หัวเดือน รวมสัปดาห์ที่อยู่เดือนเดียวกัน */
   const mons=[], band={};
   cols.forEach(k=>{ const d=tlWeekStart(k), key=d.getFullYear()+"-"+d.getMonth();
@@ -3445,6 +3658,7 @@ function pTimeline(ph){
         :"ยังไม่ได้บันทึกจริง",ahd.length?"--s-paid":"--line2")+
    '</div>';
   h+=tlDateBar(wr)+'<p class="edhint" style="margin:2px 0 12px">'+PH.d+'</p>';
+  h+=selBar([...tlSel].filter(r=>R.includes(r)).length,wr);
   h+='<div class="tlbar">'+
     '<input id="tlq" class="cell" placeholder="ค้นหางาน หรือชื่อทีม" value="'+esc(tlFilter)+'" style="max-width:260px">'+
     (wr?'<div class="seg"><button data-em="plan" aria-pressed="'+(tlEdit==="plan")+'">ลากแก้แผน</button>'+
@@ -3455,6 +3669,7 @@ function pTimeline(ph){
     (wr?' <button class="act" id="tlfill" style="padding:9px 15px">เติมจากโครงมาตรฐาน</button>'+
         ' <button class="act" id="colnew" style="padding:9px 15px">+ เพิ่มคอลัมน์</button>':'')+
    '</div>';
+  h+=monthBar(ph,lo,hi,outN);
   if(wr)h+='<p class="edhint">แถบบนคือแผน แถบล่างคือที่ทำจริง เลือกก่อนว่าจะลากแก้อันไหน '+
     'แล้วลากในตาราง · พอเปลี่ยนสถานะเป็นกำลังทำหรือเสร็จแล้ว ระบบจะตั้งแถบจริงตามแผนให้ก่อน '+
     'ค่อยลากปรับตามความจริง</p>';
@@ -3479,6 +3694,8 @@ function pTimeline(ph){
           gb=Math.max(...idx.map(([r])=>pB(r)));
     const pct=Math.round(gd/idx.length*100);
     h+='<tr class="gtg"><td class="gtn gtgh" colspan="3">'+
+      '<input type="checkbox" class="selcb2" data-gsel="'+esc(g)+'" aria-label="เลือกทั้งหมวด"'+
+      (idx.every(([r])=>tlSel.has(r))?" checked":"")+'>'+
       '<button class="gtx" data-gt="'+esc(g)+'">'+(op?"▾":"▸")+'</button>'+
       (wr?'<span class="gtgn" contenteditable="plaintext-only" data-gn="'+esc(g)+'">'+esc(g)+'</span>'
          :'<span class="gtgn">'+esc(g)+'</span>')+
@@ -3494,7 +3711,7 @@ function pTimeline(ph){
     idx.forEach(([r,i])=>{
       const a=pA(r), b=pB(r), ha=hasAct(r), xa=ha?aA(r):0, xb=ha?aB(r):-1;
       const st=TLST[r.st]||TLST.plan, isLate=r.st!=="done"&&b<now, sl=slip(r);
-      h+='<tr class="gtr"><td class="gtn">'+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'"><td class="gtn">'+selBox(r,wr)+
         (wr?'<span contenteditable="plaintext-only" data-tn="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-tx="'+i+'" title="ลบงานนี้">×</button>':'')+
         '<br><small class="gtnote"><b>'+(wr?'<span contenteditable="plaintext-only" data-tby="'+i+'">'+
@@ -3515,14 +3732,13 @@ function pTimeline(ph){
         (k>=a&&k<=b?'<i class="gplan'+(k===a?" ba":"")+(k===b?" bb":"")+'"></i>':'')+
         (k>=xa&&k<=xb?'<i class="gact'+(k===xa?" ba":"")+(k===xb?" bb":"")+
           '" style="background:'+(isLate?"var(--tl-risk)":st.c)+'"></i>':'')+
+        (k===LO&&b<LO?'<i class="goff" title="อยู่ก่อนช่วงที่แสดง">◀</i>':'')+
+        (k===HI&&a>HI?'<i class="goff r" title="อยู่หลังช่วงที่แสดง">▶</i>':'')+
         '</td>').join("")+colCells(r,i,wr)+'</tr>';
     });
   });
   h+='</tbody></table></div>';
-  if(wr)h+='<div class="addbar"><button id="tlgadd">+ เพิ่มหมวด</button>'+
-    '<button id="padA">◀ ขยายช่วงต้น 4 สัปดาห์</button>'+
-    '<button id="padB">ขยายช่วงท้าย 4 สัปดาห์ ▶</button>'+
-    (pad[0]||pad[1]?'<button id="padR">คืนช่วงเดิม</button>':'')+'</div>';
+  if(wr)h+='<div class="addbar"><button id="tlgadd">+ เพิ่มหมวด</button></div>';
   h+='<h2 class="sec">ที่มาและวิธีคิด</h2><div class="note">'+
    '<p>โครงนี้ถอดมาจากชีต <b>Project Timeline งาน Caf con</b> ทั้ง 9 หมวด '+
    'ตั้งแต่วันจัดงาน โปรโมทผู้ชม เชิญแขก ทีมงาน ดูแลผู้ออกบูธ กิจกรรม งานออกแบบ งานบนเวที ไปจนถึงประชุมใหญ่</p>'+
@@ -3533,6 +3749,40 @@ function pTimeline(ph){
    'แยกออกเป็นสถานะกับกำหนดส่ง กำหนดส่งคำนวณจากปลายแถบเอง จะได้เตือนเลยกำหนดได้</p></div>';
   $("#page").innerHTML=h;
   const P=$("#page");
+  const iso=k=>ymd(tlWeekStart(k));
+  tlCtx={ wr, redraw:()=>pTimeline(ph), list:()=>R,
+    toTSV(rows){
+      const head=["หมวด","งาน","ทีม","สถานะ","แผนเริ่ม","แผนเสร็จ","จริงเริ่ม","จริงเสร็จ","หมายเหตุ"]
+        .concat(tlCols().map(c=>c.l));
+      return [tsvLine(head)].concat(rows.map(r=>tsvLine(
+        [r.grp,r.name,r.by||"",(TLST[r.st]||TLST.plan).l,
+         iso(pA(r)),iso(pB(r)),hasAct(r)?iso(aA(r)):"",hasAct(r)?iso(aB(r)):"",r.note||""]
+        .concat(tlCols().map(c=>(r.x||{})[c.k]||""))))).join("\n");
+    },
+    fromTSV(rows){
+      /* ข้ามบรรทัดหัวตาราง ถ้าคัดลอกมาทั้งตาราง */
+      if(rows[0]&&/^(หมวด|งาน|ลำดับ|รายการ)$/.test((rows[0][0]||"").trim()))rows=rows.slice(1);
+      const ALL=tlRows(), gs=[...new Set(R.map(r=>r.grp))];
+      let lastG=(tlSel.size?[...tlSel][0].grp:null)||gs[0]||"หมวดใหม่", n=0;
+      rows.forEach(c=>{
+        const one=c.length<2;
+        const grp=one?lastG:((c[0]||"").trim()||lastG);
+        const name=(one?c[0]:c[1]||"").trim();
+        if(!name)return;
+        lastG=grp;
+        const w1=weekOf(c[4]), w2=weekOf(c[5]), a1=weekOf(c[6]), a2=weekOf(c[7]);
+        const r={grp,name,by:(c[2]||"").trim(),st:stKey(c[3]),
+          a:w1!=null?w1:(ph==="post"?1:-4), b:w2!=null?w2:(w1!=null?w1:(ph==="post"?1:-4)),
+          note:(c[8]||"").trim(),ph:ph,x:{}};
+        if(a1!=null){ r.aa=a1; r.ab=a2!=null?a2:a1 }
+        tlCols().forEach((cc,ci)=>{ const v=(c[9+ci]||"").trim(); if(v)r.x[cc.k]=v });
+        ALL.push(r); n++;
+      });
+      if(n){ const ord=[]; ALL.forEach(r=>{if(!ord.includes(r.grp))ord.push(r.grp)});
+        ALL.sort((x,y)=>ord.indexOf(x.grp)-ord.indexOf(y.grp)); pTimeline(ph) }
+      return n;
+    }};
+  wireSel(P,R,()=>pTimeline(ph));
   /* เปิดมาให้เห็นช่วงที่มีงานจริง ไม่ค้างอยู่กับสัปดาห์ว่างทางซ้าย */
   const box=P.querySelector(".tw");
   if(box){ const first=Math.min(...R.map(r=>Math.min(r.a,r.b)));
@@ -3574,10 +3824,7 @@ function pTimeline(ph){
     pTimeline(ph)}));
   P.querySelectorAll("[data-em]").forEach(b=>b.addEventListener("click",()=>{
     tlEdit=b.dataset.em; pTimeline(ph)}));
-  P.querySelector("#padA").addEventListener("click",()=>{tlPad[ph]=[pad[0]+4,pad[1]];pTimeline(ph)});
-  P.querySelector("#padB").addEventListener("click",()=>{tlPad[ph]=[pad[0],pad[1]+4];pTimeline(ph)});
-  const pr=P.querySelector("#padR");
-  if(pr)pr.addEventListener("click",()=>{tlPad[ph]=[0,0];pTimeline(ph)});
+  wireMonthBar(P,ph,lo,hi,()=>pTimeline(ph));
   wireCols(P,R,()=>pTimeline(ph));
   P.querySelectorAll("[data-gn]").forEach(el=>el.addEventListener("blur",()=>{
     const o=el.dataset.gn, n=el.textContent.trim();
@@ -3632,6 +3879,7 @@ function seedActT(r){ if(!hasActT(r)){ r.at1=r.t1; r.at2=r.t2 } }
 const slipMin=r=>hasActT(r)?Math.round((hm(r.at2)-hm(r.t2))*60):null;
 
 function pTimelineOn(){
+  tlEnter("on");
   const wr=can("timeline")==="write", ALL=tlRows(), days=tlDays();
   const R=onRows();
   if(!R.length){
@@ -3678,6 +3926,7 @@ function pTimelineOn(){
    (wr?'<div class="dbar dbar2"><span class="dbl">ช่วงเวลาที่แสดง</span>'+
      '<input type="number" id="onh0" min="0" max="20" value="'+H0+'"><span class="dbs">น. ถึง</span>'+
      '<input type="number" id="onh1" min="2" max="24" value="'+H1+'"><span class="dbs">น.</span></div>':'');
+  h+=selBar([...tlSel].filter(r=>list.includes(r)).length,wr);
   if(wr)h+='<p class="edhint">แถบบางด้านบนคือเวลาที่วางแผนไว้ แถบหนาด้านล่างคือเวลาที่เกิดขึ้นจริง '+
     'เลือกก่อนว่าจะลากแก้อันไหน แล้วลากบนแถบเวลา ระบบจับทีละครึ่งชั่วโมง</p>';
 
@@ -3693,6 +3942,8 @@ function pTimelineOn(){
     const gd=idx.filter(([r])=>r.st==="done").length;
     const pct=Math.round(gd/idx.length*100);
     h+='<tr class="gtg"><td class="gtn gtgh" colspan="3">'+
+      '<input type="checkbox" class="selcb2" data-gsel="'+esc(g)+'" aria-label="เลือกทั้งหมวด"'+
+      (idx.every(([r])=>tlSel.has(r))?" checked":"")+'>'+
       '<span class="gtgn">'+esc(g)+'</span>'+
       '<span class="gtpb"><i style="width:'+pct+'%"></i></span><small>'+gd+'/'+idx.length+'</small>'+
       (wr?'<button class="gtx2" data-oa="'+esc(g)+'">+ เพิ่มคิว</button>':'')+'</td>'+
@@ -3706,7 +3957,7 @@ function pTimelineOn(){
       const t1=hm(r.t1), t2=Math.max(hm(r.t2),t1+.5), st=TLST[r.st]||TLST.plan;
       const ha=hasActT(r), y1=ha?hm(r.at1):0, y2=ha?Math.max(hm(r.at2),y1+.5):0;
       const sm=slipMin(r);
-      h+='<tr class="gtr"><td class="gtn">'+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'"><td class="gtn">'+selBox(r,wr)+
         (wr?'<span contenteditable="plaintext-only" data-on="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-ox="'+i+'" title="ลบคิวนี้">×</button>':'')+
         '<br><small class="gtnote"><b>'+(wr?'<span contenteditable="plaintext-only" data-oby="'+i+
@@ -3745,6 +3996,36 @@ function pTimelineOn(){
    'ใช้ปุ่มคัดลอกคิวไปวันอื่นแทนการพิมพ์ใหม่ทีละวัน</p></div>';
 
   $("#page").innerHTML=h; const P=$("#page");
+  tlCtx={ wr, redraw:pTimelineOn, list:()=>list,
+    toTSV(rows){
+      const head=["หมวด","คิวงาน","ทีม","สถานะ","แผนเริ่ม","แผนจบ","จริงเริ่ม","จริงจบ","หมายเหตุ"]
+        .concat(tlCols().map(c=>c.l));
+      return [tsvLine(head)].concat(rows.map(r=>tsvLine(
+        [r.grp,r.name,r.by||"",(TLST[r.st]||TLST.plan).l,r.t1,r.t2,r.at1||"",r.at2||"",r.note||""]
+        .concat(tlCols().map(c=>(r.x||{})[c.k]||""))))).join("\n");
+    },
+    fromTSV(rows){
+      if(rows[0]&&/^(หมวด|คิวงาน|งาน|ลำดับ|รายการ)$/.test((rows[0][0]||"").trim()))rows=rows.slice(1);
+      const ALL=tlRows(), gs=[...new Set(list.map(r=>r.grp))];
+      let lastG=(tlSel.size?[...tlSel][0].grp:null)||gs[0]||"หมวดใหม่", n=0;
+      rows.forEach(c=>{
+        const one=c.length<2;
+        const grp=one?lastG:((c[0]||"").trim()||lastG);
+        const name=(one?c[0]:c[1]||"").trim();
+        if(!name)return;
+        lastG=grp;
+        const p1=parseTime(c[4]), p2=parseTime(c[5]), q1=parseTime(c[6]), q2=parseTime(c[7]);
+        const r={grp,name,by:(c[2]||"").trim(),st:stKey(c[3]),d:onDay,
+          t1:p1||"09:00", t2:p2||mh(hm(p1||"09:00")+1),
+          note:(c[8]||"").trim(),ph:"on",a:0,b:0,x:{}};
+        if(q1){ r.at1=q1; r.at2=q2||mh(hm(q1)+1) }
+        tlCols().forEach((cc,ci)=>{ const v=(c[9+ci]||"").trim(); if(v)r.x[cc.k]=v });
+        ALL.push(r); n++;
+      });
+      if(n)pTimelineOn();
+      return n;
+    }};
+  wireSel(P,list,pTimelineOn);
   P.querySelectorAll("[data-od]").forEach(b=>b.addEventListener("click",()=>{
     onDay=+b.dataset.od; pTimelineOn()}));
   P.querySelector("#dlon").addEventListener("click",e=>{
