@@ -511,8 +511,6 @@ th.gtx3:hover .gtdel2{opacity:1}
   display:inline-flex;align-items:center;gap:4px}
 .selbar button:hover{border-color:var(--accent);color:var(--accent)}
 .selbar button.dg:hover{border-color:var(--risk);color:var(--risk)}
-.selbar kbd{font:inherit;font-size:10.5px;font-weight:700;background:var(--paper);
-  border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--ink2)}
 .selhint{margin-left:auto;color:var(--ink3);font-size:11.5px}
 .selcb,.selcb2{width:14px;height:14px;margin:0 7px 0 0;vertical-align:-2px;cursor:pointer;
   accent-color:var(--accent)}
@@ -3863,10 +3861,12 @@ function selBar(n,wr){
      ห่อด้วย selwrap ไว้กันหน้ากระตุกตอนแถบหลุดออกจากผัง */
   return '<div class="selwrap"><div class="selbar'+(n?" on":"")+'">'+
    '<b>'+(n?"selected "+n+" rows":"No rows selected")+'</b>'+
-   '<button id="scopy">Copy'+(n?"":"All")+' <kbd>Ctrl</kbd><kbd>C</kbd></button>'+
-   (wr?'<button id="spaste">Paste <kbd>Ctrl</kbd><kbd>V</kbd></button>':'')+
-   (wr&&n?'<button id="sdup">Duplicate</button><button id="sdel" class="dg">Delete <kbd>Del</kbd></button>':'')+
-   (n?'<button id="sclr">Cancel <kbd>Esc</kbd></button>':'')+
+   /* ปุ่มลัดยังใช้ได้เหมือนเดิม แค่ไม่ขึ้นป้ายบอกบนปุ่ม */
+   '<button id="scopy" title="Ctrl+C">Copy'+(n?"":" all")+'</button>'+
+   (wr?'<button id="spaste" title="Ctrl+V">Paste</button>':'')+
+   (wr&&n?'<button id="sdup">Duplicate</button>'+
+          '<button id="sdel" class="dg" title="Delete">Delete</button>':'')+
+   (n?'<button id="sclr" title="Esc">Cancel</button>':'')+
    '<span class="selhint">Tick in front of a task to select · hold Shift to select a range · '+
    'Copy and paste straight into Google Sheets, and paste back in too</span></div></div>';
 }
