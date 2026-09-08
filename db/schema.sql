@@ -160,14 +160,6 @@ create table login_attempt (
 );
 create index login_attempt_idx on login_attempt (email, at desc);
 
--- ถ้าคนคนเดียวสิทธิ์ไม่เท่ากันในแต่ละงาน
-create table user_event (
-  user_id  bigint not null references app_user on delete cascade,
-  event_id bigint not null references event on delete cascade,
-  role     text references role (code),   -- ทับ role หลักเฉพาะงานนี้
-  primary key (user_id, event_id)
-);
-
 create table company (
   id              bigserial primary key,
   name            text not null,
@@ -233,6 +225,18 @@ create table event (
 );
 
 -- งานที่จัดคู่กันในฮอลล์เดียว เช่น Restech กับ ตั้งตัว ใช้ผังเดียวแต่แยกบัญชี
+-- ถ้าคนคนเดียวสิทธิ์ไม่เท่ากันในแต่ละงาน
+-- ผูกบัญชีผู้ใช้เข้ากับชื่อเซลล์ในระบบ
+-- ไม่มีอันนี้ บทบาทที่เห็นเฉพาะดีลของตัวเองจะเห็นศูนย์ดีลเสมอ
+alter table app_user add column agent_id bigint;
+
+create table user_event (
+  user_id  bigint not null references app_user on delete cascade,
+  event_id bigint not null references event on delete cascade,
+  role     text references role (code),   -- ทับ role หลักเฉพาะงานนี้
+  primary key (user_id, event_id)
+);
+
 create table event_brand (
   id       bigserial primary key,
   event_id bigint not null references event on delete cascade,
@@ -301,6 +305,17 @@ create table booth (
   unique (event_id, code)
 );
 create index booth_status_idx on booth (event_id, status);
+-- เพราะคิดค่าคอมคนละแบบ และงบตั้ง Sales Agent Commission ไว้ 10-15%
+create table sales_agent (
+  id        bigserial primary key,
+  name      text not null unique,        -- Talk Event, Anster, พี่แคท
+  kind      text not null default 'agent'
+              check (kind in ('agent','inhouse','house')),
+  commission_rate numeric(5,2) not null default 0,
+  contact   text,
+  active    boolean not null default true
+);
+
 
 -- ---------------------------------------------------------------- การขาย
 
@@ -676,16 +691,6 @@ create table move_in (
 -- ---------------------------------------------------------------- ดูแลผู้ออกบูธ
 
 -- เซลล์นอกที่รับงานขายให้ ชีตแยกไว้ชัดว่าใครเป็นเอเจนต์ ใครเป็นคนใน
--- เพราะคิดค่าคอมคนละแบบ และงบตั้ง Sales Agent Commission ไว้ 10-15%
-create table sales_agent (
-  id        bigserial primary key,
-  name      text not null unique,        -- Talk Event, Anster, พี่แคท
-  kind      text not null default 'agent'
-              check (kind in ('agent','inhouse','house')),
-  commission_rate numeric(5,2) not null default 0,
-  contact   text,
-  active    boolean not null default true
-);
 
 -- เช็กลิสต์ที่ต้องเก็บจากผู้ออกบูธทุกราย
 -- ชีต Exhibitor Manual ติดตาม 37 ช่องต่อหนึ่งบูธ ทำเป็นรายการแทนคอลัมน์
@@ -826,3 +831,45 @@ select e.id as event_id, e.code, e.name,
 from event e;
 
 commit;
+
+-- ---------------------------------------------------------------- ไทม์ไลน์โครงการ
+-- ถอดจากชีต Project Timeline แบ่งสามช่วง ก่อนงาน ระหว่างงาน หลังงาน
+-- ก่อนงานและหลังงานเก็บเป็นสัปดาห์ห่างจากวันงาน ค่าลบคือก่อนงาน
+-- ระหว่างงานเก็บเป็นลำดับวันกับเวลา เพราะหน้างานทุกอย่างชนกันในวันเดียว
+-- เก็บเป็นระยะห่างไม่ใช่วันที่ตายตัว เลื่อนวันงานแล้วทั้งแผนขยับตามเอง
+create table timeline_task (
+  id        bigserial primary key,
+  event_id  bigint not null references event on delete cascade,
+  phase     text not null default 'pre' check (phase in ('pre','on','post')),
+  grp       text not null,
+  name      text not null,
+  work_by   text,
+  status    text not null default 'plan' check (status in ('plan','doing','done','risk')),
+
+  -- แผน กับ ที่ทำจริง เก็บแยกกันเพื่อเทียบกันได้
+  plan_a    int,      -- สัปดาห์เริ่มตามแผน ใช้เมื่อ phase อยู่ pre หรือ post
+  plan_b    int,
+  act_a     int,
+  act_b     int,
+  day_no    int,      -- ลำดับวัน ใช้เมื่อ phase = on
+  plan_t1   time,
+  plan_t2   time,
+  act_t1    time,
+  act_t2    time,
+
+  note      text,
+  extra     jsonb not null default '{}',   -- คอลัมน์ที่ผู้ใช้เพิ่มเอง
+  sort      int,
+  updated_at timestamptz not null default now()
+);
+create index timeline_task_event_idx on timeline_task (event_id, phase, sort);
+
+-- ค่าตั้งของหน้าจอที่ยังไม่คุ้มจะแตกเป็นตาราง เช่นช่วงเดือนที่แสดง
+-- คอลัมน์ที่ผู้ใช้เพิ่มเอง โลโก้งาน และไฟล์ผังพื้นที่
+create table event_setting (
+  event_id bigint primary key references event on delete cascade,
+  settings jsonb not null default '{}'
+);
+
+alter table app_user
+  add constraint app_user_agent_fk foreign key (agent_id) references sales_agent;

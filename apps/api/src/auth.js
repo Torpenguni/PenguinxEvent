@@ -64,7 +64,7 @@ export async function attachUser(req, res, next) {
     if (!live.rowCount) return next()
 
     const { rows } = await q(
-      `select id, email, name, role from app_user where id = $1 and active`,
+      `select id, email, name, role, agent_id from app_user where id = $1 and active`,
       [uid],
     )
     if (!rows[0]) return next()

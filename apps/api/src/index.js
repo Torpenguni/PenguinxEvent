@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js'
 import eventRoutes from './routes/events.js'
 import boothRoutes from './routes/booths.js'
 import dealRoutes from './routes/deals.js'
+import fullRoutes from './routes/full.js'
 
 const app = express()
 app.use(cors({ origin: process.env.WEB_ORIGIN?.split(',') ?? true, credentials: true }))
@@ -19,6 +20,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/events', eventRoutes)
 app.use('/api/booths', boothRoutes)
 app.use('/api/deals', dealRoutes)
+app.use('/api/events', fullRoutes)
 
 // ต่อฐานข้อมูลไม่ได้เป็นคนละเรื่องกับบั๊ก ตอบ 503 พร้อมบอกว่าเกิดอะไร
 const DB_DOWN = new Set(['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P03', '3D000'])
