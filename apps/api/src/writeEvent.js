@@ -65,12 +65,13 @@ export async function writeEvent (q, e, ctx) {
     const logoPath = typeof e.logo === 'string' && e.logo.startsWith('/') ? e.logo : null
     const ev = await one(
       `insert into event (code, name, edition_year, venue, start_date, end_date, status,
-         revenue_goal, logo_url)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
+         revenue_goal, logo_url, seats, ticket_price, tickets_sold)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
       [e.id, e.name, year, e.venue || null,
        day(e.eventDate || e.event_date), day(e.end_date),
        e.status === 'selling' ? 'selling' : 'planning', e.target || null,
-       logoPath ?? e.logo_url ?? null])
+       logoPath ?? e.logo_url ?? null,
+       e.seats ?? null, e.ticketPrice ?? null, e.ticketsSold ?? null])
 
     await bulk('event_brand', ['event_id', 'code', 'name'],
       (e.brands || []).map((b) => [ev.id, b, b]))

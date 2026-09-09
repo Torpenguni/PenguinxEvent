@@ -105,6 +105,10 @@ async function fetchFull (code, perms, user) {
          ก่อนแปลงเป็นวันที่ ถ้าส่ง ISO ไปจะได้สตริงประหลาดแล้วกลายเป็น NaN
          ทั้งหน้าไทม์ไลน์ ทั้งหัวตาราง ทั้งช่องกำหนดส่ง */
       eventDate: ymd(ev.start_date), event_date: ymd(ev.start_date), end_date: ymd(ev.end_date),
+      /* งานสัมมนาขายบัตร ไม่ได้ขายแต่บูธ ตัวเลขสามตัวนี้เคยไม่มีที่เก็บเลย */
+      seats: ev.seats ?? null,
+      ticketPrice: ev.ticket_price == null ? null : Number(ev.ticket_price),
+      ticketsSold: ev.tickets_sold ?? null,
       target: seeTarget ? Number(ev.revenue_goal ?? 0) : null,
       target_note: seeTarget ? (S.targetNote ?? null) : null,
       /* โลโก้ ตัวเดโมเคยฝังรูปไว้ในไฟล์ตอน build โหมดต่อเซิร์ฟเวอร์จึงไม่มีรูปเลย
@@ -300,6 +304,14 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
     await q('begin')
     try {
       const stat = await writeEvent(q, body, { agents, adminId: admin?.id ?? req.user.id })
+      /* ร่องรอยว่าใครบันทึกอะไรเมื่อไหร่ ของเดิม audit_log ว่างเปล่า
+         ยิ่งทุกคนใช้บัญชีเดียวกันชั่วคราว ยิ่งต้องรู้อย่างน้อยว่าแตะอะไรไปบ้าง */
+      await q(
+        `insert into audit_log (actor_id, entity, entity_id, action, field, new_value)
+         values ($1,'event',(select id from event where code=$2),'save',$3,$4)`,
+        [req.user.id, req.params.code,
+         kept.length ? 'kept:' + kept.join(',') : null,
+         JSON.stringify(stat)])
       await q('commit')
       res.json({ ok: true, saved: stat, kept, at: new Date().toISOString() })
     } catch (e) { await q('rollback').catch(() => {}); throw e }

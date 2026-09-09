@@ -1443,6 +1443,17 @@ function seedZoneNames(n){
 }
 const cloneJ=o=>JSON.parse(JSON.stringify(o));
 
+/* ร่นโครงไทม์ไลน์ให้พอดีกับเวลาที่เหลือจริง
+   งานที่เหลือ 6 วันไม่ควรได้งานที่กำหนดส่งย้อนไป 24 สัปดาห์ก่อนงาน */
+function fitTimeline(tpl,d1){
+  const weeks=Math.round((new Date(d1+"T00:00:00")-Date.now())/604800000);
+  if(!isFinite(weeks)||weeks>=13)return tpl;          // เหลือเกินสามเดือน ใช้โครงเต็ม
+  const span=Math.max(1,weeks-1);
+  const oldest=Math.min(...tpl.map(r=>Math.min(r.a??0,r.b??0)),0);
+  const squeeze=(v)=>v==null?v:(v>=0?v:Math.round(v*span/Math.abs(oldest||1)));
+  return tpl.filter(r=>(r.ph||"pre")!=="pre"||squeeze(r.b)>=-span)
+            .map(r=>Object.assign({},r,{a:squeeze(r.a),b:squeeze(r.b)}));
+}
 function newEventFrom(f){
   const id=slugId(f.short||f.name);
   const tpl=D.timelineTemplate||[];
@@ -1452,6 +1463,7 @@ function newEventFrom(f){
     status:"planning", brands:f.brands, logo:f.logo||null,
     owner:f.owner, client:f.owner==="client"?f.client:null,
     sqm:f.sqm||null, boothCount:f.n||0,
+    seats:f.seats||null, ticketPrice:f.ticketPrice||null, ticketsSold:0,
     booths:seedBooths(f.n||0,f.price||0,f.copyPrice?null:"Standard booth"),
     areas:[], deals:[], sessions:[],
     sales:[], target:0, target_note:"No target set yet",
@@ -1469,7 +1481,9 @@ function newEventFrom(f){
     addons:f.copyPrice?cloneJ(EVENTS[0].addons||[]):[],
     zoneNames:seedZoneNames(f.n||0),
     manual:{name:"Exhibitor Manual "+(f.short||f.name)+".pdf",url:null},
-    timeline:cloneJ(tpl),
+    /* งานเล็กวันเดียวได้โครง 77 งานของงานใหญ่สี่วันมาทั้งชุด ซึ่งเลยกำหนดตั้งแต่วันแรก
+       ถ้าเหลือเวลาน้อยกว่าสามเดือน ตัดเหลือเฉพาะงานที่ยังทำทันและร่นกำหนดให้พอดี */
+    timeline:cloneJ(fitTimeline(tpl,f.d1)),
     tlRange:evRange(f.d1), tlCols:[],
     buildDays:1, strikeDays:1,
   };
@@ -1515,6 +1529,10 @@ function pNewEvent(){
       "<label><input type=radio name=own value=client> Client event</label></div>")+
     fld("Client name","<input id=nf_client placeholder=’fill in when this is a client event’ disabled>")+
     fld("Booths to sell","<input type=number id=nf_n min=0 max=400 value=100>")+
+    /* งานสัมมนารายได้หลักมาจากบัตร ไม่ใช่บูธ ของเดิมไม่มีที่กรอกเลย */
+    fld("Seats (leave blank if there is no seated programme)",
+        "<input type=number id=nf_seats min=0 placeholder=’e.g. 500’>")+
+    fld("Ticket price (THB)","<input type=number id=nf_tprice min=0 placeholder=’e.g. 1,500’>")+
     fld("Total area (sqm)","<input type=number id=nf_sqm min=0 placeholder=’e.g. 6000’>")+
     fld("List price per booth (THB)","<input type=number id=nf_price min=0 value=50000>")+
     fld("Event logo",
@@ -1611,6 +1629,7 @@ function pNewEvent(){
       brands:brands.length?brands:[v("nf_short").trim()||v("nf_name").trim()],
       d1, d2, owner:own, client:v("nf_client").trim(),
       n:+v("nf_n")||0, sqm:+v("nf_sqm")||null, price:+v("nf_price")||0,
+      seats:+v("nf_seats")||null, ticketPrice:+v("nf_tprice")||null,
       logo:nfLogo, copyPrice:false });
     if(clone&&from)cloneInto(ev,from,parts);
     ev.modules=Object.fromEntries(MODULES.map(([k])=>[k,mods.includes(k)]));
