@@ -191,27 +191,38 @@ $("#lform").addEventListener("submit",async e=>{
     me=r?r.name:"—";
     showPick(); return;
   }
+  const em0=$("#em").value.trim(), pw0=$("#pw").value;
+  if(!em0||!pw0){ loginMsg(!em0?"Type your email":"Type your password",true);
+    (!em0?$("#em"):$("#pw")).focus(); return }
   const btn=$("#lform").querySelector("button[type=submit]");
   const lbl=btn.textContent; btn.disabled=true; btn.textContent="Signing in…";
   loginMsg("");
   try{
     const out=await api("/api/auth/login",{method:"POST",
       body:JSON.stringify({email:$("#em").value.trim(),password:$("#pw").value})});
-    TOKEN=out.token; try{ localStorage.setItem("pxe.token",TOKEN) }catch(x){}
+    TOKEN=out.token;
+    try{ localStorage.setItem("pxe.token",TOKEN);
+      localStorage.setItem("pxe.lastEmail",$("#em").value.trim()) }catch(x){}
     await afterLogin();
   }catch(err){
     loginMsg(err.status===401?"That email and password do not match":err.message,true);
   }finally{ btn.disabled=false; btn.textContent=lbl }
 });
-/* โหมดต่อเซิร์ฟเวอร์ต้องล็อกอินด้วยบัญชีจริง ล้างอีเมลกับรหัสตัวอย่างที่ฝังไว้ในฟอร์มทิ้ง
-   ไม่งั้นค่าสาธิตจะทับค่าที่เบราว์เซอร์จำไว้ให้ คนใช้ต้องลบเองทุกครั้งก่อนพิมพ์
-   ปล่อยช่องว่างไว้แล้วเบราว์เซอร์จะเติมบัญชีที่บันทึกไว้ให้เอง */
+/* โหมดต่อเซิร์ฟเวอร์ต้องล็อกอินด้วยบัญชีจริง ค่าสาธิตที่ฝังมาในฟอร์มใช้ไม่ได้
+   ล้างเฉพาะค่าสาธิตสองค่านั้นเท่านั้น ห้ามล้างทั้งช่อง
+   เพราะเบราว์เซอร์เติมบัญชีที่บันทึกไว้ให้ตั้งแต่ตอนโหลด ล้างทิ้งแล้วกดเข้าระบบ
+   จะส่งค่าว่างไปให้เซิร์ฟเวอร์ทั้งที่บนจอเห็นตัวอักษรเต็มช่อง */
 /* เช็กจาก window.PXE_API ตรง ๆ ไม่เรียก online() เพราะ const API ประกาศทีหลังในไฟล์
    const ไม่ถูกยกขึ้นข้างบนเหมือน function เรียกก่อนประกาศแล้วสคริปต์ตายทั้งไฟล์
    ปุ่มทุกปุ่มจะกดไม่ติดโดยไม่มีอะไรบอกสาเหตุบนหน้าจอ */
 if(window.PXE_API){
   const em=document.getElementById("em"), pw=document.getElementById("pw");
-  if(em)em.value=""; if(pw)pw.value="";
+  if(em&&em.value==="snoox@penguinx.co")em.value="";
+  if(pw&&pw.value==="demo1234")pw.value="";
+  // เติมอีเมลที่เคยเข้าครั้งล่าสุดให้ ถ้าเบราว์เซอร์ไม่ได้เติมมาเอง
+  try{ const last=localStorage.getItem("pxe.lastEmail");
+    if(em&&!em.value&&last){ em.value=last;
+      if(pw)setTimeout(()=>pw.focus(),50) } }catch(x){}
   const hint=document.querySelector("#lform .hint");
   if(hint)hint.textContent="เข้าด้วยบัญชีที่ได้รับเชิญ ระบบจะจำการเข้าระบบไว้ 30 วัน";
 }
