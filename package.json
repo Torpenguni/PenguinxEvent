@@ -13,7 +13,8 @@
     "heroku-postbuild": "npm -w apps/web run build"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "vercel": "^59.13.1"
   },
   "engines": {
     "node": ">=20"
