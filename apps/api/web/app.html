@@ -396,6 +396,10 @@ button.act.warn{color:var(--risk);border-color:var(--risk)}
 .ql{margin:11px 0 0;padding:10px 0 0;list-style:none;border-top:1px solid var(--line)}
 .ql li{display:flex;gap:9px;font-size:13.5px;padding:3px 0}
 .ql b{color:var(--accent);min-width:40px;font-variant-numeric:tabular-nums}
+/* ห้ามลากคลุมตัวอักษรบนผังกับตารางเวที กดบูธแล้วขยับนิดเดียวเบราว์เซอร์จะเลือกข้อความ
+   ทั้งแถบแล้วระบายสีก้อนใหญ่ทับผัง ดูเหมือนระบบพังทั้งที่เป็นแค่การไฮไลต์ปกติ
+   ตารางข้อมูลที่ต้องคัดลอกไปใช้ต่อ ไม่โดนกฎนี้ */
+.pw,.pw svg,#planbg{-webkit-user-select:none;user-select:none}
 svg#plan{display:block;min-width:740px;width:100%;height:auto}
 .pw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px;box-shadow:var(--sh)}
 .bt{cursor:pointer}.bt rect{stroke:#fff;stroke-width:.09}
