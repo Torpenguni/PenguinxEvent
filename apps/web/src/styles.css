@@ -151,3 +151,5 @@ table.tl tr.tlg .meta{font-weight:400;color:var(--ink2);font-size:12px}
 .exdue.late{color:var(--risk);font-weight:700}
 .tg.red{background:#fdecec;color:var(--risk)}
 @media(prefers-color-scheme:dark){.tg.red{background:rgba(226,117,99,.16)}}
+
+.sub.build{font-size:11px;color:var(--ink3);margin:0 0 10px;letter-spacing:.02em}
