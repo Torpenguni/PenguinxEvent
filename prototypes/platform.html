@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PenguinX Event</title>
 <style>
 :root{--paper:#F5F6F2;--card:#FFF;--ink:#191D1A;--ink2:#4E564F;--ink3:#8B9088;
@@ -1873,7 +1876,11 @@ function loadSaved(){
   let o=null; try{ o=JSON.parse(raw) }catch(err){ return }
   if(!o||o.v!==2||!Array.isArray(o.events))return;
   o.events.forEach(sv=>{
-    const e=EVENTS.find(x=>x.id===sv.id); if(!e)return;
+    let e=EVENTS.find(x=>x.id===sv.id);
+    /* งานที่ผู้ใช้สร้างเองหลังไฟล์ถูก build ไม่มีทางอยู่ใน EVENTS ที่ฝังมา
+       ของเดิม return ทิ้งตรงนี้ งานที่เพิ่งสร้างจึงหายทุกครั้งที่รีเฟรช
+       ทั้งที่ข้อมูลถูกบันทึกไว้ครบใน localStorage แล้ว */
+    if(!e){ e={id:sv.id}; EVENTS.push(e) }
     for(const k in sv)if(!HEAVY.includes(k))e[k]=sv[k];
   });
   if(Array.isArray(o.reps)){ REPS.length=0; o.reps.forEach(r=>REPS.push(r)) }
@@ -5545,7 +5552,7 @@ const THM=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 let tlOpen={}, tlDrag=null, tlFilter="";
 /* แถบที่กดเลือกไว้ กดครั้งแรกเลือก กดค้างครั้งที่สองถึงจะลากได้
    เก็บเป็นตัวแถวไม่ใช่เลขลำดับ เพราะตารางวาดใหม่แล้วลำดับเลื่อนได้ */
-let tlPick=null, tlRedraw=null;
+let tlPick=null, tlRedraw=null, onDrag=null;
 /* คำอธิบายวิธีใช้ ไม่กางค้างกลางจอ เก็บเป็นไอคอนแล้วกดดูเมื่อต้องการ
    เปิดค้างไว้ครั้งแรกครั้งเดียว ปิดแล้วจำว่าปิด */
 const HINT={};
@@ -5967,14 +5974,25 @@ function pTimeline(ph){
       const i=+td.dataset.r, k=+td.dataset.k, r=R[i], ha=hasAct(r);
       const y=e.clientY-td.getBoundingClientRect().top;
       const w=(ha&&y>=20)?"act":"plan";                 // แถบแผนอยู่บน แถบจริงอยู่ล่าง
-      if(!(tlPick&&tlPick.row===r&&tlPick.w===w)){
-        tlPick={row:r,w:w}; pTimeline(ph); return;      // ครั้งแรก แค่เลือก
-      }
       const a=w==="act"?aA(r):pA(r), b=w==="act"?aB(r):pB(r);
+      /* กดครั้งแรกเลือกแถบ แล้วลากต่อได้ในจังหวะเดียวกัน ไม่ต้องปล่อยแล้วกดใหม่
+         แต่ลากได้ก็ต่อเมื่อกดโดนตัวแถบ ถ้ากดช่องว่างข้างนอกคือแค่เลือก
+         ไม่งั้นคลิกเดียวในแถวเดียวกันจะยืดแถบไปถึงช่องที่คลิกโดยไม่ได้ตั้งใจ */
+      const onBar = k>=a && k<=b;
+      if(!(tlPick&&tlPick.row===r&&tlPick.w===w)){
+        tlPick={row:r,w:w}; pTimeline(ph);
+        if(!onBar) return;
+      }
       const mode = k<a||k>b ? (Math.abs(k-a)<=Math.abs(k-b)?"a":"b")
                  : k===a&&k===b ? "b"
                  : k===a ? "a" : k===b ? "b" : "move";
       tlDrag={row:r,w:w,mode:mode,a:a,b:b,k0:k,lo:a,hi:b,r:i};
+      /* ติดตัวจับ mouseup ตอนเริ่มลาก ไม่ใช่ตอนวาดตาราง
+         ของเดิมติดไว้ตอนวาดแล้วถอดตัวเองทิ้งเมื่อปล่อยเมาส์ครั้งแรก
+         มันรอดมาได้เพราะทุกการปล่อยเมาส์เคยจบด้วยการวาดตารางใหม่เสมอ
+         พอมีการกดที่ไม่ได้วาดใหม่ ตัวจับก็หายไปเฉย ๆ การลากครั้งถัดไปจึงไม่มีวันจบ
+         แถบเลยติดหนึบตามเมาส์และปรับอะไรไม่ได้อีกเลยจนกว่าจะรีเฟรช */
+      document.addEventListener("mouseup",tlUp);
       paintDrag(P);
       guideOn(P,a,b);
       tipShow(spanText(a,b,w),e.clientX,e.clientY);
@@ -5984,7 +6002,7 @@ function pTimeline(ph){
     td.addEventListener("mousemove",e=>{
       const k=+td.dataset.k;
       if(!tlDrag){
-        guideOn(P,k,k);
+        // ตอนยังไม่ลาก บอกสัปดาห์ด้วยป้ายเล็กพอ ไม่ลากแถบเขียวทั้งคอลัมน์ตามเมาส์ไปด้วย
         tipShow("Week ending "+tlDate(k),e.clientX,e.clientY);
         return;
       }
@@ -5999,9 +6017,11 @@ function pTimeline(ph){
   });
   const twg=P.querySelector(".twg");
   if(twg)twg.addEventListener("mouseleave",()=>{ if(!tlDrag)guideOff(P) });
-  document.addEventListener("mouseup",tlUp);
+  tlDrag=null;                       // วาดตารางใหม่แล้วการลากค้างจากรอบก่อนต้องไม่หลงเหลือ
   function tlUp(){ document.removeEventListener("mouseup",tlUp);
     tipHide();
+    // ปล่อยเมาส์แล้วเก็บแถบนำสายตาด้วย เมื่อก่อนมันหายไปเองเพราะ hover วาดทับตลอด
+    guideOff(P);
     if(!tlDrag)return; const d=tlDrag; tlDrag=null;
     const r=d.row, a=Math.min(d.lo,d.hi), b=Math.max(d.lo,d.hi);
     if(a===d.a&&b===d.b){ pTimeline(ph); return }        // กดแล้วไม่ได้ลาก ไม่ต้องแก้อะไร
@@ -6226,7 +6246,10 @@ function pTimelineOn(){
 
   /* เหมือนหน้าก่อนงาน กดแถบครั้งแรกเพื่อเลือก แล้วกดค้างลากยืดหดหรือเลื่อน
      แถบแผนอยู่บน แถบเวลาจริงอยู่ล่าง ดูจากที่กดว่าจะแก้อันไหน จับทีละครึ่งชั่วโมง */
-  let drag=null;
+  /* เก็บไว้นอกฟังก์ชันวาดตาราง เพราะการเลือกแถบทำให้ตารางถูกวาดใหม่ทันที
+     ตัวแปรที่ประกาศในฟังก์ชันจะตายไปพร้อมของเก่า แล้วตัวจับเมาส์ชุดใหม่
+     จะมองไม่เห็นการลากที่ค้างอยู่ แถบก็ไม่ขยับตามมือ */
+  onDrag=null;
   const hourAt=(td,ev)=>{ const b=td.getBoundingClientRect();
     return Math.round((H0+(ev.clientX-b.left)/b.width*span)*2)/2 };
   P.querySelectorAll("td.ontrack[data-ol]").forEach(td=>{
@@ -6234,21 +6257,29 @@ function pTimelineOn(){
       const i=+td.dataset.ol, r=R[i], ha=hasActT(r);
       const y=e.clientY-td.getBoundingClientRect().top;
       const w=(ha&&y>=20)?"act":"plan";
-      if(!(tlPick&&tlPick.row===r&&tlPick.w===w)){
+      /* เหมือนหน้าก่อนงาน เลือกแล้วลากต่อได้เลย แต่ต้องกดโดนตัวแถบ
+         กดในช่องว่างคือแค่เลือก ไม่ใช่ยืดแถบมาหาที่คลิก */
+      const first = !(tlPick&&tlPick.row===r&&tlPick.w===w);
+      if(first){
         if(w==="act"&&!ha)seedActT(r);
-        tlPick={row:r,w:w}; pTimelineOn(); return;
+        tlPick={row:r,w:w}; pTimelineOn();
       }
+      // วาดใหม่แล้ว td ตัวเดิมหลุดจากหน้าจอ ต้องจับตัวใหม่มาถือไว้ ไม่งั้นแถบไม่ขยับ
+      const live=P.querySelector('td.ontrack[data-ol="'+i+'"]')||td;
       const a=w==="act"?hm(r.at1):hm(r.t1), b=w==="act"?hm(r.at2):hm(r.t2);
-      const x=hourAt(td,e), edge=Math.min(1,(b-a)/4);
+      const x=hourAt(live,e), edge=Math.min(1,(b-a)/4);
+      if(first && (x<a||x>b)) return;
       const mode = x<=a+edge ? "a" : x>=b-edge ? "b" : "move";
-      drag={row:r,w:w,td:td,mode:mode,a:a,b:b,x0:x,lo:a,hi:b}; paintOn() });
+      onDrag={row:r,w:w,td:live,mode:mode,a:a,b:b,x0:x,lo:a,hi:b};
+      document.addEventListener("mouseup",up);   // ติดตอนเริ่มลาก ด้วยเหตุผลเดียวกับตารางรายสัปดาห์
+      paintOn() });
     td.addEventListener("mousemove",e=>{
-      if(!drag||drag.td!==td){
-        onGuide(td,hourAt(td,e));
+      if(!onDrag||onDrag.td!==td){
+        // บอกเวลาด้วยป้าย ไม่ต้องมีเส้นนำสายตาวิ่งตามเมาส์
         tipShow(mh(hourAt(td,e)),e.clientX,e.clientY);
         return;
       }
-      const x=hourAt(td,e), d=drag;
+      const x=hourAt(td,e), d=onDrag;
       if(d.mode==="move"){ const sh=x-d.x0; d.lo=d.a+sh; d.hi=d.b+sh }
       else if(d.mode==="a"){ d.lo=Math.min(x,d.b-.5); d.hi=d.b }
       else { d.lo=d.a; d.hi=Math.max(x,d.a+.5) }
@@ -6258,14 +6289,14 @@ function pTimelineOn(){
       tipShow((d.w==="act"?"Actual":"Plan")+"  "+mh(lo)+" – "+mh(Math.max(hi,lo+.5)),
         e.clientX,e.clientY);
     });
-    td.addEventListener("mouseleave",()=>{ if(!drag){ onGuideOff(td); tipHide() } });
+    td.addEventListener("mouseleave",()=>{ if(!onDrag){ onGuideOff(td); tipHide() } });
   });
-  function paintOn(){ if(!drag)return;
-    const a=Math.min(drag.lo,drag.hi), b=Math.max(drag.lo,drag.hi);
-    const bar=drag.td.querySelector(drag.w==="act"?".onbar":".onplan");
+  function paintOn(){ if(!onDrag)return;
+    const a=Math.min(onDrag.lo,onDrag.hi), b=Math.max(onDrag.lo,onDrag.hi);
+    const bar=onDrag.td.querySelector(onDrag.w==="act"?".onbar":".onplan");
     if(!bar)return;
     bar.style.left=pc(a)+"%"; bar.style.width=Math.max(pc(b)-pc(a),1.2)+"%";
-    if(drag.w==="act"){ bar.classList.toggle("narrow",pc(b)-pc(a)<9);
+    if(onDrag.w==="act"){ bar.classList.toggle("narrow",pc(b)-pc(a)<9);
       bar.querySelector("span").textContent=mh(a)+"–"+mh(Math.max(b,a+.5)) } }
   /* เส้นนำสายตาในแถวหน้างาน วางเป็นเปอร์เซ็นต์เหมือนตัวแถบ จะได้ตรงกันเป๊ะ */
   function onGuide(td,at,lo,hi){
@@ -6277,12 +6308,12 @@ function pTimelineOn(){
     g.hidden=false;
   }
   function onGuideOff(td){ const g=td.querySelector(".onguide"); if(g)g.hidden=true }
-  document.addEventListener("mouseup",up);
+  onDrag=null;
   function up(){ document.removeEventListener("mouseup",up);
     tipHide();
-    if(drag){ const g=drag.td.querySelector(".onguide"); if(g)g.hidden=true }
-    if(!drag)return;
-    const d=drag; drag=null; const r=d.row;
+    if(onDrag){ const g=onDrag.td.querySelector(".onguide"); if(g)g.hidden=true }
+    if(!onDrag)return;
+    const d=onDrag; onDrag=null; const r=d.row;
     const a=Math.min(d.lo,d.hi), b=Math.max(d.lo,d.hi);
     if(a===d.a&&b===d.b){ pTimelineOn(); return }
     if(d.w==="act"){ r.at1=mh(a); r.at2=mh(Math.max(b,a+.5)) }

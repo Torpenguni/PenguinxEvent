@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PenguinX Event</title>
 <style>
 :root{--paper:#F5F6F2;--card:#FFF;--ink:#191D1A;--ink2:#4E564F;--ink3:#8B9088;
