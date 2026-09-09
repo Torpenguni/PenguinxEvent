@@ -1072,4 +1072,8 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
 .secbar .sec{margin:0}
 /* ปุ่มเปิดเวทีเป็นปุ่มหลักของการ์ด พื้นเข้มตัวหนังสือขาว จะได้เห็นว่ากดตรงไหน */
 .stgb .act.go:hover{background:var(--accent2);border-color:var(--accent2)}
+.lmsg{margin:0 0 12px;font-size:13.5px;padding:9px 12px;border-radius:8px;
+ background:var(--soft);color:var(--accent)}
+.lmsg.bad{background:color-mix(in srgb,var(--risk) 12%,transparent);color:var(--risk);font-weight:600}
+.lmsg[hidden]{display:none}
 </style>

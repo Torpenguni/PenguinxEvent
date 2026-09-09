@@ -45,4 +45,17 @@ for data,out in (('app4.json','platform.html'),('demo.json','demo.html')):
     os.makedirs('dist',exist_ok=True)
     name='index.html' if out=='platform.html' else 'demo.html'
     open(os.path.join('dist',name),'w',encoding='utf-8').write(doc)
+    # ฉบับต่อเซิร์ฟเวอร์จริง ไม่ฝังข้อมูล ล็อกอินแล้วดึงจาก API
+    # ข้อมูลไม่อยู่ในไฟล์ จึงเอาชุดจริงขึ้นเว็บได้โดยไม่หลุดให้คนที่ยังไม่ล็อกอิน
+    if out=='platform.html':
+        api=os.environ.get('PXE_API','http://localhost:4000')
+        thin=json.dumps({'events':[],'reps':[],'template':D.get('template',[]),
+                         'timelineTemplate':D.get('timelineTemplate',[])},ensure_ascii=False)
+        live=css+'\n'+html+'\n'+js.replace('__DATA__',thin)
+        open(os.path.join('dist','live.html'),'w',encoding='utf-8').write(
+          '<!doctype html>\n<html lang="th">\n<head>\n<meta charset="utf-8">\n'
+          '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+          '<meta name="robots" content="noindex,nofollow">\n'
+          '<script>window.PXE_API=%s</script>\n'
+          '</head>\n<body>\n'%json.dumps(api)+live+'\n</body>\n</html>\n')
 print("ฝังโลโก้:", ", ".join(found) if found else "ยังไม่มีไฟล์โลโก้ใน prototypes/logos/")

@@ -2,8 +2,13 @@
 
 const D=__DATA__;
 const EVENTS=D.events;
-let EV=EVENTS[0];
-const REPS=D.reps;
+/* โหมดต่อเซิร์ฟเวอร์ ไฟล์ไม่มีข้อมูลฝังมา รายการงานจะว่างจนกว่าจะล็อกอิน
+   ตั้งงานเปล่าไว้ก่อน โค้ดที่อ่าน EV.booths ตอนโหลดจะได้ไม่พังไปทั้งไฟล์ */
+const BLANK={id:"",name:"",short:"",status:"planning",dates:"",venue:"",brands:[],
+  booths:[],areas:[],deals:[],sessions:[],budget:[],timeline:[],tasks:[],
+  packages:{},addons:[],zoneNames:{},stages:[],_thin:true};
+let EV=EVENTS[0]||BLANK;
+const REPS=D.reps||[];
 const KINDN={inhouse:"In-house rep",agent:"External agent",house:"House / free booth"};
 let B=EV.booths, AR=EV.areas, DEALS=EV.deals, SES=EV.sessions;
 function showEvLogo(){
@@ -13,7 +18,7 @@ function showEvLogo(){
   box.style.display=EV.logo?"block":"none";
 }
 function useEvent(id){
-  EV=EVENTS.find(e=>e.id===id)||EVENTS[0];
+  EV=EVENTS.find(e=>e.id===id)||EVENTS[0]||BLANK;
   B=EV.booths; AR=EV.areas; DEALS=EV.deals; SES=EV.sessions;
   sel=null; stg=null; q=""; day=1;
 }
@@ -172,12 +177,64 @@ function logoTile(co,px){
 
 
 /* ---------- shell ---------- */
-$("#lform").addEventListener("submit",e=>{
-  e.preventDefault(); role=$("#rl").value;
-  const r=(D.reps||[]).find(x=>x.active!==false&&x.kind!=="house");
-  me=r?r.name:"—";
-  showPick();
+function loginMsg(t,bad){
+  const el=$("#lmsg"); if(!el)return;
+  el.textContent=t||""; el.hidden=!t; el.className=bad?"lmsg bad":"lmsg";
+}
+/* ต่อเซิร์ฟเวอร์แล้วล็อกอินจริง บทบาทมาจากบัญชี ไม่ได้เลือกเอง
+   ยังไม่ได้ต่อก็ใช้ตัวเลือกบทบาทแบบเดิมไว้ดูว่าแต่ละบทบาทเห็นอะไร */
+$("#lform").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!online()){
+    role=$("#rl").value;
+    const r=(D.reps||[]).find(x=>x.active!==false&&x.kind!=="house");
+    me=r?r.name:"—";
+    showPick(); return;
+  }
+  const btn=$("#lform").querySelector("button[type=submit]");
+  const lbl=btn.textContent; btn.disabled=true; btn.textContent="Signing in…";
+  loginMsg("");
+  try{
+    const out=await api("/api/auth/login",{method:"POST",
+      body:JSON.stringify({email:$("#em").value.trim(),password:$("#pw").value})});
+    TOKEN=out.token; try{ localStorage.setItem("pxe.token",TOKEN) }catch(x){}
+    await afterLogin();
+  }catch(err){
+    loginMsg(err.status===401?"That email and password do not match":err.message,true);
+  }finally{ btn.disabled=false; btn.textContent=lbl }
 });
+/* ดึงตัวตนและรายชื่องานจากเซิร์ฟเวอร์ แล้วค่อยโหลดงานทีละงานตอนกดเข้า */
+async function afterLogin(){
+  const who=await api("/api/auth/me");
+  ME=who.user; me=ME.name||ME.email; role=ME.role;
+  /* ต่อเซิร์ฟเวอร์แล้วบทบาทมาจากบัญชี ซ่อนตัวเลือกบทบาทกับตัวสลับบทบาททิ้ง
+     จะได้ไม่เข้าใจผิดว่ากดเปลี่ยนสิทธิ์ตัวเองได้ */
+  ["rlrow","rlwrap"].forEach(id=>{const el=document.getElementById(id); if(el)el.hidden=true});
+  const rp=document.querySelector(".rolepick"); if(rp)rp.hidden=true;
+  const dm=document.querySelector(".demo"); if(dm)dm.hidden=true;
+  const evs=await api("/api/events");
+  const list=Array.isArray(evs)?evs:(evs.events||[]);
+  EVENTS.length=0;
+  list.forEach(x=>EVENTS.push({id:x.code||x.id,name:x.name,
+    short:x.short||x.name,status:x.status||"planning",
+    dates:x.dates||"",venue:x.venue||"",brands:[],
+    booths:[],areas:[],deals:[],sessions:[],budget:[],timeline:[],tasks:[],
+    packages:{},addons:[],zoneNames:{},stages:[],_thin:true}));
+  if(!EVENTS.length){ loginMsg("This account has no event yet",true); return }
+  EV=EVENTS[0];
+  showPick();
+}
+/* งานหนึ่งงานโหลดทั้งก้อนตอนกดเข้า ก้อนเดียวจบ ไม่ต้องยิงทีละหน้า */
+async function pullEvent(id){
+  const out=await api("/api/events/"+encodeURIComponent(id)+"/full");
+  const i=EVENTS.findIndex(x=>x.id===id);
+  const fresh=out.event; fresh.id=id;
+  if(i>=0)EVENTS[i]=fresh; else EVENTS.push(fresh);
+  if(Array.isArray(out.reps)){ REPS.length=0; out.reps.forEach(r=>REPS.push(r)) }
+  EV=EVENTS.find(x=>x.id===id);
+  B=EV.booths; AR=EV.areas; DEALS=EV.deals; SES=EV.sessions;
+  savedJS=saveBody();
+}
 /* ───────── สร้างงานใหม่ ─────────
    กรอกข้อมูลตั้งต้นครั้งเดียว แล้วระบบวางโครงให้ทั้งงาน
    ไทม์ไลน์ตั้งช่วงเป็น 12 เดือนก่อนวันงาน ถึง 1 เดือนหลังวันงาน ทุกงานเหมือนกัน */
@@ -453,7 +510,15 @@ function showPick(){
     b.addEventListener("click",e=>{e.stopPropagation();pickLogo(b.dataset.lg)}));
   const nb=$("#evnew"); if(nb)nb.addEventListener("click",pNewEvent);
 }
-function enter(id){
+async function enter(id){
+  /* ต่อเซิร์ฟเวอร์แล้วต้องดึงงานก้อนเต็มก่อน รายการที่หน้าเลือกงานมีแค่ชื่อกับสถานะ */
+  if(online()){
+    const thin=EVENTS.find(x=>x.id===id);
+    if(!thin||thin._thin){
+      try{ await pullEvent(id) }
+      catch(err){ alert("โหลดงานไม่สำเร็จ: "+err.message); return }
+    }
+  }
   useEvent(id);
   $("#login").style.display="none";
   $("#pick").classList.remove("on");
@@ -465,15 +530,20 @@ function enter(id){
   go("dash");
   watchPage(); snapPush();
 }
-$("#ev").addEventListener("change",e=>{
-  useEvent(e.target.value); showEvLogo();
+$("#ev").addEventListener("change",async e=>{
+  const id=e.target.value;
+  if(online()){ const t=EVENTS.find(x=>x.id===id);
+    if(!t||t._thin){ try{ await pullEvent(id) }catch(err){ alert(err.message); return } } }
+  useEvent(id); showEvLogo();
   UNDO.list.length=0; UNDO.at=-1;    // คนละงาน ประวัติคนละชุด
   go("dash")});
 document.getElementById("ubk").addEventListener("click",undoStep);
 document.getElementById("ufw").addEventListener("click",redoStep);
 $("#allev").addEventListener("click",showPick);
 $("#pout").addEventListener("click",()=>{$("#pick").classList.remove("on");$("#login").style.display="grid"});
-$("#out").addEventListener("click",()=>{$("#app").classList.remove("on");$("#login").style.display="grid"});
+$("#out").addEventListener("click",()=>{ if(online()){TOKEN=null;
+  try{localStorage.removeItem("pxe.token")}catch(e){} }
+  $("#app").classList.remove("on");$("#login").style.display="grid"});
 $("#rl2").innerHTML=Object.keys(ROLE).map(k=>'<option value="'+k+'">'+ROLE[k].n+'</option>').join("");
 $("#rl2").addEventListener("change",e=>{role=e.target.value;
   if(page!=="dash"&&can(NAV.find(n=>n.id===page).m)==="none")page="dash";
@@ -573,6 +643,27 @@ document.addEventListener("keydown",e=>{
    เก็บลง localStorage ของเบราว์เซอร์ ทุกครั้งที่มีการแก้ ไม่ต้องกดบันทึก
    ทำให้รีเฟรชหน้า ปิดแท็บ หรืออัปหน้าเว็บเวอร์ชันใหม่ แล้วงานที่แก้ไว้ยังอยู่
    ไม่เก็บโลโก้กับไฟล์ผัง เป็น data URI ก้อนใหญ่และฝังกลับมาให้ตอน build อยู่แล้ว */
+/* ---------- โหมดต่อเซิร์ฟเวอร์ ----------
+   ถ้าตั้ง API ไว้ ระบบจะล็อกอินจริง ดึงข้อมูลจากฐานข้อมูล และบันทึกกลับขึ้นเซิร์ฟเวอร์
+   ทุกคนจึงเห็นชุดเดียวกัน แก้พร้อมกันได้ ไม่ผูกกับเบราว์เซอร์ใครอีก
+   ถ้าไม่ได้ตั้งไว้ ก็ทำงานแบบเดิมคือข้อมูลฝังในไฟล์ บันทึกลงเบราว์เซอร์ตัวเอง */
+const API=(window.PXE_API||"").replace(/\/$/,"");
+const online=()=>!!API;
+let TOKEN=null, ME=null;
+try{ TOKEN=localStorage.getItem("pxe.token")||null }catch(e){}
+async function api(path,opt){
+  const o=Object.assign({headers:{}},opt||{});
+  o.headers["content-type"]="application/json";
+  if(TOKEN)o.headers.authorization="Bearer "+TOKEN;
+  const res=await fetch(API+path,o);
+  let body=null;
+  try{ body=await res.json() }catch(e){}
+  if(!res.ok){
+    const err=new Error((body&&body.error)||("ต่อเซิร์ฟเวอร์ไม่ได้ ("+res.status+")"));
+    err.status=res.status; throw err;
+  }
+  return body;
+}
 const SKEY="pxe.autosave.v2";
 let saveT=null, savedJS="", saveOn=true, saveAt=0;
 function saveBody(){
@@ -584,8 +675,28 @@ function saveNow(){
   if(!saveOn)return;
   let js; try{ js=saveBody() }catch(err){ return }
   if(js===savedJS)return;
+  if(online()){ pushUp(js); return }
   try{ localStorage.setItem(SKEY,js); savedJS=js; saveAt=Date.now(); paintSaved("ok") }
   catch(err){ saveOn=false; paintSaved("full") }
+}
+/* ส่งงานที่เปิดอยู่ขึ้นเซิร์ฟเวอร์ ส่งทีละคำขอ ถ้ามีการแก้ระหว่างรอ ค่อยส่งรอบถัดไปให้
+   ล้มเหลวก็เก็บลงเบราว์เซอร์ไว้ก่อน งานจะได้ไม่หายตอนเน็ตหลุด */
+let pushing=false, pushAgain=false;
+async function pushUp(js){
+  if(pushing){ pushAgain=true; return }
+  pushing=true; paintSaved("busy");
+  try{
+    const body={}; for(const k in EV) if(!HEAVY.includes(k)) body[k]=EV[k];
+    await api("/api/events/"+encodeURIComponent(EV.id)+"/full",
+      {method:"PUT",body:JSON.stringify({event:body})});
+    savedJS=js; saveAt=Date.now(); paintSaved("ok");
+  }catch(err){
+    paintSaved("err",err.message);
+    try{ localStorage.setItem(SKEY,js) }catch(e2){}
+  }finally{
+    pushing=false;
+    if(pushAgain){ pushAgain=false; saveSoon() }
+  }
 }
 function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(saveNow,600) }
 function saveClear(){
@@ -597,13 +708,17 @@ function saveWhen(){
   const s=Math.round((Date.now()-saveAt)/1000);
   return s<8?"just now":s<60?s+"s ago":Math.round(s/60)+" min ago";
 }
-function paintSaved(kind){
+function paintSaved(kind,detail){
   const el=document.getElementById("svst"); if(!el)return;
   if(kind==="full"){ el.textContent="Not saved — browser storage is full";
     el.className="svst bad"; el.title="Clear some space, or export a backup from Settings"; return }
+  if(kind==="busy"){ el.textContent="Saving…"; el.className="svst"; el.title=""; return }
+  if(kind==="err"){ el.textContent="Not saved — kept on this device";
+    el.className="svst bad"; el.title=detail||"The server did not accept the change"; return }
   el.textContent="Saved "+saveWhen();
   el.className="svst on";
-  el.title="Every change is kept in this browser. Reset it from Settings › Modules.";
+  el.title=online()?"Saved on the server — everyone sees the same figures."
+                   :"Every change is kept in this browser. Reset it from Settings › Modules.";
   clearTimeout(paintSaved.t);
   paintSaved.t=setTimeout(()=>{ const e=document.getElementById("svst");
     if(e&&e.classList.contains("on"))e.textContent="Saved "+saveWhen() },20000);
@@ -624,7 +739,7 @@ function loadSaved(){
   B=EV.booths; AR=EV.areas; DEALS=EV.deals; SES=EV.sessions;
   savedJS=saveBody(); saveAt=Date.now();
 }
-loadSaved();
+if(!online())loadSaved();
 
 function draw(){
   $("#rl2").value=role; $("#wn").textContent=me; $("#wr").textContent=ROLE[role].n;
