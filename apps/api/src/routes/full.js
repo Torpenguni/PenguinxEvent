@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { q } from '../db.js'
 import { require as need } from '../auth.js'
+import { writeEvent } from '../writeEvent.js'
 
 const r = Router()
 
@@ -8,21 +9,32 @@ const ST = { available: 'free', held: 'booked', contracted: 'booked',
              deposit_paid: 'deposit', paid: 'paid', blocked: 'free' }
 const TL = { plan: '', doing: 'doing', done: 'done', risk: 'risk' }
 const hhmm = (t) => (t ? String(t).slice(0, 5) : null)
+/* pg คืน date มาเป็น Date ของ JS ถ้าเอา String() ครอบจะได้ 'Mon Mar 01 2027 ...'
+   ตัดสิบตัวแรกเลยได้ 'Mon Mar 01' ซึ่งเขียนกลับลงคอลัมน์ date ไม่ได้
+   ประกอบเองจากส่วนของเวลาท้องถิ่น ไม่ใช้ toISOString ที่เลื่อนวันตามโซนเวลา */
+const ymd = (d) => {
+  if (!d) return null
+  if (typeof d === 'string') return d.slice(0, 10)
+  const p = (n) => String(n).padStart(2, '0')
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+}
 
 /* คืนข้อมูลงานทั้งก้อนในรูปเดียวกับที่หน้าเว็บใช้อยู่
    ทำแบบนี้เพื่อไม่ต้องรื้อหน้าเว็บที่ตรวจมาแล้ว 22 หน้า
    ตัวเลขเงินตัดออกตามสิทธิ์ที่เซิร์ฟเวอร์ ไม่ใช่แค่ซ่อนบนหน้าจอ */
-r.get('/:code/full', need('floorplan'), async (req, res, next) => {
-  try {
-    const ev = (await q(`select * from event where code = $1`, [req.params.code])).rows[0]
-    if (!ev) return res.status(404).json({ error: 'ไม่พบงานนี้' })
+/* ดึงงานทั้งก้อนออกมาในรูปที่หน้าเว็บใช้ แยกเป็นฟังก์ชันเพราะตอนบันทึกก็ต้องใช้
+   เพื่อเอาค่าเดิมของส่วนที่ผู้ใช้ไม่มีสิทธิ์แก้ มาคงไว้แทนที่ส่งมา */
+async function fetchFull (code, perms, user) {
+
+    const ev = (await q(`select * from event where code = $1`, [code])).rows[0]
+    if (!ev) return null
     const id = ev.id
-    const seeMoney = (req.perms?.budget?.level ?? 'none') !== 'none'
+    const seeMoney = (perms?.budget?.level ?? 'none') !== 'none'
     // เป้ารายได้แยกสิทธิ์จากงบ เซลล์ต้องเห็นเป้าเพื่อดู run rate แต่ไม่เห็น Feasibility
-    const seeTarget = (req.perms?.target?.level ?? 'none') !== 'none'
-    const seePrice = (req.perms?.price?.level ?? 'none') !== 'none'
-    const own = req.perms?.deal?.scope === 'own'
-    const myAgent = req.user.agent_id ?? null
+    const seeTarget = (perms?.target?.level ?? 'none') !== 'none'
+    const seePrice = (perms?.price?.level ?? 'none') !== 'none'
+    const own = perms?.deal?.scope === 'own'
+    const myAgent = user.agent_id ?? null
 
     const [set, brands, zones, types, benefits, addons, booths, deals, items,
            budget, stages, sessions, people, tasks, etasks, tl, agents] = await Promise.all([
@@ -106,7 +118,9 @@ r.get('/:code/full', need('floorplan'), async (req, res, next) => {
           stage: d.status, st: null, sales: d.agent, product: d.key_product,
           form: d.form_received, board: d.on_directory_board,
           holdDays: d.hold_days, holdStart: d.hold_started_at, holdExp: d.hold_expires_at,
-          next: null, nextDate: null, acts: [], tasks: taskByDeal[d.id] ?? {},
+          next: d.next_step ?? null,
+          nextDate: ymd(d.next_date),
+          acts: [], tasks: taskByDeal[d.id] ?? {},
         })),
 
       budget: seeMoney ? budget.rows.map((l) => ({
@@ -154,9 +168,70 @@ r.get('/:code/full', need('floorplan'), async (req, res, next) => {
       sales: agents.rows.map((a) => a.name),
       catTotals: {},
     }
-    res.json({ event: out, reps: agents.rows.map((a) => ({
+    return { event: out, reps: agents.rows.map((a) => ({
       name: a.name, kind: a.kind === 'inhouse' ? 'inhouse' : a.kind,
-      rate: Number(a.commission_rate), active: a.active, th: null })) })
+      rate: Number(a.commission_rate), active: a.active, th: null })) }
+}
+
+r.get('/:code/full', need('floorplan'), async (req, res, next) => {
+  try {
+    const out = await fetchFull(req.params.code, req.perms, req.user)
+    if (!out) return res.status(404).json({ error: 'ไม่พบงานนี้' })
+    res.json(out)
+  } catch (e) { next(e) }
+})
+
+/* บันทึกงานทั้งก้อนกลับลงฐานข้อมูล รับรูปเดียวกับที่ GET คืนออกไป
+   หน้าเว็บแก้ข้อมูลในหน่วยความจำอยู่แล้วทั้งหมด จึงส่งทั้งก้อนกลับมาทีเดียว
+   ง่ายและตรงกว่าการทำ endpoint แยกทีละตาราง และใช้ตัวเขียนตัวเดียวกับตอนนำเข้าครั้งแรก
+
+   สิทธิ์บังคับที่นี่ ไม่ใช่ที่หน้าจอ ใครไม่มีสิทธิ์แก้อะไร ค่าเดิมในฐานข้อมูลจะถูกใช้แทน
+   ที่ส่งมา ต่อให้แก้ HTML หรือยิง API ตรงก็เปลี่ยนไม่ได้ */
+r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
+  const lvl = (m) => req.perms?.[m]?.level ?? 'none'
+  const canWrite = (m) => ['write', 'approve'].includes(lvl(m))
+  try {
+    const body = req.body?.event ?? req.body
+    if (!body || typeof body !== 'object' || body.id !== req.params.code) {
+      return res.status(400).json({ error: 'ข้อมูลที่ส่งมาไม่ตรงกับงานนี้' })
+    }
+    if (req.perms?.deal?.scope === 'own') {
+      return res.status(403).json({ error: 'บทบาทนี้เห็นเฉพาะดีลของตัวเอง จึงบันทึกทั้งงานไม่ได้' })
+    }
+
+    /* ส่วนไหนไม่มีสิทธิ์เขียน เอาของเดิมในฐานข้อมูลมาใช้แทนที่ส่งมา
+       ปฏิบัติการเห็นงบเป็นศูนย์อยู่แล้ว ถ้ายอมให้ส่งกลับตรงๆ งบทั้งงานจะถูกล้างทิ้ง */
+    const cur = await fetchFull(req.params.code, {
+      budget: { level: 'write' }, target: { level: 'write' }, price: { level: 'write' },
+      deal: { level: 'write', scope: 'all' }, stage: { level: 'write' },
+      exhibitor: { level: 'write' }, timeline: { level: 'write' },
+    }, { agent_id: null })
+    if (!cur) return res.status(404).json({ error: 'ไม่พบงานนี้' })
+    const base = cur.event
+
+    const keep = (cond, keys) => {
+      if (cond) return
+      for (const k of keys) body[k] = base[k]
+    }
+    keep(canWrite('budget'), ['budget', 'catTotals'])
+    keep(canWrite('target'), ['target', 'target_note'])
+    keep(canWrite('price'), ['packages', 'addons'])
+    keep(canWrite('deal'), ['deals'])
+    keep(canWrite('stage'), ['stages', 'sessions'])
+    keep(canWrite('exhibitor'), ['tasks'])
+    keep(canWrite('timeline'), ['timeline'])
+    keep(canWrite('floorplan'), ['booths', 'areas', 'zoneNames'])
+
+    const agents = {}
+    for (const a of (await q(`select id, name from sales_agent`)).rows) agents[a.name] = a.id
+    const admin = (await q(`select id from app_user where role='admin' order by id limit 1`)).rows[0]
+
+    await q('begin')
+    try {
+      const stat = await writeEvent(q, body, { agents, adminId: admin?.id ?? req.user.id })
+      await q('commit')
+      res.json({ ok: true, saved: stat, at: new Date().toISOString() })
+    } catch (e) { await q('rollback').catch(() => {}); throw e }
   } catch (e) { next(e) }
 })
 

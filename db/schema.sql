@@ -23,7 +23,7 @@ create table role_permission (
   role   text not null references role (code) on delete cascade,
   module text not null check (module in
            ('floorplan','deal','price','document','payment','budget','target',
-            'stage','marketing','exhibitor','movein','share','user','audit')),
+            'stage','marketing','exhibitor','movein','share','user','audit','timeline')),
   level  text not null check (level in ('none','read','write','approve')),
   -- เห็นเฉพาะของตัวเอง หรือเห็นทั้งงาน ใช้กับ deal เป็นหลัก
   scope  text not null default 'all' check (scope in ('own','all')),
@@ -40,6 +40,7 @@ insert into role_permission (role, module, level, scope) values
   ('admin','user','write','all'),       ('admin','audit','read','all'),
   ('admin','share','write','all'),
   ('admin','target','write','all'),
+  ('admin','timeline','write','all'),
 
   -- ผู้บริหาร เห็นทุกอย่าง เป็นเจ้าของตัวเลขเงินและอนุมัติส่วนลด
   -- รับงานเดิมของบัญชีการเงินมาไว้ที่นี่ ทีมเล็กไม่ต้องแยกอีกบทบาท
@@ -51,6 +52,7 @@ insert into role_permission (role, module, level, scope) values
   ('exec','user','none','all'),         ('exec','audit','read','all'),
   ('exec','share','read','all'),
   ('exec','target','write','all'),
+  ('exec','timeline','read','all'),
 
   -- ปฏิบัติการ ดูแลผังงาน เวที ผู้ออกบูธ และงานก่อสร้าง
   -- รับงานเดิมของการตลาด (เวทีและช่องทางสื่อ) มารวมไว้ที่นี่
@@ -62,6 +64,7 @@ insert into role_permission (role, module, level, scope) values
   ('operations','user','none','all'),       ('operations','audit','none','all'),
   ('operations','share','write','all'),
   ('operations','target','none','all'),
+  ('operations','timeline','write','all'),
 
   -- เซลล์ จองบูธและดูแลดีลของตัวเอง เห็นเป้าของตัวเอง ไม่เห็น Feasibility
   ('sales','floorplan','write','all'),  ('sales','deal','write','own'),
@@ -71,7 +74,8 @@ insert into role_permission (role, module, level, scope) values
   ('sales','exhibitor','read','own'),   ('sales','movein','none','all'),
   ('sales','user','none','all'),        ('sales','audit','none','all'),
   ('sales','share','none','all'),
-  ('sales','target','read','own');
+  ('sales','target','read','own'),
+  ('sales','timeline','read','all');
 
 -- ---------------------------------------------------------------- คน & องค์กร
 
@@ -322,6 +326,8 @@ create table deal (
 
   -- ของที่ต้องเก็บจากผู้ออกบูธ ชีตลิสต์ลูกค้าติดตามสามอย่างนี้อยู่แล้ว
   key_product        text,
+  next_step          text,              -- สิ่งที่ต้องทำต่อกับดีลนี้
+  next_date          date,
   form_received      boolean not null default false,   -- ส่งฟอร์มแล้วหรือยัง
   logo_url           text,
   on_directory_board boolean not null default false,
