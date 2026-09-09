@@ -61,10 +61,12 @@ const DB_DOWN = new Set(['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P03', '3D0
 // ตอนขึ้นจริงเสิร์ฟหน้าเว็บจากโดเมนเดียวกับ API
 if (process.env.NODE_ENV === 'production') {
   const here = path.dirname(fileURLToPath(import.meta.url))
-  /* โดเมนผู้ออกบูธเสิร์ฟหน้าเดียวจบ ไม่ใช่แอปของทีมเรา
-     ไฟล์อยู่ใน apps/api/portal เพราะ Vercel แพ็กเฉพาะของที่อยู่ใต้ root ของฟังก์ชัน */
+  /* หน้าเว็บทั้งสองชุดอยู่ใต้ apps/api เพราะ Vercel แพ็กเฉพาะของที่อยู่ใต้ root ของฟังก์ชัน
+     ของทีมชี้ไป ../../web/dist ไม่ได้ ตอนขึ้นจริงมันอยู่นอกขอบเขตที่ถูกอัปโหลด
+     หน้าแรกเลยตอบ 404 ว่าหา index.html ไม่เจอ ทั้งที่ API ทำงานปกติ
+     apps/api/web สร้างจาก npm -w apps/web run build แล้วคัดลอกเข้ามา */
   const dist = isPortal ? path.resolve(here, '../portal')
-                        : path.resolve(here, '../../web/dist')
+                        : path.resolve(here, '../web')
   app.use(express.static(dist))
   // ทุกเส้นทางที่ไม่ใช่ /api ส่ง index.html ให้หน้าเว็บจัดการเอง
   app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')))
