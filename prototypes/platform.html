@@ -1070,6 +1070,8 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
 /* หัวข้อกับปุ่มเลือกวันอยู่บรรทัดเดียวกัน เหนือตาราง */
 .secbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:26px 0 12px}
 .secbar .sec{margin:0}
+/* ปุ่มเปิดเวทีเป็นปุ่มหลักของการ์ด พื้นเข้มตัวหนังสือขาว จะได้เห็นว่ากดตรงไหน */
+.stgb .act.go:hover{background:var(--accent2);border-color:var(--accent2)}
 </style>
 
 <div id="login">
@@ -3980,7 +3982,7 @@ function stageList(){
       '<span>'+all.length+' slots · '+real.length+' slots with content · '+ppl.size+' people</span>'+
       '<small style="color:'+(bad?cv("--risk"):cv("--ok"))+'">'+
        (bad?bad+" slots not ready":"Every slot covered")+'</small>'+
-      '<span class="stgb"><button class="act" data-g="'+i+'">Open stage →</button>'+
+      '<span class="stgb"><button class="act go" data-g="'+i+'">Open stage →</button>'+
       (wr&&!all.length?'<button class="rowdel" data-sx="'+esc(g)+'">Remove</button>':'')+
       '</span></div>'}).join("")+'</div>'+
    (wr?'<div class="addbar"><button id="stgadd">+ Add stage</button></div>':'')+
@@ -4865,6 +4867,17 @@ function pExport(){
    'pick one of the options below to get a single file</p></div>'+
    '<div class="addbar"><button id="exAll">Combine every table into one CSV</button>'+
    '<button id="exJson">Back up the whole event as JSON</button></div>'+
+   /* ข้อมูลอยู่ในเบราว์เซอร์ของแต่ละคน ย้ายเครื่องหรือส่งต่อให้คนอื่นต้องมีไฟล์กลาง */
+   '<h2 class="sec">Move your work to another browser</h2>'+
+   '<div class="note"><p><b>Everything you change is saved in this browser only.</b> '+
+   'A teammate on another machine, or you on your phone, still sees the figures this page shipped with.</p>'+
+   '<p>Take a snapshot out with <b>Snapshot of every event</b>, then load it on the other machine '+
+   'with <b>Load a snapshot</b>. Send the same file over and it becomes the starting point of the next '+
+   'version, so nobody has to redo the work.</p></div>'+
+   '<div class="addbar"><button id="snapOut">Snapshot of every event</button>'+
+   '<label class="act" id="snapInL" style="cursor:pointer">Load a snapshot'+
+     '<input type="file" id="snapIn" accept="application/json,.json" hidden></label>'+
+   '<span id="snapMsg" style="font-size:13px;color:var(--ink2);align-self:center"></span></div>'+
    '<div class="note"><p><b>Single CSV</b> Every table one after another, separated by a header line '+
    'Good for reading or forwarding, but you have to split the tables yourself to use them</p>'+
    '<p><b>JSON</b> Keeps every field intact, including booth coordinates and contact history '+
@@ -4880,6 +4893,48 @@ function pExport(){
       out.push(["### "+x.t+" ("+x.n+" rows)"]);
       x.rows().forEach(r=>out.push(r)) });
     saveCSV(EV.id+"-all.csv",out,e.currentTarget)});
+  /* พาไปเครื่องอื่น เก็บทุกงานกับทีมขาย ไม่เอาโลโก้กับไฟล์ผังที่เป็นก้อนใหญ่ */
+  P.querySelector("#snapOut").addEventListener("click",async e=>{
+    const btn=e.currentTarget, label=btn.textContent;
+    const data=saveBody();
+    try{
+      const d=await downloader();
+      btn.textContent="Saving…";
+      const name="penguinx-snapshot.json";
+      if(d)await d.save({filename:name,data});
+      else{ const u=URL.createObjectURL(new Blob([data],{type:"application/json"}));
+        const a=document.createElement("a"); a.href=u; a.download=name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(u),1000) }
+      btn.textContent="Saved";
+    }catch(err){ btn.textContent = err&&err.code==="declined"?"Cancelled":"Could not save" }
+    setTimeout(()=>{btn.textContent=label},2500);
+  });
+  P.querySelector("#snapIn").addEventListener("change",ev=>{
+    const fl=ev.target.files&&ev.target.files[0]; if(!fl)return;
+    const msg=P.querySelector("#snapMsg");
+    const fr=new FileReader();
+    fr.onload=()=>{
+      let o=null;
+      try{ o=JSON.parse(fr.result) }catch(err){ msg.textContent="That file is not readable JSON"; return }
+      if(!o||o.v!==2||!Array.isArray(o.events)){ msg.textContent="That is not a PenguinX snapshot"; return }
+      const names=o.events.map(x=>x.short||x.id).join(", ");
+      if(!confirm("Replace everything in this browser with the snapshot?\n\n"+
+        o.events.length+" event"+(o.events.length===1?"":"s")+": "+names+
+        "\n\nWhat you have changed here is thrown away."))return;
+      let hit=0;
+      o.events.forEach(sv=>{ const e2=EVENTS.find(x=>x.id===sv.id); if(!e2)return;
+        for(const k in sv)if(!HEAVY.includes(k))e2[k]=sv[k]; hit++ });
+      if(Array.isArray(o.reps)){ REPS.length=0; o.reps.forEach(r=>REPS.push(r)) }
+      useEvent(EV.id);
+      savedJS=""; saveNow();
+      UNDO.list.length=0; UNDO.at=-1;
+      msg.textContent="Loaded "+hit+" event"+(hit===1?"":"s");
+      draw();
+    };
+    fr.onerror=()=>{ msg.textContent="That file could not be read" };
+    fr.readAsText(fl);
+  });
   P.querySelector("#exJson").addEventListener("click",async e=>{
     const btn=e.currentTarget, label=btn.textContent;
     const keep=Object.assign({},EV);

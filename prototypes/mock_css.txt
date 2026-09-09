@@ -1070,4 +1070,6 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
 /* หัวข้อกับปุ่มเลือกวันอยู่บรรทัดเดียวกัน เหนือตาราง */
 .secbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:26px 0 12px}
 .secbar .sec{margin:0}
+/* ปุ่มเปิดเวทีเป็นปุ่มหลักของการ์ด พื้นเข้มตัวหนังสือขาว จะได้เห็นว่ากดตรงไหน */
+.stgb .act.go:hover{background:var(--accent2);border-color:var(--accent2)}
 </style>
