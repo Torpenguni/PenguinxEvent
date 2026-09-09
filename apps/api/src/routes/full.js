@@ -108,7 +108,6 @@ async function fetchFull (code, perms, user) {
       onH0: S.onH0 ?? 7, onH1: S.onH1 ?? 23,
       zoneNames: Object.fromEntries(zones.rows.map((z) => [z.code, z.name])),
       stages: stages.rows.map((s) => s.name),
-      areas: [],
 
       packages: Object.fromEntries(types.rows.map((t) => [t.name, {
         size: `${+t.width_m}x${+t.depth_m} m`,
