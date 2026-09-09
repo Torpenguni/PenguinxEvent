@@ -12,6 +12,34 @@ export const TL_STATUS = { '': 'plan', plan: 'plan', doing: 'doing', done: 'done
    ctx = { agents: {ชื่อเซลล์ -> id}, adminId } */
 export async function writeEvent (q, e, ctx) {
   const one = async (t, p) => (await q(t, p)).rows[0]
+  /* คอลัมน์ date รับสตริงเต็มรูปแบบ ISO ได้ แต่ตัดเป็นวันที่ตามเขตเวลา UTC
+     ค่าที่อ่านออกมาเป็น 2027-08-19T17:00Z คือวันที่ 20 ตามเวลาไทย พอเขียนกลับ
+     ดิบ ๆ จะกลายเป็นวันที่ 19 งานทั้งงานจึงถอยหลังหนึ่งวันทุกครั้งที่กดบันทึก
+     สะสมไปเรื่อย ๆ โดยไม่มีใครเห็น ตัดให้เหลือ YYYY-MM-DD ตามเวลาท้องถิ่นก่อนเสมอ */
+  const day = (v) => {
+    if (!v) return null
+    if (typeof v === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v
+      const d = new Date(v)
+      if (isNaN(d)) return null
+      const p2 = (n) => String(n).padStart(2, '0')
+      return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate())
+    }
+    const p2 = (n) => String(n).padStart(2, '0')
+    return v.getFullYear() + '-' + p2(v.getMonth() + 1) + '-' + p2(v.getDate())
+  }
+  /* รวบหลายแถวเป็นคำสั่งเดียว ของเดิมยิงทีละแถวรวมกว่าเจ็ดร้อยรอบ
+     ฐานข้อมูลอยู่สิงคโปร์ แค่ค่าเดินทางไปกลับก็กินเวลาเกือบนาทีต่อการบันทึกหนึ่งครั้ง
+     Postgres คืนแถวจาก returning ตามลำดับที่ใส่เข้าไปในคำสั่งเดียว จึงจับคู่ id กลับได้ */
+  const bulk = async (table, cols, rows, returning) => {
+    if (!rows.length) return []
+    const vals = []
+    const tuples = rows.map((r) =>
+      '(' + r.map((v) => { vals.push(v); return '$' + vals.length }).join(',') + ')')
+    const sql = `insert into ${table} (${cols.join(',')}) values ${tuples.join(',')}` +
+      (returning ? ` returning ${returning}` : '')
+    return (await q(sql, vals)).rows
+  }
   const agents = ctx.agents || {}
   const admin = { id: ctx.adminId }
 
@@ -28,85 +56,82 @@ export async function writeEvent (q, e, ctx) {
       `insert into event (code, name, edition_year, venue, start_date, end_date, status, revenue_goal)
        values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
       [e.id, e.name, year, e.venue || null,
-       e.eventDate || e.event_date || null, e.end_date || null,
+       day(e.eventDate || e.event_date), day(e.end_date),
        e.status === 'selling' ? 'selling' : 'planning', e.target || null])
 
-    for (const b of e.brands || [])
-      await q(`insert into event_brand (event_id, code, name) values ($1,$2,$3)`, [ev.id, b, b])
+    await bulk('event_brand', ['event_id', 'code', 'name'],
+      (e.brands || []).map((b) => [ev.id, b, b]))
 
     // ---- โซน
     const zone = {}
-    for (const [code, name] of Object.entries(e.zoneNames || {})) {
-      const z = await one(`insert into zone (event_id, code, name) values ($1,$2,$3) returning id`,
-                          [ev.id, code, name])
-      zone[code] = z.id
-    }
+    const zoneRows = Object.entries(e.zoneNames || {})
+    ;(await bulk('zone', ['event_id', 'code', 'name'],
+      zoneRows.map(([code, name]) => [ev.id, code, name]), 'id, code'))
+      .forEach((r) => { zone[r.code] = r.id })
 
     // ---- ประเภทบูธ / แพ็กเกจ
     const btype = {}
-    for (const [name, p] of Object.entries(e.packages || {})) {
-      const m = String(p.size || '').match(/([\d.]+)\s*x\s*([\d.]+)/i)
-      const bt = await one(
-        `insert into booth_type (event_id, code, name, tier, build, width_m, depth_m,
-           list_price, badge_exhibitor, badge_contractor)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
-        [ev.id, name, name, /sponsor/i.test(name) ? 'sponsor' : 'standard',
-         p.build === 'พื้นที่เปล่า' || /raw/i.test(p.build || '') ? 'raw_space' : 'shell_scheme',
-         m ? +m[1] : 3, m ? +m[2] : 3,
-         p.price || 0, p.badge || null, p.badge ? Math.ceil(p.badge / 2) : null])
-      btype[name] = bt.id
+    const pkgs = Object.entries(e.packages || {})
+    ;(await bulk('booth_type',
+      ['event_id', 'code', 'name', 'tier', 'build', 'width_m', 'depth_m',
+        'list_price', 'badge_exhibitor', 'badge_contractor'],
+      pkgs.map(([name, p]) => {
+        const m = String(p.size || '').match(/([\d.]+)\s*x\s*([\d.]+)/i)
+        return [ev.id, name, name, /sponsor/i.test(name) ? 'sponsor' : 'standard',
+          p.build === 'พื้นที่เปล่า' || /raw/i.test(p.build || '') ? 'raw_space' : 'shell_scheme',
+          m ? +m[1] : 3, m ? +m[2] : 3,
+          p.price || 0, p.badge || null, p.badge ? Math.ceil(p.badge / 2) : null]
+      }), 'id, code')).forEach((r) => { btype[r.code] = r.id })
+
+    const benefits = []
+    for (const [name, p] of pkgs)
       for (const [kind, label] of p.b || [])
-        await q(`insert into package_benefit (booth_type_id, label, kind) values ($1,$2,$3)`,
-                [bt.id, label, ['included','optional','limit'].includes(kind) ? kind : 'included'])
-    }
-    for (const [name, price] of e.addons || [])
-      await q(`insert into addon (event_id, code, name, list_price) values ($1,$2,$3,$4)`,
-              [ev.id, name.slice(0, 40), name, price || 0])
+        benefits.push([btype[name], label,
+          ['included', 'optional', 'limit'].includes(kind) ? kind : 'included'])
+    await bulk('package_benefit', ['booth_type_id', 'label', 'kind'], benefits)
+
+    await bulk('addon', ['event_id', 'code', 'name', 'list_price'],
+      (e.addons || []).map(([name, price]) => [ev.id, name.slice(0, 40), name, price || 0]))
 
     // ---- บริษัท + ดีล
     const company = {}
     const dealId = {}
-    for (const d of e.deals || []) {
-      let cid = company[d.co]
-      if (!cid) {
-        const c = await one(`insert into company (name) values ($1) returning id`, [d.co])
-        cid = company[d.co] = c.id
-      }
-      const dd = await one(
-        `insert into deal (event_id, company_id, agent_id, kind, status, list_total, deal_total,
-           hold_days, hold_started_at, hold_expires_at, key_product, form_received,
-           on_directory_board, next_step, next_date, created_by)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning id`,
-        [ev.id, cid, agents[d.sales] || null, 'booth', DEAL_STATUS[d.stage] || 'lead',
-         d.list || 0, d.list || 0, d.holdDays || null, d.holdStart || null, d.holdExp || null,
-         d.product || null, !!d.form, !!d.board,
-         d.next || null, d.nextDate || null, admin.id])
-      dealId[d.id] = dd.id
+    const names = [...new Set((e.deals || []).map((d) => d.co))]
+    ;(await bulk('company', ['name'], names.map((n) => [n]), 'id'))
+      .forEach((r, i) => { company[names[i]] = r.id })
+
+    const deals = e.deals || []
+    ;(await bulk('deal',
+      ['event_id', 'company_id', 'agent_id', 'kind', 'status', 'list_total', 'deal_total',
+        'hold_days', 'hold_started_at', 'hold_expires_at', 'key_product', 'form_received',
+        'on_directory_board', 'next_step', 'next_date', 'created_by'],
+      deals.map((d) => [ev.id, company[d.co], agents[d.sales] || null, 'booth',
+        DEAL_STATUS[d.stage] || 'lead', d.list || 0, d.list || 0,
+        d.holdDays || null, day(d.holdStart), d.holdExp || null,
+        d.product || null, !!d.form, !!d.board, d.next || null, d.nextDate || null, admin.id]),
+      'id')).forEach((r, i) => { dealId[deals[i].id] = r.id })
+
+    const acts = []
+    for (const d of deals)
       for (const a of d.acts || [])
-        await q(`insert into comment (entity, entity_id, author_id, body, created_at)
-                 values ('deal',$1,$2,$3,$4)`,
-                [dd.id, admin.id, `[${a.kind}] ${a.note || ''}`, a.date])
-    }
+        acts.push(['deal', dealId[d.id], admin.id, `[${a.kind}] ${a.note || ''}`, a.date])
+    await bulk('comment', ['entity', 'entity_id', 'author_id', 'body', 'created_at'], acts)
 
     // ---- บูธ
     const boothId = {}
-    for (const b of e.booths || []) {
-      const bb = await one(
-        `insert into booth (event_id, zone_id, booth_type_id, code, label,
-           grid_x, grid_y, grid_w, grid_h, status)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
-        [ev.id, zone[b.zone] || null, btype[b.pkg] || null, b.code, b.name || null,
-         b.x, b.y, b.w || 1, b.h || 1, STATUS[b.st] || 'available'])
-      boothId[b.code] = bb.id
-    }
+    ;(await bulk('booth',
+      ['event_id', 'zone_id', 'booth_type_id', 'code', 'label',
+        'grid_x', 'grid_y', 'grid_w', 'grid_h', 'status'],
+      (e.booths || []).map((b) => [ev.id, zone[b.zone] || null, btype[b.pkg] || null,
+        b.code, b.name || null, b.x, b.y, b.w || 1, b.h || 1, STATUS[b.st] || 'available']),
+      'id, code')).forEach((r) => { boothId[r.code] = r.id })
+
     // ผูกบูธเข้ากับดีลผ่าน deal_item
-    for (const d of e.deals || []) {
-      for (const code of d.booths || []) {
-        if (!boothId[code] || !dealId[d.id]) continue
-        await q(`insert into deal_item (deal_id, item_type, booth_id, qty, unit_price)
-                 values ($1,'booth',$2,1,$3)`, [dealId[d.id], boothId[code], 0])
-      }
-    }
+    const items = []
+    for (const d of e.deals || [])
+      for (const code of d.booths || [])
+        if (boothId[code] && dealId[d.id]) items.push([dealId[d.id], 'booth', boothId[code], 1, 0])
+    await bulk('deal_item', ['deal_id', 'item_type', 'booth_id', 'qty', 'unit_price'], items)
 
     // ---- งบประมาณ
     const cat = {}
@@ -117,81 +142,86 @@ export async function writeEvent (q, e, ctx) {
          values ($1,'expense',$2,$3) returning id`, [ev.id, l.cat.slice(0, 40), l.cat])
       cat[l.cat] = c.id
     }
-    let sort = 0
-    for (const l of e.budget || []) {
-      await q(
-        `insert into budget_line (event_id, category_id, name, sort, fc_qty, fc_unit,
-           fc_qty2, fc_unit2, fc_unit_cost, fc_total, ac_total, status, note)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-        [ev.id, cat[l.cat], (l.sub ? l.sub + ' › ' : '') + l.name, sort++,
-         l.qty || null, l.unit || null, l.qty2 || null, l.unit2 || null, l.price || null,
-         l.calc && l.price ? Math.round((l.qty || 1) * (l.qty2 || 1) * l.price) : (l.fc || 0),
-         l.ac || 0, ['planned','committed','paid'].includes(l.st) ? l.st : 'planned', l.sub || null])
-    }
+    await bulk('budget_line',
+      ['event_id', 'category_id', 'name', 'sort', 'fc_qty', 'fc_unit', 'fc_qty2', 'fc_unit2',
+        'fc_unit_cost', 'fc_total', 'ac_total', 'status', 'note'],
+      (e.budget || []).map((l, i) => [ev.id, cat[l.cat],
+        (l.sub ? l.sub + ' › ' : '') + l.name, i,
+        l.qty || null, l.unit || null, l.qty2 || null, l.unit2 || null, l.price || null,
+        l.calc && l.price ? Math.round((l.qty || 1) * (l.qty2 || 1) * l.price) : (l.fc || 0),
+        l.ac || 0, ['planned', 'committed', 'paid'].includes(l.st) ? l.st : 'planned',
+        l.sub || null]))
 
     // ---- เวที
     const stage = {}
-    for (const [i, name] of (e.stages || []).entries()) {
-      const s = await one(`insert into stage (event_id, code, name, sort) values ($1,$2,$3,$4) returning id`,
-                          [ev.id, name.slice(0, 40), name, i])
-      stage[name] = s.id
-    }
+    ;(await bulk('stage', ['event_id', 'code', 'name', 'sort'],
+      (e.stages || []).map((name, i) => [ev.id, name.slice(0, 40), name, i]), 'id, name'))
+      .forEach((r) => { stage[r.name] = r.id })
+
+    const ses = (e.sessions || []).filter((s) => stage[s.stage])
+    const sesId = (await bulk('session',
+      ['event_id', 'stage_id', 'day_no', 'on_date', 'starts_at', 'ends_at', 'minutes',
+        'kind', 'title', 'title_confirmed', 'time_locked', 'script_url', 'remark'],
+      ses.map((s) => {
+        const t = String(s.time || '').split('-')
+        return [ev.id, stage[s.stage], s.day || 1, day(s.date),
+          t[0] || null, t[1] || null, +s.min || null,
+          ['talk', 'panel', 'break', 'ceremony', 'workshop', 'house', 'inhouse', 'agent']
+            .includes(s.kind) ? s.kind : 'talk',
+          s.title || null, !!s.cf, !!s.lock, s.script || null, s.mod || null]
+      }), 'id')).map((r) => r.id)
+
+    // คนบนเวทีคนเดียวกันขึ้นหลายช่วงได้ เก็บครั้งเดียวแล้วอ้างซ้ำ
     const person = {}
-    for (const s of e.sessions || []) {
-      if (!stage[s.stage]) continue
-      const t = String(s.time || '').split('-')
-      const ss = await one(
-        `insert into session (event_id, stage_id, day_no, on_date, starts_at, ends_at, minutes,
-           kind, title, title_confirmed, time_locked, script_url, remark)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning id`,
-        [ev.id, stage[s.stage], s.day || 1, s.date || null,
-         t[0] || null, t[1] || null, +s.min || null,
-         ['talk','panel','break','ceremony','workshop','house','inhouse','agent'].includes(s.kind) ? s.kind : 'talk',
-         s.title || null, !!s.cf, !!s.lock, s.script || null, s.mod || null])
-      for (const [i, p] of (s.people || []).entries()) {
+    const pKeys = []
+    const pRows = []
+    for (const s of ses)
+      for (const p of s.people || []) {
         const key = (p.real || p.n || '').trim()
-        if (!key) continue
-        if (!person[key]) {
-          const pp = await one(
-            `insert into person (nickname, name_th, title, phone, note) values ($1,$2,$3,$4,$5) returning id`,
-            [p.n || null, p.real || null, p.pos || null, p.contact || null, p.coord || null])
-          person[key] = pp.id
-        }
-        await q(`insert into session_person (session_id, person_id, role, status, sort)
-                 values ($1,$2,'speaker',$3,$4)`,
-                [ss.id, person[key], /confirm/i.test(p.st || '') ? 'confirmed' : 'invited', i])
+        if (!key || person[key] !== undefined) continue
+        person[key] = null
+        pKeys.push(key)
+        pRows.push([p.n || null, p.real || null, p.pos || null, p.contact || null, p.coord || null])
       }
-    }
+    ;(await bulk('person', ['nickname', 'name_th', 'title', 'phone', 'note'], pRows, 'id'))
+      .forEach((r, i) => { person[pKeys[i]] = r.id })
+
+    const links = []
+    ses.forEach((s, si) => {
+      (s.people || []).forEach((p, i) => {
+        const key = (p.real || p.n || '').trim()
+        if (!key) return
+        links.push([sesId[si], person[key],
+          'speaker', /confirm/i.test(p.st || '') ? 'confirmed' : 'invited', i])
+      })
+    })
+    await bulk('session_person', ['session_id', 'person_id', 'role', 'status', 'sort'], links)
 
     // ---- เช็กลิสต์ผู้ออกบูธ
     const tmpl = {}
-    for (const [i, t] of (e.tasks || []).entries()) {
-      const tt = await one(
-        `insert into task_template (event_id, code, label, phase, assigned_to, required,
-           due_offset_days, sort) values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
-        [ev.id, t.code, t.label, t.phase || 'asset',
-         t.by === 'organiser' ? 'organiser' : 'exhibitor', t.req !== false, t.days || null, i])
-      tmpl[t.code] = tt.id
-    }
+    ;(await bulk('task_template',
+      ['event_id', 'code', 'label', 'phase', 'assigned_to', 'required', 'due_offset_days', 'sort'],
+      (e.tasks || []).map((t, i) => [ev.id, t.code, t.label, t.phase || 'asset',
+        t.by === 'organiser' ? 'organiser' : 'exhibitor', t.req !== false, t.days || null, i]),
+      'id, code')).forEach((r) => { tmpl[r.code] = r.id })
+    const etasks = []
     for (const d of e.deals || [])
       for (const [code, done] of Object.entries(d.tasks || {}))
-        if (tmpl[code] && dealId[d.id])
-          await q(`insert into exhibitor_task (deal_id, template_id, done) values ($1,$2,$3)`,
-                  [dealId[d.id], tmpl[code], !!done])
+        if (tmpl[code] && dealId[d.id]) etasks.push([dealId[d.id], tmpl[code], !!done])
+    await bulk('exhibitor_task', ['deal_id', 'template_id', 'done'], etasks)
 
     // ---- ไทม์ไลน์
-    for (const [i, r] of (e.timeline || []).entries())
-      await q(
-        `insert into timeline_task (event_id, phase, grp, name, work_by, status,
-           plan_a, plan_b, act_a, act_b, day_no, plan_t1, plan_t2, act_t1, act_t2, note, extra, sort)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
-        [ev.id, r.ph || 'pre', r.grp, r.name, r.by || null, TL_STATUS[r.st] ?? 'plan',
-         r.ph === 'on' ? null : r.a, r.ph === 'on' ? null : r.b,
-         r.ph === 'on' ? null : (r.aa ?? null), r.ph === 'on' ? null : (r.ab ?? null),
-         r.ph === 'on' ? (r.d ?? 0) : null,
-         r.ph === 'on' ? r.t1 : null, r.ph === 'on' ? r.t2 : null,
-         r.ph === 'on' ? (r.at1 || null) : null, r.ph === 'on' ? (r.at2 || null) : null,
-         r.note || null, JSON.stringify(r.x || {}), i])
+    await bulk('timeline_task',
+      ['event_id', 'phase', 'grp', 'name', 'work_by', 'status', 'plan_a', 'plan_b',
+        'act_a', 'act_b', 'day_no', 'plan_t1', 'plan_t2', 'act_t1', 'act_t2', 'note', 'extra', 'sort'],
+      (e.timeline || []).map((r, i) => [ev.id, r.ph || 'pre', r.grp, r.name, r.by || null,
+        TL_STATUS[r.st] ?? 'plan',
+        r.ph === 'on' ? null : r.a, r.ph === 'on' ? null : r.b,
+        r.ph === 'on' ? null : (r.aa ?? null), r.ph === 'on' ? null : (r.ab ?? null),
+        r.ph === 'on' ? (r.d ?? 0) : null,
+        r.ph === 'on' ? r.t1 : null, r.ph === 'on' ? r.t2 : null,
+        r.ph === 'on' ? (r.at1 || null) : null, r.ph === 'on' ? (r.at2 || null) : null,
+        r.note || null, JSON.stringify(r.x || {}), i]))
 
     // ---- ค่าตั้งหน้าจอที่ยังไม่คุ้มจะแตกเป็นตาราง
     await q(`insert into event_setting (event_id, settings) values ($1,$2)
