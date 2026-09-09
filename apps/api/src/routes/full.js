@@ -83,7 +83,10 @@ async function fetchFull (code, perms, user) {
       id: ev.code, name: ev.name, short: S.short ?? ev.name,
       dates: S.dates ?? null, venue: ev.venue, status: ev.status,
       brands: brands.rows.map((b) => b.name),
-      eventDate: ev.start_date, event_date: ev.start_date, end_date: ev.end_date,
+      /* ส่งวันที่เป็น YYYY-MM-DD ไม่ใช่ ISO เต็มรูปแบบ หน้าเว็บเอาไปต่อท้ายด้วย T00:00:00
+         ก่อนแปลงเป็นวันที่ ถ้าส่ง ISO ไปจะได้สตริงประหลาดแล้วกลายเป็น NaN
+         ทั้งหน้าไทม์ไลน์ ทั้งหัวตาราง ทั้งช่องกำหนดส่ง */
+      eventDate: ymd(ev.start_date), event_date: ymd(ev.start_date), end_date: ymd(ev.end_date),
       target: seeTarget ? Number(ev.revenue_goal ?? 0) : null,
       target_note: seeTarget ? (S.targetNote ?? null) : null,
       /* โลโก้ ตัวเดโมเคยฝังรูปไว้ในไฟล์ตอน build โหมดต่อเซิร์ฟเวอร์จึงไม่มีรูปเลย
@@ -119,7 +122,7 @@ async function fetchFull (code, perms, user) {
           list: seeMoney || seePrice ? Number(d.list_total ?? 0) : null,
           stage: d.status, st: null, sales: d.agent, product: d.key_product,
           form: d.form_received, board: d.on_directory_board,
-          holdDays: d.hold_days, holdStart: d.hold_started_at, holdExp: d.hold_expires_at,
+          holdDays: d.hold_days, holdStart: ymd(d.hold_started_at), holdExp: d.hold_expires_at,
           next: d.next_step ?? null,
           nextDate: ymd(d.next_date),
           acts: [], tasks: taskByDeal[d.id] ?? {},
@@ -140,7 +143,7 @@ async function fetchFull (code, perms, user) {
       })) : [],
 
       sessions: sessions.rows.map((s) => ({
-        stage: s.stage, day: s.day_no, date: s.on_date,
+        stage: s.stage, day: s.day_no, date: ymd(s.on_date),
         time: `${hhmm(s.starts_at) ?? ''}-${hhmm(s.ends_at) ?? ''}`,
         min: s.minutes, title: s.title, kind: s.kind,
         cf: s.title_confirmed, lock: s.time_locked, mod: s.remark,
