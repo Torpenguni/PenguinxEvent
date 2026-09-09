@@ -144,7 +144,7 @@ async function fetchFull (code, perms, user) {
 
       sessions: sessions.rows.map((s) => ({
         stage: s.stage, day: s.day_no, date: ymd(s.on_date),
-        time: `${hhmm(s.starts_at) ?? ''}-${hhmm(s.ends_at) ?? ''}`,
+        time: hhmm(s.starts_at) + (s.ends_at ? '-' + hhmm(s.ends_at) : ''),   // ไม่มีเวลาจบก็ไม่ต้องมีขีดค้างไว้
         min: s.minutes, title: s.title, kind: s.kind,
         cf: s.title_confirmed, lock: s.time_locked, mod: s.remark,
         script: s.script_url, _id: s.id,
