@@ -123,3 +123,31 @@ table.tl tr.tlg .meta{font-weight:400;color:var(--ink2);font-size:12px}
 :root{--st-todo:#8A96A0;--st-doing:#D08A0A;--st-done:#2F9E62;--st-block:#C2412D}
 @media(prefers-color-scheme:dark){:root{--st-todo:#94A0A8;--st-doing:#E0A63A;
   --st-done:#4FBE7F;--st-block:#E27563}}
+
+/* ---------- ผู้ออกบูธ ---------- */
+.exwrap{max-width:940px;margin:0 auto;padding:16px 18px 60px;display:flex;
+  flex-direction:column;gap:10px}
+.excard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.excard.on{border-color:var(--line2);box-shadow:0 8px 26px -20px rgba(0,0,0,.45)}
+.exhead{display:flex;align-items:center;gap:12px;width:100%;background:none;color:inherit;
+  text-align:start;padding:12px 16px;font-weight:400;cursor:pointer}
+.exhead:hover{background:var(--soft)}
+.exname{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.exname b{font-weight:600}
+.exname .meta{color:var(--ink3);font-size:12px}
+.exbar{width:120px;height:7px;border-radius:99px;background:var(--line);overflow:hidden;flex:none}
+.exbar i{display:block;height:100%;background:var(--accent)}
+.excount{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;
+  min-width:42px;text-align:end}
+.exbody{padding:4px 16px 16px;border-top:1px solid var(--line)}
+.exbody>.meta{color:var(--ink2);font-size:12.5px;margin:10px 0}
+.exrow{display:flex;align-items:flex-start;gap:11px;padding:8px 0;
+  border-top:1px solid var(--line);font-size:14px;font-weight:400;color:var(--ink);margin:0}
+.exrow input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent)}
+.exlabel{flex:1}
+.exlabel.done{color:var(--ink3);text-decoration:line-through}
+.exdue{font-size:12px;color:var(--ink3);text-align:end;white-space:nowrap}
+.exdue small{display:block;font-size:11px;opacity:.8}
+.exdue.late{color:var(--risk);font-weight:700}
+.tg.red{background:#fdecec;color:var(--risk)}
+@media(prefers-color-scheme:dark){.tg.red{background:rgba(226,117,99,.16)}}

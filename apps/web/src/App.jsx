@@ -4,6 +4,7 @@ import Login from './pages/Login.jsx'
 import Events from './pages/Events.jsx'
 import Plan from './pages/Plan.jsx'
 import Timeline from './pages/Timeline.jsx'
+import Exhibitors from './pages/Exhibitors.jsx'
 import Admin from './pages/Admin.jsx'
 
 export default function App() {
@@ -48,7 +49,9 @@ export default function App() {
       onOut={() => { token.clear(); setMe(null) }} />
   }
   const back = () => { setEvent(null); setView('plan') }
-  return view === 'timeline'
-    ? <Timeline me={me} event={event} onBack={() => setView('plan')} />
-    : <Plan me={me} event={event} onBack={back} onTimeline={() => setView('timeline')} />
+  if (view === 'timeline') return <Timeline me={me} event={event} onBack={() => setView('plan')} />
+  if (view === 'exhibitor') return <Exhibitors me={me} event={event} onBack={() => setView('plan')} />
+  return <Plan me={me} event={event} onBack={back}
+    onTimeline={() => setView('timeline')}
+    onExhibitor={can(me.permissions, 'exhibitor') ? () => setView('exhibitor') : null} />
 }
