@@ -69,6 +69,16 @@ export async function writeEvent (q, e, ctx) {
       `select rev, hall, move_in_from, move_out_to, created_at, cloned_from
          from event where code = $1`, [e.id])
     const keepRev = Number(prev?.rev ?? 1)
+    /* ตารางที่ผูกกับงานแต่ writeEvent ไม่ได้เขียนใหม่ ถูกลบตามแถว event ไปด้วยทุกครั้ง
+       สิทธิ์เข้าถึงงานรายคน ลิงก์แชร์ และช่องทางการตลาด จึงหายทุกครั้งที่มีคนกดบันทึก
+       ให้คนเข้าถึงงานไว้ตอนเช้า พอบ่ายมีคนบันทึกงาน สิทธิ์นั้นก็หายไปโดยไม่มีใครรู้
+       จดไว้ก่อนลบ แล้วใส่กลับให้ผูกกับแถวใหม่ */
+    const carry = {}
+    for (const t of ['user_event', 'event_share', 'marketing_channel']) {
+      carry[t] = (await q(
+        `select * from ${t} where event_id = (select id from event where code = $1)`,
+        [e.id])).rows
+    }
     await q(`delete from event where code = $1`, [e.id])
     /* logo_url ต้องเขียนกลับด้วย ของเดิมไม่มีในคำสั่ง insert ทุกครั้งที่บันทึกทั้งงาน
        โลโก้จึงหายไปเงียบ ๆ ค่าที่หน้าเว็บส่งมาเป็น path ของไฟล์ เช่น /logos/restech.png
@@ -87,6 +97,14 @@ export async function writeEvent (q, e, ctx) {
        e.seats ?? null, e.ticketPrice ?? null, e.ticketsSold ?? null, keepRev,
        e.hall ?? prev?.hall ?? null, prev?.move_in_from ?? null, prev?.move_out_to ?? null,
        prev?.cloned_from ?? null, prev?.created_at ?? null])
+
+    /* ใส่ของที่จดไว้กลับเข้าไป ชี้ไปที่แถวใหม่ ยกคอลัมน์ id เดิมทิ้งให้ฐานข้อมูลแจกใหม่ */
+    for (const [t, rows] of Object.entries(carry)) {
+      if (!rows.length) continue
+      const cols = Object.keys(rows[0]).filter((c) => c !== 'id')
+      await bulk(t, cols, rows.map((row) => cols.map(
+        (c) => (c === 'event_id' ? ev.id : row[c]))))
+    }
 
     await bulk('event_brand', ['event_id', 'code', 'name'],
       (e.brands || []).map((b) => [ev.id, b, b]))

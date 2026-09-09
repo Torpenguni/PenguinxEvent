@@ -22,7 +22,8 @@ export async function takeBackup (fetchFull) {
       `insert into event_backup (event_id, code, size_bytes, data)
        values ((select id from event where code=$1), $1, $2, $3::jsonb)
        on conflict (code, taken_on) do update
-         set data = excluded.data, size_bytes = excluded.size_bytes, at = now()`,
+         set data = excluded.data, size_bytes = excluded.size_bytes, at = now(),
+             event_id = excluded.event_id`,
       [code, json.length, json])
     done.push({ code, size: json.length })
   }

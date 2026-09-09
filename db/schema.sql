@@ -924,3 +924,8 @@ alter table event add column if not exists tickets_sold int;       -- ขาย�
 alter table event add column if not exists rev        bigint not null default 1;
 alter table event add column if not exists updated_at timestamptz;
 alter table event add column if not exists updated_by bigint references app_user(id);
+
+-- ชุดสำรองต้องไม่ถูกลบตามแถว event ที่ถูกเขียนใหม่ทุกครั้งที่บันทึก (db/keep.sql)
+alter table event_backup drop constraint if exists event_backup_event_id_fkey;
+alter table event_backup add  constraint event_backup_event_id_fkey
+  foreign key (event_id) references event(id) on delete set null;
