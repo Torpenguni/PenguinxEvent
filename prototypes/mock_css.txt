@@ -2,27 +2,61 @@
 <style>
 :root{--paper:#F5F6F2;--card:#FFF;--ink:#191D1A;--ink2:#4E564F;--ink3:#8B9088;
 --line:#E0E2DA;--line2:#CDD1C6;--accent:#0E5C4A;--accent2:#127A62;--soft:#E4EFE9;
---s-free:#D8DCD3;--s-booked:#D08A0A;--s-deposit:#3E7BC4;--s-paid:#2F9E62;
---risk:#C2412D;--warn:#D08A0A;--ok:#2F9E62;
+/* ชุดสถานะ ใช้เหมือนกันทั้งระบบ ห้ามเอาไปใช้แทนประเภทของอะไร */
+--st-todo:#94A0A8;--st-doing:#D08A0A;--st-part:#3E7BC4;--st-done:#2F9E62;--st-block:#C2412D;
+--st-todo-bg:#D8DCD3;
+/* ชุดประเภท ใช้กับชนิดของช่วงบนเวที เป็นสีอ่อนพื้นหลังกับขอบซ้าย
+   ตั้งใจไม่ให้ถมสีเต็ม จะได้ไม่ไปแย่งความหมายกับชุดสถานะข้างบน */
+--k-keynote-bg:#E1EDE7;--k-keynote-bd:#2C7A62;
+--k-talk-bg:#E5EAF3;--k-talk-bd:#48699B;
+--k-workshop-bg:#F0E8F3;--k-workshop-bd:#7A5B8E;
+--k-ceremony-bg:#F4EADE;--k-ceremony-bd:#996A39;
+--k-networking-bg:#E9F0E1;--k-networking-bd:#5C7C41;
+--k-break-bg:#ECEEE9;--k-break-bd:#98A094;
+--k-registration-bg:#E8EDEE;--k-registration-bd:#7C9296;
+/* ชื่อเดิมชี้มาที่ชุดเดียวกัน โค้ดเก่าจะได้ไม่ต้องไล่แก้ทุกจุดพร้อมกัน */
+--s-free:var(--st-todo-bg);--s-booked:var(--st-doing);
+--s-deposit:var(--st-part);--s-paid:var(--st-done);
+--risk:var(--st-block);--warn:var(--st-doing);--ok:var(--st-done);
 --nav:#11201C;--nav-ink:#C9D6D0;--nav-hi:#0E5C4A;
 --sh:0 1px 2px rgba(25,29,26,.05),0 8px 24px -18px rgba(25,29,26,.35);
---tl-plan:#8FA0AE;--tl-doing:#D8901A;--tl-done:#2F9E62;--tl-risk:#C2412D;
+--tl-plan:var(--st-todo);--tl-doing:var(--st-doing);--tl-done:var(--st-done);--tl-risk:var(--st-block);
 --tl-grid:#EAECE3;--tl-alt:#F0F2E9;--tl-sum:#AEB8A9}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0E110C;--card:#181C16;--ink:#EDEFE8;--ink2:#A3AB9F;--ink3:#7C8279;
 --line:#282D24;--line2:#383E34;--accent:#63C9A8;--accent2:#7FD9BC;--soft:#1A2620;
---s-free:#303629;--s-booked:#E0A63A;--s-deposit:#6FA3E0;--s-paid:#4FBE7F;
---risk:#E27563;--warn:#E0A63A;--ok:#4FBE7F;
+--st-todo:#8A96A0;--st-doing:#E0A63A;--st-part:#6FA3E0;--st-done:#4FBE7F;--st-block:#E27563;
+--st-todo-bg:#303629;
+--k-keynote-bg:#17302A;--k-keynote-bd:#5FBE9B;
+--k-talk-bg:#1B2432;--k-talk-bd:#7EA0D2;
+--k-workshop-bg:#291F30;--k-workshop-bd:#B08FC4;
+--k-ceremony-bg:#2E251A;--k-ceremony-bd:#CFA070;
+--k-networking-bg:#1F2A18;--k-networking-bd:#94BA74;
+--k-break-bg:#232620;--k-break-bd:#767E72;
+--k-registration-bg:#1E2628;--k-registration-bd:#8FA8AC;
+--s-free:var(--st-todo-bg);--s-booked:var(--st-doing);
+--s-deposit:var(--st-part);--s-paid:var(--st-done);
+--risk:var(--st-block);--warn:var(--st-doing);--ok:var(--st-done);
 --nav:#0A0F0C;--nav-ink:#9FB0A8;--nav-hi:#17493D;
 --sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.9);
---tl-plan:#7C90A0;--tl-doing:#E0A63A;--tl-done:#4FBE7F;--tl-risk:#E27563;
+--tl-plan:var(--st-todo);--tl-doing:var(--st-doing);--tl-done:var(--st-done);--tl-risk:var(--st-block);
 --tl-grid:#252A22;--tl-alt:#1E231C;--tl-sum:#4A5347}}
 :root[data-theme="dark"]{--paper:#0E110C;--card:#181C16;--ink:#EDEFE8;--ink2:#A3AB9F;--ink3:#7C8279;
 --line:#282D24;--line2:#383E34;--accent:#63C9A8;--accent2:#7FD9BC;--soft:#1A2620;
---s-free:#303629;--s-booked:#E0A63A;--s-deposit:#6FA3E0;--s-paid:#4FBE7F;
---risk:#E27563;--warn:#E0A63A;--ok:#4FBE7F;
+--st-todo:#8A96A0;--st-doing:#E0A63A;--st-part:#6FA3E0;--st-done:#4FBE7F;--st-block:#E27563;
+--st-todo-bg:#303629;
+--k-keynote-bg:#17302A;--k-keynote-bd:#5FBE9B;
+--k-talk-bg:#1B2432;--k-talk-bd:#7EA0D2;
+--k-workshop-bg:#291F30;--k-workshop-bd:#B08FC4;
+--k-ceremony-bg:#2E251A;--k-ceremony-bd:#CFA070;
+--k-networking-bg:#1F2A18;--k-networking-bd:#94BA74;
+--k-break-bg:#232620;--k-break-bd:#767E72;
+--k-registration-bg:#1E2628;--k-registration-bd:#8FA8AC;
+--s-free:var(--st-todo-bg);--s-booked:var(--st-doing);
+--s-deposit:var(--st-part);--s-paid:var(--st-done);
+--risk:var(--st-block);--warn:var(--st-doing);--ok:var(--st-done);
 --nav:#0A0F0C;--nav-ink:#9FB0A8;--nav-hi:#17493D;
 --sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -18px rgba(0,0,0,.9);
---tl-plan:#7C90A0;--tl-doing:#E0A63A;--tl-done:#4FBE7F;--tl-risk:#E27563;
+--tl-plan:var(--st-todo);--tl-doing:var(--st-doing);--tl-done:var(--st-done);--tl-risk:var(--st-block);
 --tl-grid:#252A22;--tl-alt:#1E231C;--tl-sum:#4A5347}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;
@@ -94,8 +128,35 @@ background:var(--card);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 .rolepick select{padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--paper);color:var(--ink);font-size:13.5px}
 .demo{font-size:11px;background:var(--soft);color:var(--accent);padding:3px 9px;border-radius:99px;font-weight:600}
 .page{padding:26px}
-@media(max-width:860px){#app.on{grid-template-columns:1fr}nav.side{position:static;height:auto;flex-direction:row;
-flex-wrap:wrap;align-items:center}nav.side .logo,.evsel,.who{display:none}nav.side a{width:auto}}
+/* ปุ่มเมนูโผล่เฉพาะจอแคบ จอกว้างแถบข้างอยู่ตลอดอยู่แล้ว */
+#mnav{display:none;background:none;border:1px solid var(--line2);border-radius:8px;
+  color:var(--ink);padding:6px;cursor:pointer;line-height:0;flex:0 0 auto}
+#mnav svg{width:21px;height:21px}
+#mnav:hover{border-color:var(--accent);color:var(--accent)}
+#navbd{display:none;position:fixed;inset:0;z-index:39;border:0;padding:0;
+  background:rgba(0,0,0,.42);cursor:pointer}
+/* จอแคบกว่า 900 แถบข้างเก็บเป็นลิ้นชัก เลื่อนออกมาทับเนื้อหาเมื่อกดเรียก
+   ของเดิมวางเมนูเป็นบล็อกเต็มความกว้างไว้บนสุด ทุกครั้งที่เปิดหน้าต้องเลื่อนผ่านเมนูแปดอันก่อน
+   แล้วโลโก้งานยังลอยไปทับรายการเมนูด้วย เพราะตอนนั้นซ่อนแค่โลโก้ระบบ ไม่ได้ซ่อนโลโก้งาน */
+@media(max-width:900px){
+  #app.on{grid-template-columns:1fr}
+  #mnav{display:block}
+  nav.side{position:fixed;top:0;left:0;bottom:0;width:270px;max-width:84vw;z-index:40;
+    height:100dvh;transform:translateX(-100%);transition:transform .22s ease;
+    box-shadow:0 0 40px rgba(0,0,0,.4)}
+  #app.navopen nav.side{transform:none}
+  #app.navopen #navbd{display:block}
+  .page{padding:18px 14px}
+  .top{padding:12px 14px;gap:10px}
+  .top h1{font-size:17px}
+  .rolepick label{display:none}
+  /* คอลัมน์ตรึงห้าอันรวมกัน 592 px กว้างกว่าจอมือถือทั้งจอ
+     เหลือตรึงแค่เลขแถวกับชื่องาน ที่เหลือปล่อยให้เลื่อนไปพร้อมตาราง */
+  table.gt th.gtn,table.gt td.gtn{width:150px;min-width:150px;max-width:150px}
+  table.gt th.gtby,table.gt td.gtby,table.gt th.gtd,table.gt td.gtd{position:static}
+  table.gt td.gtgh{width:auto;min-width:0;max-width:none}
+}
+@media(prefers-reduced-motion:reduce){nav.side{transition:none}}
 
 /* ---------- bits ---------- */
 .tabs{display:flex;gap:4px;margin:0 0 20px;border-bottom:1px solid var(--line);
@@ -323,14 +384,14 @@ svg#plan{display:block;min-width:740px;width:100%;height:auto}
 .gut{position:relative;border-right:1px solid var(--line2);z-index:2;background:var(--card)}
 .hr{position:absolute;left:0;font-size:11px;color:var(--ink3);padding-left:8px;font-variant-numeric:tabular-nums}
 .col{position:relative;border-right:1px solid var(--line)}.col:last-child{border:0}
-.ev{position:absolute;left:4px;right:4px;border-radius:6px;padding:5px 8px;overflow:hidden;cursor:pointer;
-color:#fff;border:0;text-align:left;display:block;font:inherit}
+.ev{position:absolute;left:4px;right:4px;border-radius:5px;padding:5px 8px;overflow:hidden;cursor:pointer;
+color:var(--ink);border:0;text-align:left;display:block;font:inherit}
 .ev:hover{filter:brightness(1.09)}
 .ev{padding:7px 10px}
-.ev .t{font-size:10.5px;opacity:.88;display:block}
+.ev .t{font-size:10.5px;color:var(--ink2);display:block;font-variant-numeric:tabular-nums}
 .ev .n{font-size:13px;font-weight:600;line-height:1.32;display:block;margin-top:1px}
 .ev .fa{display:flex;align-items:center;gap:5px;margin-top:6px;flex-wrap:wrap}
-.ev .fa .nm{font-size:11px;opacity:.9;line-height:1.3}
+.ev .fa .nm{font-size:11px;color:var(--ink2);line-height:1.3}
 .lgrow{display:flex;gap:11px;align-items:center;margin-bottom:11px}
 .lgrow .meta{min-width:0}
 .lgrow .meta b{display:block;font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis}
@@ -682,7 +743,8 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
 .sleg{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 12px;
   padding:9px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:12.5px}
 .slg{display:flex;align-items:center;gap:7px;color:var(--ink2);cursor:help}
-.slg i{width:14px;height:14px;border-radius:4px;display:inline-block;flex:0 0 14px}
+.slg i{width:22px;height:15px;border-radius:3px;display:inline-block;flex:0 0 22px;
+ box-shadow:inset 0 0 0 1px var(--line2)}
 .slgh{margin-left:auto;color:var(--ink3);font-size:11.5px}
 /* การ์ดเวที แก้ชื่อได้ */
 .stgc{display:flex;flex-direction:column;gap:4px}
@@ -846,7 +908,7 @@ background:var(--ok);margin-right:6px;vertical-align:1px}
 /* กล่องช่วงเวลาที่กดเปิด ขึ้นหน้าสุดและกางเต็ม อ่านทั้งชื่อและคนพูดได้
    ช่วงสั้นๆ กล่องเตี้ยกว่าตัวหนังสือ ปกติเลยเห็นแค่บรรทัดแรก */
 .tl .col.hasopen{z-index:6}
-.ev.open{height:auto!important;min-height:64px;overflow:visible;z-index:9;
+.ev.open{height:auto!important;min-height:64px;overflow:visible;z-index:9;background:var(--card)!important;
  box-shadow:0 10px 30px rgba(0,0,0,.34);outline:2px solid var(--card);outline-offset:1px;
  padding-bottom:10px}
 .ev.open .n{white-space:normal}
@@ -891,4 +953,36 @@ td.gtby{vertical-align:middle;padding:5px 8px}
 .tmm .tmi.on{font-weight:600}
 .tmm .tmi.dg{color:var(--risk)}
 .tmm .tmk{width:14px;font-style:normal;color:var(--accent);font-weight:700}
+
+
+/* หัวการ์ดช่วงบนเวที แต้มสีประเภทจางๆ ให้รู้ว่าเป็นชนิดไหนโดยไม่ต้องอ่าน */
+.sc>.sch{background:var(--kbg)}
+/* dropdown สถานะ ต้องมีสีเหมือนตอนดูอย่างเดียว ไม่งั้นกวาดตาหางานที่ติดปัญหาไม่ได้ */
+/* select ของระบบไม่ยอมรับสีพื้นกับขอบ ต้องปิด appearance แล้ววาดลูกศรเอง
+   ไม่งั้น dropdown สถานะจะเป็นตัวหนังสือเทาล้วน กวาดตาหางานที่ติดปัญหาไม่ได้ */
+td.gts select.stsel{-webkit-appearance:none;appearance:none;
+ border:1px solid var(--line2);border-left:4px solid var(--sc,var(--line2));
+ border-radius:7px;background:var(--scbg,var(--card));color:var(--ink);
+ font-weight:600;font-size:12px;padding:5px 20px 5px 8px;width:100%;
+ background-image:linear-gradient(45deg,transparent 50%,var(--ink3) 50%),
+   linear-gradient(135deg,var(--ink3) 50%,transparent 50%);
+ background-position:calc(100% - 12px) calc(50% + 1px),calc(100% - 8px) calc(50% + 1px);
+ background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+td.gts select.stsel:hover{border-color:var(--sc,var(--line2))}
+td.gts select.stsel:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+/* แถบเครื่องมือไทม์ไลน์ แถวเดียว */
+.tlbar1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.tlbar1 #tlq{flex:0 1 240px;min-width:170px}
+.tlbar1 .sp1{flex:1 1 auto}
+.mbar.mbin{margin:0;padding:0;border:0;background:none;box-shadow:none;flex-wrap:wrap;gap:8px}
+.mb.mmore{font-size:17px;line-height:1;padding:6px 12px;letter-spacing:.06em}
+.tlx{background:var(--card);border:1px solid var(--line);border-radius:11px;
+ padding:14px 16px;margin:0 0 12px;box-shadow:var(--sh)}
+.tlx[hidden]{display:none}
+.tlx .dwrap{margin-bottom:12px}
+.tlxrow{display:flex;gap:8px;flex-wrap:wrap}
+/* โน้ตที่ยังว่าง ซ่อนไว้จนกว่าจะชี้เมาส์ที่แถว จะได้ไม่มีขีดห้อยทุกบรรทัด */
+.gtnote.empty{display:none}
+tr.gtr:hover .gtnote.empty,tr.gtr:focus-within .gtnote.empty{display:block}
 </style>

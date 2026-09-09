@@ -51,8 +51,7 @@ const NAV=[
  {id:"plan",  t:"Floor plan",     tabs:[
     ["map","Plan","floorplan"],["pkg","Packages & pricing","price"]]},
  {id:"sales", t:"Sales",     tabs:[
-    ["mon","Sales overview","deal"],["board","Board","deal"],
-    ["grid","Working grid","deal"],["opp","Opportunities","deal"],
+    ["mon","Sales overview","deal"],["deals","Deals","deal"],
     ["perf","Rep performance","deal"]]},
  {id:"money", t:"Finance",       tabs:[
     ["pnl","P&L","budget"],["target","Target & run rate","target"],
@@ -96,9 +95,7 @@ function curTab(n){
 const PAGE={
  "dash":pDash,
  "sales:mon":pSalesMon,
- "sales:board":()=>{salesView="board";pSales()},
- "sales:grid":pGrid,
- "sales:opp":pOpp,
+ "sales:deals":pDeals,
  "sales:perf":pPerf,
  "plan:map":pPlan, "plan:pkg":pPkg,
  "money:pnl":pPnl, "money:target":pTarget, "money:income":pBudget, "money:cost":pCost,
@@ -125,6 +122,9 @@ const mine=d=>ROLE[role].scope==="all"||!d.sales||d.sales===me;
 const $=s=>{
   if(s==="#page"){
     if(PAGEHOST)return PAGEHOST;
+    /* หน้าดีลมีตัวสลับมุมมองคร่อมอยู่อีกชั้น ตอนหน้าข้างในวาดตัวเองใหม่
+       ต้องลงในกล่องข้างใน ไม่งั้นตัวสลับหายไปทั้งแถบ */
+    const db=document.getElementById("dealbody"); if(db)return db;
     const tb=document.getElementById("tabbody"); if(tb)return tb;
   }
   return document.querySelector(s);
@@ -543,7 +543,23 @@ function paintUndo(){
   b.title=b.disabled?"Nothing to undo":"Undo · "+KZ+" · "+back+" step"+(back===1?"":"s")+" back";
   f.title=f.disabled?"Nothing to redo":"Redo · "+KY+" · "+fwd+" step"+(fwd===1?"":"s")+" forward";
 }
+/* ลิ้นชักเมนูบนจอแคบ กดที่เมนู กดฉากหลัง หรือ Esc เพื่อปิด
+   ปิดทุกครั้งที่เปลี่ยนหน้าด้วย ไม่งั้นลิ้นชักค้างบังเนื้อหาที่เพิ่งเปิด */
+function navShut(){ const a=$("#app"); if(!a)return;
+  a.classList.remove("navopen");
+  const b=document.getElementById("mnav"); if(b)b.setAttribute("aria-expanded","false") }
+function navWire(){
+  const b=document.getElementById("mnav"), bd=document.getElementById("navbd");
+  if(b)b.addEventListener("click",()=>{
+    const a=$("#app"), on=!a.classList.contains("navopen");
+    a.classList.toggle("navopen",on); b.setAttribute("aria-expanded",String(on));
+    if(on){ const f=document.querySelector("nav.side a"); if(f)f.focus() }
+  });
+  if(bd)bd.addEventListener("click",navShut);
+}
+navWire();
 document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){ const a=$("#app"); if(a&&a.classList.contains("navopen")){ navShut(); return } }
   if(e.key==="Escape"&&tlPick){ tlPick=null; if(tlRedraw)tlRedraw(); return }
   if(!(e.metaKey||e.ctrlKey))return;
   const a=document.activeElement;
@@ -620,7 +636,7 @@ function draw(){
     return '<a class="'+(page===n.id?"on":"")+'" data-p="'+n.id+'">'+svg(n.id)+
       '<span class="lb">'+n.t+'</span>'+(c!==""?'<span class="cnt">'+c+'</span>':'')+'</a>';
   }).join("");
-  $("#nav").querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>go(a.dataset.p)));
+  $("#nav").querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{navShut();go(a.dataset.p)}));
   const n=NAV.find(x=>x.id===page);
   $("#ttl").textContent=n.t;
   const ts=navTabs(n), t=curTab(n);
@@ -2118,6 +2134,69 @@ function pSalesMon(){
 
 /* ---------- ตารางทำงาน แก้ในช่องได้ เพิ่มดีลได้ ---------- */
 let gRep="", gStage="", gPkg="", gQ="";
+/* คอลัมน์ของ Working grid เลือกซ่อนได้ จำไว้ในเบราว์เซอร์ของแต่ละคน ไม่ปนกับคนอื่น
+   [คีย์, หัวคอลัมน์, กว้าง, เป็นตัวเลขไหม] client ปิดไม่ได้ ไม่งั้นไม่รู้ว่าแถวไหนของใคร */
+const GC=[["co","Client",210,0],["pkg","Package",150,0],["booths","Booths",130,0],
+ ["list","Value",110,1],["stage","Stage",140,0],["sales","Sales",120,0],
+ ["fc","Forecast",150,0],["next","Next step",190,0],["tasks","Exhibitor tasks",120,0]];
+const GCKEY="pxe.gridcols.v1";
+let gcHide=(function(){ try{ return new Set(JSON.parse(localStorage.getItem(GCKEY))||[]) }
+  catch(e){ return new Set() } })();
+const gcOn=k=>k==="co"||!gcHide.has(k);
+function gcSave(){ try{ localStorage.setItem(GCKEY,JSON.stringify([...gcHide])) }catch(e){} }
+function gcMenu(btn){
+  document.querySelectorAll(".ctxm").forEach(e=>e.remove());
+  const m=document.createElement("div");
+  m.className="ctxm tmm";
+  m.innerHTML='<div class="tmh">Columns to show</div>'+
+    GC.map(c=>'<button data-gc="'+c[0]+'" class="tmi'+(gcOn(c[0])?" on":"")+'"'+
+      (c[0]==="co"?' disabled title="The client column always stays"':'')+'>'+
+      '<i class="tmk">'+(gcOn(c[0])?"✓":"")+'</i>'+c[1]+'</button>').join("")+
+    '<hr><button data-gcall="1" class="tmi">Show every column</button>';
+  document.body.appendChild(m);
+  const b=btn.getBoundingClientRect(), w=m.offsetWidth, hg=m.offsetHeight;
+  m.style.left=Math.min(b.left,innerWidth-w-8)+"px";
+  m.style.top=(b.bottom+6+hg>innerHeight?Math.max(8,b.top-hg-6):b.bottom+6)+"px";
+  const out=e=>{ if(!m.contains(e.target)){ m.remove(); document.removeEventListener("mousedown",out) } };
+  setTimeout(()=>document.addEventListener("mousedown",out),0);
+  m.querySelectorAll("[data-gc]").forEach(x=>x.addEventListener("click",()=>{
+    const k=x.dataset.gc; if(k==="co")return;
+    gcHide.has(k)?gcHide.delete(k):gcHide.add(k);
+    gcSave(); m.remove(); document.removeEventListener("mousedown",out); pGrid();
+  }));
+  m.querySelector("[data-gcall]").addEventListener("click",()=>{
+    gcHide.clear(); gcSave(); m.remove(); document.removeEventListener("mousedown",out); pGrid();
+  });
+}
+/* ตาราง บอร์ด และโอกาส เป็นดีลชุดเดียวกัน ต่างแค่วิธีแสดง
+   เดิมแยกเป็นสามแท็บ คนใหม่จะไม่รู้ว่าควรเปิดอันไหน รวมเป็นแท็บเดียวแล้วสลับมุมมองเอา
+   ใช้ตัวสลับแบบเดียวกับหน้าเวทีที่มี Sessions / Sheet / Timeline อยู่แล้ว */
+let dview=(function(){ try{ return localStorage.getItem("pxe.dealview")||"grid" }
+  catch(e){ return "grid" } })();
+let dealsHostEl=null;
+function pDeals(){
+  /* draw() ตั้ง PAGEHOST ไว้ก่อนเรียกเสมอ จับไว้ตอนนั้นทีเดียว
+     พอกดสลับมุมมองทีหลังจะได้เขียนทับที่เดิม ไม่ใช่ซ้อนเข้าไปในตัวเอง */
+  if(PAGEHOST)dealsHostEl=PAGEHOST;
+  const host=dealsHostEl||document.getElementById("tabbody")||document.getElementById("page");
+  const V=[["grid","Table","Every field, edit in place"],
+           ["board","Board","Drag between stages"],
+           ["opp","Opportunities","What to chase next"]];
+  host.innerHTML='<div class="bar2 dvsw"><div class="seg">'+V.map(v=>
+    '<button data-dv="'+v[0]+'" aria-pressed="'+(dview===v[0])+'" title="'+esc(v[2])+'">'+
+    v[1]+'</button>').join("")+'</div></div><div id="dealbody"></div>';
+  host.querySelectorAll("[data-dv]").forEach(b=>b.addEventListener("click",()=>{
+    dview=b.dataset.dv; try{ localStorage.setItem("pxe.dealview",dview) }catch(e){}
+    pDeals();
+  }));
+  const real=host.querySelector("#dealbody"), keep=PAGEHOST;
+  PAGEHOST={set innerHTML(v){real.innerHTML=v},get innerHTML(){return real.innerHTML},
+    querySelectorAll:q=>real.querySelectorAll(q),querySelector:q=>real.querySelector(q)};
+  if(dview==="board"){ salesView="board"; pSales() }
+  else if(dview==="opp")pOpp();
+  else pGrid();
+  PAGEHOST=keep;
+}
 function pGrid(){
   const wr=can("deal")==="write";
   let list=DEALS.filter(mine);
@@ -2137,45 +2216,52 @@ function pGrid(){
      '<option value="'+esc(k)+'"'+(gPkg===k?" selected":"")+'>'+esc(k)+'</option>').join("")+'</select>'+
    ((gRep||gStage||gPkg||gQ)?'<button class="act" id="gclr" style="padding:9px 14px">Clear</button>':'')+
    '<span style="margin-left:auto;font-size:13px;color:var(--ink2);align-self:center">'+
-   list.length+' deals · '+f(list.reduce((s,d)=>s+d.list,0))+'</span></div>';
+   list.length+' deals · '+f(list.reduce((s,d)=>s+d.list,0))+'</span>'+
+   '<button class="act" id="gcols" style="padding:9px 14px" '+
+     'title="Choose which columns to show">Columns · '+GC.filter(c=>gcOn(c[0])).length+
+     '/'+GC.length+'</button></div>';
 
-  h+='<div class="tw" style="max-height:66vh;overflow:auto"><table style="min-width:1180px">'+
-   '<thead><tr><th style="width:210px">Client</th><th style="width:150px">Package</th>'+
-   '<th style="width:130px">Booths</th><th class="num" style="width:110px">Value</th>'+
-   '<th style="width:140px">Stage</th><th style="width:120px">Sales</th>'+
-   '<th style="width:150px">Forecast</th>'+
-   '<th style="width:190px">Next step</th><th style="width:120px">Exhibitor tasks</th>'+
+  /* 380 dropdown ในหน้าเดียวคือมากเกินกว่าที่คนจะรับไหว
+     เลือกได้ว่าจะดูคอลัมน์ไหน แล้วจำไว้ในเบราว์เซอร์ของแต่ละคน */
+  const shown=GC.filter(c=>gcOn(c[0]));
+  const minW=shown.reduce((n,c)=>n+c[2],0)+(wr?52:0);
+  h+='<div class="tw" style="max-height:66vh;overflow:auto"><table style="min-width:'+minW+'px">'+
+   '<thead><tr>'+shown.map(c=>'<th'+(c[3]?' class="num"':'')+' style="width:'+c[2]+'px">'+
+     c[1]+'</th>').join("")+
    (wr?'<th style="width:52px"></th>':'')+'</tr></thead><tbody>'+
    list.map(d=>{
      const done=own.filter(t=>d.tasks[t.code]).length;
      const cell=(v,f2,ph)=>wr?'<span contenteditable="plaintext-only" data-g="'+d.id+
        '" data-gf="'+f2+'" data-ph="'+esc(ph||"")+'">'+esc(v||"")+'</span>':esc(v||"—");
-     return '<tr><td><span style="display:flex;gap:8px;align-items:center">'+logoTile(d.co,24)+
-       cell(d.co,"co","Client name")+'</span></td>'+
-      '<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="pkg">'+
+     const C={
+      co:'<td><span style="display:flex;gap:8px;align-items:center">'+logoTile(d.co,24)+
+       cell(d.co,"co","Client name")+'</span></td>',
+      pkg:'<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="pkg">'+
         '<option value="">—</option>'+Object.keys(EV.packages||{}).map(k=>
         '<option value="'+esc(k)+'"'+(d.pkg===k?" selected":"")+'>'+esc(k)+'</option>').join("")+
-        '</select>':esc(d.pkg||"—"))+'</td>'+
-      '<td style="font-size:12.5px;color:var(--ink2)">'+esc(d.booths.slice(0,3).join(", "))+
-        (d.booths.length>3?" +"+(d.booths.length-3):"")+'</td>'+
-      '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-g="'+d.id+
-        '" data-gf="list">'+f(d.list)+'</span>':f(d.list))+'</td>'+
-      '<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="stage">'+STAGES.map(x=>
+        '</select>':esc(d.pkg||"—"))+'</td>',
+      booths:'<td style="font-size:12.5px;color:var(--ink2)">'+esc(d.booths.slice(0,3).join(", "))+
+        (d.booths.length>3?" +"+(d.booths.length-3):"")+'</td>',
+      list:'<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-g="'+d.id+
+        '" data-gf="list">'+f(d.list)+'</span>':f(d.list))+'</td>',
+      stage:'<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="stage">'+STAGES.map(x=>
         '<option value="'+x[0]+'"'+(d.stage===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
-        '</select>':stName(d.stage))+'</td>'+
-      '<td>'+(wr&&ROLE[role].scope==="all"?'<select class="cell" data-g="'+d.id+'" data-gf="sales">'+
+        '</select>':stName(d.stage))+'</td>',
+      sales:'<td>'+(wr&&ROLE[role].scope==="all"?'<select class="cell" data-g="'+d.id+'" data-gf="sales">'+
         REPS.filter(r=>r.active).map(r=>'<option value="'+esc(r.name)+'"'+
         (d.sales===r.name?" selected":"")+'>'+esc(r.name)+'</option>').join("")+'</select>'
-        :esc(d.sales||"—"))+'</td>'+
-      '<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="fc">'+FC.map(x=>
+        :esc(d.sales||"—"))+'</td>',
+      fc:'<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="fc">'+FC.map(x=>
         '<option value="'+x[0]+'"'+(fcOf(d)===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
-        '</select>':fcName(fcOf(d)))+'</td>'+
-      '<td>'+cell(d.next,"next","No next step")+
+        '</select>':fcName(fcOf(d)))+'</td>',
+      next:'<td>'+cell(d.next,"next","No next step")+
         (d.nextDate?'<br><small style="color:'+(overdue(d)?cv("--risk"):"var(--ink3)")+'">'+
-          esc(d.nextDate)+'</small>':'')+'</td>'+
-      '<td><div style="display:flex;align-items:center;gap:7px"><div class="prog" style="min-width:52px">'+
+          esc(d.nextDate)+'</small>':'')+'</td>',
+      tasks:'<td><div style="display:flex;align-items:center;gap:7px"><div class="prog" style="min-width:52px">'+
         '<i style="width:'+(done/own.length*100)+'%;background:'+cv("--ok")+'"></i></div>'+
-        '<span style="font-size:12px;color:var(--ink2)">'+done+'/'+own.length+'</span></div></td>'+
+        '<span style="font-size:12px;color:var(--ink2)">'+done+'/'+own.length+'</span></div></td>'
+     };
+     return '<tr>'+shown.map(c=>C[c[0]]).join("")+
       (wr?'<td><button class="rowdel" data-gx="'+d.id+'">×</button></td>':'')+'</tr>'}).join("")+
    '</tbody></table></div>';
 
@@ -2194,6 +2280,7 @@ function pGrid(){
   const P=$("#page");
   P.querySelector("#gq").addEventListener("input",e=>{gQ=e.target.value;pGrid();
     const el=$("#gq"); if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}});
+  P.querySelector("#gcols").addEventListener("click",e=>gcMenu(e.currentTarget));
   const gr=P.querySelector("#grep");
   if(gr)gr.addEventListener("change",e=>{gRep=e.target.value;pGrid()});
   P.querySelector("#gst").addEventListener("change",e=>{gStage=e.target.value;pGrid()});
@@ -2579,8 +2666,13 @@ function SG(){
 }
 const SKIND={keynote:"Keynote",panel:"Panel Talk",talk:"Talk",workshop:"Workshop",
  ceremony:"Ceremony",networking:"Networking",break:"Break",registration:"Register"};
-const SCOL={keynote:"--accent",panel:"--s-deposit",talk:"--s-deposit",workshop:"--risk",
- ceremony:"--warn",networking:"--s-booked",break:"--ink3",registration:"--ink3"};
+/* ชนิดของช่วงบนเวทีเป็น "ประเภท" ไม่ใช่ "สถานะ" จึงไม่ใช้สีชุดสถานะ
+   เดิม workshop ใช้สีแดงตัวเดียวกับงานที่ติดปัญหา และ networking ใช้สีเดียวกับ Booked
+   ตอนนี้เป็นสีอ่อนพื้นหลังกับขอบซ้าย อ่านออกว่าเป็นคนละเรื่องกันตั้งแต่แรกเห็น */
+const SKEYS={keynote:"keynote",talk:"talk",panel:"talk",workshop:"workshop",
+ ceremony:"ceremony",networking:"networking",break:"break",registration:"registration"};
+const kBg=k=>cv("--k-"+(SKEYS[k]||"break")+"-bg");
+const kBd=k=>cv("--k-"+(SKEYS[k]||"break")+"-bd");
 /* คำอธิบายสีของช่วงบนเวที ไม่งั้นกล่องสีไม่บอกอะไรเลย
    talk กับ panel ใช้สีเดียวกันเพราะเป็นเนื้อหาบนเวทีเหมือนกัน ต่างแค่จำนวนคนพูด */
 const SLEG=[["keynote","Keynote","The headline session of the day"],
@@ -2595,9 +2687,10 @@ function stageLegend(){
   const seen=new Set();
   const rows=SLEG.filter(([k])=>{
     if(!used.has(k)&&k!=="talk")return false;
-    const c=SCOL[k]; if(seen.has(c))return false; seen.add(c); return true});
+    const c=SKEYS[k]; if(seen.has(c))return false; seen.add(c); return true});
   return '<div class="sleg">'+rows.map(([k,n,d])=>
-    '<span class="slg" title="'+esc(d)+'"><i style="background:'+cv(SCOL[k]||"--ink3")+'"></i>'+
+    '<span class="slg" title="'+esc(d)+'"><i style="background:'+kBg(k)+
+    ';border-left:3px solid '+kBd(k)+'"></i>'+
     esc(n)+'</span>').join("")+
     '<span class="slgh">Colour key · every block is one slot, its height is how long it runs</span></div>';
 }
@@ -2688,7 +2781,8 @@ function timelineHTML(){
          ผลคือกล่องล้นไปทับช่วงถัดไป กดแล้วให้เด้งขึ้นหน้าสุดถึงจะอ่านออก */
       const top=(s.a-T0)*PX, real=(s.b-s.a)*PX-4, ht=Math.max(26,real);
       h+='<button class="ev'+(real<58?" evtiny":"")+'" data-ei="'+SES.indexOf(s)+
-       '" style="top:'+top+'px;height:'+ht+'px;background:'+cv(SCOL[s.kind]||"--ink3")+
+       '" style="top:'+top+'px;height:'+ht+'px;background:'+kBg(s.kind)+
+       ';border-left:3px solid '+kBd(s.kind)+
        '" title="Click to bring this slot to the front">'+
        '<span class="t">'+s.time+(s.min?' · '+s.min+' min':'')+'</span>'+
        '<span class="n">'+esc(s.title||"—")+'</span>'+
@@ -2781,7 +2875,7 @@ function stageCards(rows){
     const warn=need&&(!s.title||!ppl.length||!s.cf);
 
     return '<article class="sc'+(need?"":" sc-b")+(warn?" sc-w":"")+'" style="--k:'+
-      cv(SCOL[s.kind]||"--ink3")+'">'+
+      kBd(s.kind)+';--kbg:'+kBg(s.kind)+'">'+
      '<header class="sch">'+
       '<span class="sct">'+(ed
         ? '<input type="time" value="'+t1+'" data-si="'+si+'" data-tp="a" aria-label="Start time">'+
@@ -2953,7 +3047,8 @@ function oneTimeline(g){
   SES.filter(s=>s.day===day&&s.stage===g).forEach(s=>{
     const top=(s.a-T0)*PX, real=(s.b-s.a)*PX-4, ht=Math.max(26,real);
     h+='<button class="ev'+(real<62?" evtiny":"")+'" data-ei="'+SES.indexOf(s)+
-     '" style="top:'+top+'px;height:'+ht+'px;background:'+cv(SCOL[s.kind]||"--ink3")+
+     '" style="top:'+top+'px;height:'+ht+'px;background:'+kBg(s.kind)+
+     ';border-left:3px solid '+kBd(s.kind)+
      '" title="Click to bring this slot to the front">'+
      '<span class="t">'+s.time+(s.min?' · '+s.min+' min':'')+'</span>'+
      '<span class="n">'+esc(s.title||"—")+'</span>'+
@@ -3026,7 +3121,7 @@ function sheet(rows){
         '<td'+span+' class="num">'+cell(s.no,si,-1,"no")+'</td>'+
         '<td'+span+' class="tcell">'+tpick(s,si)+'</td>'+
         '<td'+span+' class="num">'+cell(s.min,si,-1,"min")+'</td>'+
-        '<td'+span+'><span class="dot" style="background:'+cv(SCOL[s.kind]||"--ink3")+'"></span>'+
+        '<td'+span+'><span class="dot" style="background:'+kBd(s.kind)+'"></span>'+
           sel(s.kind,si,-1,"kind",KOPT)+'</td>'+
         '<td'+span+'>'+(ed?cell(s.title,si,-1,"title","No topic yet")
           :(s.title?'<b>'+esc(s.title)+'</b>':'<span style="color:var(--risk)">— no topic yet —</span>'))+'</td>'+
@@ -3992,6 +4087,23 @@ document.addEventListener("keydown",e=>{
    ไม่ใช่วันที่ตายตัว พอเลื่อนวันงานทั้งแผนจึงขยับตามเอง */
 const TLST={plan:{l:"Not started",c:"var(--tl-plan)"},doing:{l:"In progress",c:"var(--tl-doing)"},
  done:{l:"Done",c:"var(--tl-done)"},risk:{l:"Blocked",c:"var(--tl-risk)"}};
+/* dropdown สถานะพร้อมสี ขอบซ้ายกับพื้นจางบอกสถานะได้ตั้งแต่ยังไม่อ่านตัวหนังสือ */
+/* โน้ตส่วนใหญ่ว่าง เดิมขึ้นขีด — ทุกบรรทัด กินความสูงบรรทัดละ 20 px โดยไม่บอกอะไร
+   มีโน้ตค่อยแสดง ไม่มีก็ซ่อนไว้ ชี้เมาส์ที่แถวถึงโผล่มาให้พิมพ์ */
+function noteLine(r,attr,i,wr){
+  const has=!!String(r.note||"").trim();
+  if(!wr)return has?'<br><small class="gtnote">'+esc(r.note)+'</small>':"";
+  return '<br><small class="gtnote'+(has?"":" empty")+'">'+
+    '<span contenteditable="plaintext-only" data-'+attr+'="'+i+'" '+
+    'data-ph="Add a note">'+esc(r.note||"")+'</span></small>';
+}
+function stSelect(attr,i,cur){
+  const k=cur||"plan", c=TLST[k]?TLST[k].c:"var(--st-todo)";
+  return '<select class="cell stsel" data-'+attr+'="'+i+'" style="--sc:'+c+
+    ';--scbg:color-mix(in srgb,'+c+' 13%,transparent)">'+
+    Object.keys(TLST).map(x=>'<option value="'+x+'"'+(k===x?" selected":"")+'>'+
+      TLST[x].l+'</option>').join("")+'</select>';
+}
 const THM=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 let tlOpen={}, tlDrag=null, tlFilter="";
 /* แถบที่กดเลือกไว้ กดครั้งแรกเลือก กดค้างครั้งที่สองถึงจะลากได้
@@ -4144,7 +4256,7 @@ function monthBar(ph,lo,hi,nOut){
   const [y1,m1]=f.split("-").map(Number), [y2,m2]=t.split("-").map(Number);
   const n=(y2-y1)*12+(m2-m1)+1;
   const z=(k,l,tip)=>'<button class="mb'+(n===k?" on":"")+'" data-zoom="'+k+'" title="'+esc(tip)+'">'+l+'</button>';
-  return '<div class="mbar">'+
+  return '<div class="mbar mbin">'+
    '<div class="mbz">'+
      z(3,"Quarter","Show three months")+z(6,"6 months","Show six months")+
      z(12,"Year","Show a full year")+
@@ -4258,17 +4370,22 @@ function pTimeline(ph){
 
   const ev=effEventDate(EV);
 
-  let h=tlDateBar(wr)+'<p class="edhint" style="margin:2px 0 12px">'+PH.d+'</p>';
-  h+=selBar([...tlSel].filter(r=>R.includes(r)).length,wr);
-  h+='<div class="tlbar">'+
-    '<input id="tlq" class="cell" placeholder="Search task or team" value="'+esc(tlFilter)+'" style="max-width:260px">'+
-    '<span class="tlleg"><i class="lgplan"></i>Plan'+Object.keys(TLST).map(k=>
-      '<i style="background:'+TLST[k].c+'"></i>'+TLST[k].l).join("")+'</span>'+
-    dlBtn("dltl","Download CSV")+
-    (wr?' <button class="act" id="tlfill" style="padding:9px 15px">Fill from standard set</button>'+
-        ' <button class="act" id="colnew" style="padding:9px 15px">+ Add column</button>':'')+
+  /* แถบเครื่องมือแถวเดียว ค้นหาซ้าย ซูมกลาง ของที่ใช้นานๆ ครั้งอยู่ในเมนู ⋯ ขวาสุด
+     เดิมกินสามแถวกับอีกกล่อง กว่าจะเห็นงานแถวแรกต้องเลื่อนลงเกือบ 400 px */
+  let h='<div class="tlbar1">'+
+    '<input id="tlq" class="cell" placeholder="Search task or team" value="'+esc(tlFilter)+'">'+
+    monthBar(ph,lo,hi,outN)+
+    '<span class="sp1"></span>'+
+    '<button class="mb mmore" id="tlmoreb" aria-expanded="false" '+
+      'title="Show dates, download and columns">⋯</button>'+
+   '</div>'+
+   '<div class="tlx" id="tlxbox" hidden>'+
+     tlDateBar(wr)+
+     '<div class="tlxrow">'+dlBtn("dltl","Download CSV")+
+     (wr?' <button class="act" id="tlfill">Fill from standard set</button>'+
+         ' <button class="act" id="colnew">+ Add column</button>':'')+'</div>'+
    '</div>';
-  h+=monthBar(ph,lo,hi,outN);
+  h+=selBar([...tlSel].filter(r=>R.includes(r)).length,wr);
   if(wr)h+=hintBox("gantt","The top outlined bar is the plan, the solid bar under it is what actually "+
     "happened. Click a bar once to select it, then drag its ends to resize or its middle to move it. "+
     "Once a task becomes in progress or done, the actual bar starts as a copy of the plan — "+
@@ -4277,7 +4394,8 @@ function pTimeline(ph){
   h+='<div class="tw"><table class="gt"><thead>'+
    '<tr><th class="gtno" rowspan="2"></th>'+
    '<th class="gtn" rowspan="2">Task · note</th>'+
-   '<th class="gts" rowspan="2">Status</th>'+
+   '<th class="gts" rowspan="2" title="'+
+     Object.keys(TLST).map(k=>TLST[k].l).join(" · ")+'">Status</th>'+
    '<th class="gtby" rowspan="2">Owner</th>'+
    '<th class="gtd gtd2" rowspan="2">Due by<br><small>Plan / actual</small></th>'+
    mons.map(m=>'<th colspan="'+m.n+'" class="gtm">'+m.l+'</th>').join("")+
@@ -4316,12 +4434,8 @@ function pTimeline(ph){
       h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'">'+selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-tn="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-tx="'+i+'" title="Delete this task">×</button>':'')+
-        '<br><small class="gtnote">'+
-        (wr?'<span contenteditable="plaintext-only" data-tnote="'+i+'">'+esc(r.note||"—")+'</span>'
-           :esc(r.note||"—"))+'</small></td>'+
-      '<td class="gts">'+(wr?'<select class="cell" data-tst="'+i+'">'+
-        Object.keys(TLST).map(k=>'<option value="'+k+'"'+((r.st||"plan")===k?" selected":"")+'>'+
-          TLST[k].l+'</option>').join("")+'</select>'
+        noteLine(r,"tnote",i,wr)+'</td>'+
+      '<td class="gts">'+(wr?stSelect("tst",i,r.st)
         :'<span style="color:'+st.c+';font-weight:700">'+st.l+'</span>')+'</td>'+
       '<td class="gtby">'+(wr
         ?'<button class="tmb" data-tby="'+i+'" title="Choose which teams own this task">'+
@@ -4396,6 +4510,9 @@ function pTimeline(ph){
     const cell=box.querySelector("th.gtw"); const w=cell?cell.offsetWidth:26;
     box.scrollLeft=Math.max(0,(first-LO-2)*w); }
 
+  const mb=P.querySelector("#tlmoreb"), mx=P.querySelector("#tlxbox");
+  if(mb)mb.addEventListener("click",()=>{ mx.hidden=!mx.hidden;
+    mb.setAttribute("aria-expanded",String(!mx.hidden)); mb.classList.toggle("on",!mx.hidden) });
   P.querySelector("#tlq").addEventListener("input",e=>{
     tlFilter=e.target.value; const p=e.target.selectionStart; pTimeline(ph);
     const n=$("#tlq"); n.focus(); n.setSelectionRange(p,p);});
@@ -4445,7 +4562,7 @@ function pTimeline(ph){
   P.querySelectorAll("[data-tby]").forEach(b=>b.addEventListener("click",()=>
     teamMenu(b,R[+b.dataset.tby],()=>pTimeline(ph))));
   P.querySelectorAll("[data-tnote]").forEach(el=>el.addEventListener("blur",()=>{
-    R[+el.dataset.tnote].note=el.textContent.trim().replace(/^—$/,""); pTimeline(ph)}));
+    R[+el.dataset.tnote].note=el.textContent.trim(); pTimeline(ph)}));
   P.querySelectorAll("[data-tst]").forEach(el=>el.addEventListener("change",()=>{
     const r=R[+el.dataset.tst]; r.st=el.value;
     /* พอเริ่มลงมือแล้ว ตั้งแถบจริงตามแผนไว้ก่อน จะได้มีอะไรให้ลากปรับ */
@@ -4579,12 +4696,8 @@ function pTimelineOn(){
       h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'">'+selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-on="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-ox="'+i+'" title="Delete this run-sheet item">×</button>':'')+
-        '<br><small class="gtnote">'+
-        (wr?'<span contenteditable="plaintext-only" data-onote="'+i+'">'+esc(r.note||"—")+'</span>'
-           :esc(r.note||"—"))+'</small></td>'+
-      '<td class="gts">'+(wr?'<select class="cell" data-ost="'+i+'">'+
-        Object.keys(TLST).map(k=>'<option value="'+k+'"'+((r.st||"plan")===k?" selected":"")+'>'+
-          TLST[k].l+'</option>').join("")+'</select>'
+        noteLine(r,"onote",i,wr)+'</td>'+
+      '<td class="gts">'+(wr?stSelect("ost",i,r.st)
         :'<span style="color:'+st.c+';font-weight:700">'+st.l+'</span>')+'</td>'+
       '<td class="gtby">'+(wr
         ?'<button class="tmb" data-oby="'+i+'" title="Choose which teams own this item">'+
@@ -4706,7 +4819,7 @@ function pTimelineOn(){
   P.querySelectorAll("[data-oby]").forEach(b=>b.addEventListener("click",()=>
     teamMenu(b,R[+b.dataset.oby],pTimelineOn)));
   P.querySelectorAll("[data-onote]").forEach(el=>el.addEventListener("blur",()=>{
-    R[+el.dataset.onote].note=el.textContent.trim().replace(/^—$/,""); pTimelineOn()}));
+    R[+el.dataset.onote].note=el.textContent.trim(); pTimelineOn()}));
   P.querySelectorAll("[data-ost]").forEach(el=>el.addEventListener("change",()=>{
     const r=R[+el.dataset.ost]; r.st=el.value;
     if(["doing","done","risk"].includes(r.st))seedActT(r);

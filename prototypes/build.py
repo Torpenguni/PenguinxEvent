@@ -17,7 +17,12 @@ def load_logo(eid):
         return "data:image/png;base64,"+base64.b64encode(b).decode()
     return None
 
-css=open('mock_css.txt').read(); html=open('mock_html.txt').read(); js=open('mock_js.txt').read()
+css=open('mock_css.txt',encoding='utf-8').read()
+# เคยพลาดสองรอบ เพิ่มกฎต่อท้ายไฟล์แล้วมันไปอยู่นอก </style> กฎใหม่เลยไม่ทำงานสักข้อ
+assert css.count('</style>')==1, 'mock_css.txt ต้องมี </style> ตัวเดียว'
+assert not css.split('</style>')[1].strip(), 'มี CSS หลุดอยู่นอก </style>'
+html=open('mock_html.txt',encoding='utf-8').read()
+js=open('mock_js.txt',encoding='utf-8').read()
 assert js.count('__DATA__')==1,"ต้องมี __DATA__ ตัวเดียว"
 found=[]
 for data,out in (('app4.json','platform.html'),('demo.json','demo.html')):
