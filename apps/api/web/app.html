@@ -1429,7 +1429,16 @@ async function pullEvent(id){
   if(Array.isArray(out.reps)){ REPS.length=0; out.reps.forEach(r=>REPS.push(r)) }
   EV=EVENTS.find(x=>x.id===id);
   B=EV.booths; AR=EV.areas; DEALS=EV.deals; SES=EV.sessions;
+  backfillDeals();
   savedJS=saveBody();
+}
+/* งานที่ขายบูธไปแล้วแต่ยังไม่เคยมีดีลสักรายการ ท่อการขายจะว่างและ Won ค้างที่ศูนย์
+   สร้างให้จากบูธที่ถูกจองแล้ว ทำเฉพาะตอนที่ยังไม่มีดีลเลย จะได้ไม่ไปซ้ำกับของที่มีอยู่ */
+function backfillDeals(){
+  if(!Array.isArray(DEALS)||DEALS.length)return;
+  const held=(B||[]).filter(b=>b.st&&b.st!=="free"&&b.co);
+  if(!held.length)return;
+  held.forEach(linkDeal);
 }
 /* ───────── สร้างงานใหม่ ─────────
    กรอกข้อมูลตั้งต้นครั้งเดียว แล้วระบบวางโครงให้ทั้งงาน
@@ -1943,6 +1952,18 @@ async function pushUp(js){
   }
 }
 function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(saveNow,600) }
+/* ช่องแก้ในตารางทั้งระบบเก็บค่าตอนออกจากช่อง ถ้าผู้ใช้สลับไปหน้าต่างอื่น ย่อขยายจอ
+   หรือปิดแท็บทั้งที่เคอร์เซอร์ยังอยู่ในช่อง สิ่งที่พิมพ์ไปจะหายเงียบ ๆ
+   บังคับให้ออกจากช่องก่อนทุกครั้งที่หน้าจอกำลังจะเสียโฟกัส ค่าจึงถูกเก็บทัน */
+function commitEditing(){
+  const el=document.activeElement;
+  if(el&&el!==document.body&&(el.isContentEditable||/^(INPUT|TEXTAREA)$/.test(el.tagName)))el.blur();
+}
+window.addEventListener("blur",commitEditing);
+window.addEventListener("pagehide",commitEditing);
+window.addEventListener("resize",commitEditing);
+document.addEventListener("visibilitychange",()=>{ if(document.hidden)commitEditing() });
+
 function saveClear(){
   try{ localStorage.removeItem(SKEY) }catch(err){}
   savedJS=""; location.reload();
@@ -1988,6 +2009,21 @@ function loadSaved(){
   savedJS=saveBody(); saveAt=Date.now();
 }
 if(!online())loadSaved();
+
+/* กู้การเข้าระบบตอนเปิดหน้า ของเดิมอ่าน token เก็บไว้เฉย ๆ แต่ไม่เคยเอาไปใช้
+   คนที่เคยเข้าแล้วรีเฟรชจึงเด้งกลับหน้าเข้าสู่ระบบทุกครั้ง
+   ทั้งที่ token อายุ 30 วันและยังใช้ได้อยู่ */
+if(online()&&TOKEN){
+  const box=document.getElementById("lform");
+  const btn=box&&box.querySelector("button[type=submit]");
+  if(btn){ btn.disabled=true; btn.textContent="กำลังเข้าระบบ…" }
+  afterLogin().catch(err=>{
+    /* token หมดอายุหรือถูกถอน ล้างทิ้งแล้วให้ล็อกอินใหม่ตามปกติ */
+    if(err&&err.status===401){ TOKEN=null;
+      try{ localStorage.removeItem("pxe.token") }catch(e){} }
+    else loginMsg("ต่อเซิร์ฟเวอร์ไม่ได้ · "+(err&&err.message||""),true);
+  }).finally(()=>{ if(btn){ btn.disabled=false; btn.textContent="Sign in" } });
+}
 
 function draw(){
   $("#rl2").value=role; $("#wn").textContent=me; $("#wr").textContent=ROLE[role].n;
@@ -2108,7 +2144,7 @@ function pDash(){
   const noSpk=real.filter(s=>!s.people.length).length;
   const noPhone=SES.reduce((n,s)=>n+s.people.filter(p=>!p.contact).length,0);
   const openTasks=DEALS.reduce((n,d)=>n+Object.values(d.tasks).filter(v=>!v).length,0);
-  const goal=EV.target!=null?EV.target:Math.round(m.list*.64);
+  const goal=goalOf(EV,m.list);
 
   // สถานะบูธ ใช้เป็นทั้งโดนัทและกรวย
   const SEG=[["paid","Paid in full","--s-paid"],["deposit","Deposit paid","--s-deposit"],
@@ -2504,6 +2540,46 @@ function fitLines(code,w){
 }
 const NS="http://www.w3.org/2000/svg";
 function E(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e}
+/* อัปเดตเฉพาะตัวเลขบนแถบเครื่องมือ ไม่ต้องวาดทั้งหน้าให้แผงที่เปิดอยู่กระพริบ */
+/* จองบูธบนผังแล้วไม่มีดีลตามมา ท่อการขายกับการ์ด Won จึงว่างเปล่า
+   ทั้งที่ขายไปแล้วจริง ผูกให้อัตโนมัติ ชื่อบริษัทเดียวกันถือเป็นดีลเดียว */
+const DSTAGE={booked:"booking",deposit:"confirmed",paid:"paid"};
+function linkDeal(b){
+  if(!b||!b.co)return null;
+  const key=(x)=>String(x||"").trim().toLowerCase();
+  let d=DEALS.find(x=>key(x.co)===key(b.co));
+  if(!d){
+    const tasks={}; (EV.tasks||[]).forEach(t=>tasks[t.code]=false);
+    d={id:Math.max(0,...DEALS.map(x=>x.id))+1, co:b.co, sales:b.sales||me,
+       pkg:b.pkg||null, booths:[], list:0, st:b.st, stage:"lead",
+       contact:null, phone:null, form:false, tasks, acts:[], next:null, nextDate:null};
+    DEALS.push(d);
+  }
+  if(!d.booths.includes(b.code))d.booths.push(b.code);
+  d.list=d.booths.reduce((s,c)=>{const x=B.find(y=>y.code===c); return s+((x&&x.list)||0)},0);
+  if(!d.sales)d.sales=b.sales||me;
+  if(!d.pkg&&b.pkg)d.pkg=b.pkg;
+  d.st=b.st;
+  const to=DSTAGE[b.st], names=STAGES.map(x=>x[0]);
+  if(to&&names.indexOf(to)>names.indexOf(d.stage))d.stage=to;   // เดินหน้าอย่างเดียว ไม่ถอยกลับเอง
+  return d;
+}
+/* ปล่อยบูธคืน ต้องถอดรหัสบูธออกจากดีลด้วย ไม่งั้นดีลยังนับยอดของบูธที่ไม่ใช่ของตัวเองแล้ว */
+function unlinkDeal(code){
+  DEALS.forEach(d=>{
+    const i=d.booths.indexOf(code);
+    if(i<0)return;
+    d.booths.splice(i,1);
+    d.list=d.booths.reduce((s,c)=>{const x=B.find(y=>y.code===c); return s+((x&&x.list)||0)},0);
+  });
+}
+function paintCounts(){
+  const seg=document.querySelector("#page .bar2 .seg");
+  if(!seg||!document.getElementById("plan"))return;   // แถบนี้มีในหน้าอื่นด้วย แตะเฉพาะหน้าผัง
+  seg.innerHTML=["free","booked","deposit","paid"].map(k=>
+    '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
+    cv(ST[k].c)+'"></i>'+ST[k].l+' '+shown().filter(x=>x.st===k).length+'</span>').join("");
+}
 function paint(){
   const svg=$("#plan"); if(!svg)return; svg.textContent="";
   AR.forEach(a=>{
@@ -2663,13 +2739,17 @@ function act(a){
   else if(a==="del"){
     if(!confirm("ลบบูธ "+b.code+" ออกจากผัง"))return;
     const i=B.indexOf(b); if(i>=0)B.splice(i,1);
-    delete Q[b.code]; sel=null; paint(); sidebar(); toastTL("ลบบูธ "+b.code+" แล้ว"); return;
+    delete Q[b.code]; unlinkDeal(b.code); sel=null;
+    paint(); sidebar(); paintCounts(); toastTL("ลบบูธ "+b.code+" แล้ว"); return;
   }
   else if(a==="rel"){const qs=Q[b.code]||[];
     if(qs.length){const x=qs.shift();b.st="booked";b.co=x.co;b.sales=x.sales;
       b.hold=30;b.due=addDays(30);if(!qs.length)delete Q[b.code]}
     else{b.st="free";b.co=null;b.sales=null;b.due=null;b.hold=null}}
-  paint();sidebar();
+  /* วาดผังกับแผงใหม่แล้วยังไม่พอ ตัวนับบนแถบเครื่องมือ (ว่าง/จองแล้ว/มัดจำ/จ่ายครบ)
+     ถูกสร้างตอนวาดทั้งหน้า จองบูธเสร็จตัวเลขจึงค้างจนกว่าจะออกจากหน้าแล้วกลับมาใหม่ */
+  if(b){ if(b.st==="free")unlinkDeal(b.code); else linkDeal(b) }
+  paint();sidebar();paintCounts();
 }
 
 
@@ -3124,6 +3204,14 @@ function drawDealPanel(){
 
 /* ---------- P&L แบบต้นไม้ ---------- */
 let pnlAll=true, open1={};
+/* เป้ารายได้ของงาน ถ้ายังไม่ตั้ง (ว่างหรือ 0) ให้ประเมินจากราคาตั้งของบูธทั้งหมด
+   ไม่งั้นแถวแม่ Revenue กับการ์ด Planned revenue จะขึ้น 0 ทั้งที่ข้างในมียอดอยู่ */
+function goalOf(e,list){
+  const t=+(e&&e.target||0);
+  if(t>0)return t;
+  const L=+(list||0);
+  return L>0?L:0;                      // เท่ากับผลรวมของแถวลูก ยอดจะได้ตรงกัน
+}
 function evNumbers(e){
   const held=e.booths.filter(b=>b.st!=="free");
   const income={
@@ -3142,12 +3230,13 @@ function evNumbers(e){
     Math.abs(cats[c].sheet-cats[c].fc)>1).map(c=>({c,sheet:cats[c].sheet,sum:cats[c].fc}));
   const boothCost=held.reduce((s,b)=>s+((b.pkg==="Food"?1800:2500)+750),0);
   return {e,income,cats,exFc,exAc,boothCost,mismatch,
-    goal:e.target!=null?e.target:Math.round(income.list*.64)};
+    goal:goalOf(e,income.list), goalSet:+(e.target||0)>0};
 }
 function pPnl(){
   const rows=pnlAll?EVENTS.map(evNumbers):[evNumbers(EV)];
   const wr=can("budget")==="write"&&!pnlAll;
   const T={goal:0,con:0,got:0,exFc:0,exAc:0,boothCost:0};
+  const noGoal=rows.length&&rows.every(r=>!r.goalSet);
   rows.forEach(r=>{T.goal+=r.goal;T.con+=r.income.con;T.got+=r.income.got;
     T.exFc+=r.exFc;T.exAc+=r.exAc;T.boothCost+=r.boothCost});
   const gpPlan=T.goal-T.exFc, gpNow=T.con-T.exAc-T.boothCost;
@@ -3164,7 +3253,7 @@ function pPnl(){
    '</div>';
 
   h+='<div class="cards">'+
-   card(f(T.goal),"Planned revenue","--line2")+card(f(T.con),"Won","--s-deposit")+
+   card(f(T.goal),noGoal?"Planned revenue (from booth list price)":"Planned revenue","--line2")+card(f(T.con),"Won","--s-deposit")+
    card(f(T.exFc),"Planned expenses","--warn")+card(f(T.exAc+T.boothCost),"Actually paid","--risk")+
    card(f(gpPlan),"Planned profit",Math.round(mgPlan*10)/10+"%","--accent")+
    card(f(gpNow),"Profit so far",Math.round(mgNow*10)/10+"%",gpNow<0?"--risk":"--s-paid")+
@@ -3193,7 +3282,9 @@ function pPnl(){
 
   // ---- รายได้
   const kInc="Revenue";
-  h+='<tr class="lv0"><td>'+caret(kInc,true)+'Revenue'+bar(T.con,T.goal)+'</td>'+
+  h+='<tr class="lv0"><td>'+caret(kInc,true)+'Revenue'+
+   (noGoal?'<span class="mut" style="font-weight:400"> · no target set, using booth list price</span>':'')+
+   bar(T.con,T.goal)+'</td>'+
    m(T.goal)+m(T.con)+sg(T.con-T.goal)+'</tr>';
   if(open1[kInc]){
     rows.forEach(r=>{
@@ -3756,8 +3847,15 @@ function pGrid(){
      const cell=(v,f2,ph)=>wr?'<span contenteditable="plaintext-only" data-g="'+d.id+
        '" data-gf="'+f2+'" data-ph="'+esc(ph||"")+'">'+esc(v||"")+'</span>':esc(v||"—");
      const C={
-      co:'<td><span style="display:flex;gap:8px;align-items:center">'+logoTile(d.co,24)+
-       cell(d.co,"co","Client name")+'</span></td>',
+      /* ชื่อในตารางเป็นช่องแก้ข้อความ กดแล้วได้แค่เคอร์เซอร์ ไม่มีทางเปิดรายละเอียดดีลเลย
+         เพิ่มปุ่มเปิดแผงข้างไว้ที่รูปโลโก้กับลูกศรท้ายชื่อ */
+      co:'<td><span style="display:flex;gap:8px;align-items:center">'+
+       '<button class="lnk" data-gopen="'+d.id+'" title="Open details" '+
+       'style="all:unset;cursor:pointer;display:flex">'+logoTile(d.co,24)+'</button>'+
+       cell(d.co,"co","Client name")+
+       '<button class="lnk" data-gopen="'+d.id+'" title="Open details" '+
+       'style="all:unset;cursor:pointer;color:var(--ink3);font-size:12px;padding:0 2px">↗</button>'+
+       '</span></td>',
       pkg:'<td>'+(wr?'<select class="cell" data-g="'+d.id+'" data-gf="pkg">'+
         '<option value="">—</option>'+Object.keys(EV.packages||{}).map(k=>
         '<option value="'+esc(k)+'"'+(d.pkg===k?" selected":"")+'>'+esc(k)+'</option>').join("")+
@@ -3810,16 +3908,27 @@ function pGrid(){
   const gc=P.querySelector("#gclr");
   if(gc)gc.addEventListener("click",()=>{gRep=gStage=gPkg=gQ="";pGrid()});
 
+  P.querySelectorAll("[data-gopen]").forEach(b=>b.addEventListener("click",e=>{
+    e.preventDefault(); e.stopPropagation(); openDeal(+b.dataset.gopen);
+  }));
+
+  /* ของเดิมเก็บค่าตอนออกจากช่องอย่างเดียว ระหว่างที่ยังพิมพ์ค้างอยู่ค่ายังไม่เข้าข้อมูล
+     อะไรก็ตามที่มาวาดตารางใหม่ก่อน (ย่อขยายหน้าต่าง สลับแท็บ ซิงก์จากเซิร์ฟเวอร์)
+     ทำให้ที่พิมพ์ไปหายทั้งหมด เก็บระหว่างพิมพ์ด้วย โดยยังไม่วาดใหม่จนกว่าจะออกจากช่อง */
+  const gCommit=(el)=>{
+    const d=DEALS.find(x=>x.id===+el.dataset.g); if(!d)return false;
+    const f2=el.dataset.gf, t=el.textContent.trim();
+    if(f2==="list"){const v=+(t.replace(/[^0-9]/g,"")); if(!v)return false; if(d.list===v)return false; d.list=v;}
+    else if(f2==="next"){ if((d.next||"")===t)return false;
+      d.next=t||null; if(t&&!d.nextDate)d.nextDate=ymd(new Date()); }
+    else { if(!t||d[f2]===t)return false; d[f2]=t }
+    return true;
+  };
   P.querySelectorAll("[contenteditable][data-g]").forEach(el=>{
+    let t2=null;
     el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();el.blur()}});
-    el.addEventListener("blur",()=>{
-      const d=DEALS.find(x=>x.id===+el.dataset.g); if(!d)return;
-      const f2=el.dataset.gf, t=el.textContent.trim();
-      if(f2==="list"){const v=+(t.replace(/[^0-9]/g,"")); if(v)d.list=v;}
-      else if(f2==="next"){ d.next=t||null; if(t&&!d.nextDate)d.nextDate=ymd(new Date()); }
-      else if(t)d[f2]=t;
-      pGrid();
-    });
+    el.addEventListener("input",()=>{ clearTimeout(t2); t2=setTimeout(()=>gCommit(el),400) });
+    el.addEventListener("blur",()=>{ clearTimeout(t2); if(gCommit(el))pGrid() });
   });
   P.querySelectorAll("select.cell[data-g]").forEach(el=>el.addEventListener("change",()=>{
     const d=DEALS.find(x=>x.id===+el.dataset.g); if(!d)return;
@@ -4038,10 +4147,14 @@ function pPerf(){
 /* ---------- เป้าและ run rate ---------- */
 let tOverride={};          // id งาน -> {target, date}
 function booths(amt,avg,days){
-  if(!avg)return "—";
+  /* ยังไม่ได้ตั้งเป้า หรือยังไม่มีราคาเฉลี่ย หารไม่ได้ ของเดิมโชว์คำว่า Infinity
+     ซึ่งไม่ได้แปลว่าอะไรกับคนอ่านเลย */
+  if(!avg||!isFinite(avg))return "—";
   const n=amt/avg;
+  if(!isFinite(n)||n<=0)return "—";
   if(n>=1)return (Math.round(n*10)/10)+" booths";
-  return "1 booth per "+Math.round(days/n)+" day";
+  const per=Math.round(days/n);
+  return isFinite(per)?"1 booth per "+per+" day":"—";
 }
 function ymd(d){                    // สร้างสตริงวันจากเวลาท้องถิ่น ไม่ผ่าน UTC
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+
@@ -4229,18 +4342,31 @@ function pStage(){
     '<p>start the first stage here and add the slots one by one</p>'+
     '<p>or send the Agenda sheet for '+esc(EV.name)+
       ' and the whole schedule can be imported at once, the same way as Restech x TRC 2026</p>'+
-    '<div class="addbar"><button id="stgnew" class="act go">Start the first stage</button></div></div>';
+    '<div class="addbar"><input id="stgname" value="Main Stage" '+
+      'placeholder="ชื่อเวที" style="min-width:200px">'+
+      '<button id="stgnew" class="act go">Start the first stage</button>'+
+      '<span id="stgmsg" class="evfmsg"></span></div></div>';
     const nb=$("#stgnew");
     if(nb)nb.addEventListener("click",()=>{
-      const name=(prompt("What is this stage called?","Main Stage")||"").trim();
-      if(!name)return;
-      EV.stages=(EV.stages||[]).concat([name]);
-      /* ใส่ช่วงแรกให้หนึ่งช่วง ไม่งั้นหน้ายังนับว่าเวทียังไม่มีอะไรและตกกลับมาที่นี่อีก */
-      SES.push({stage:name,day:1,date:EV.event_date||null,
-        time:"09:30-10:10",a:570,b:610,min:"40",no:null,title:null,kind:"talk",
-        cf:false,lock:false,mod:null,coord:null,slides:null,people:[]});
-      stg=null; pStage();   // การวาดใหม่ทำให้ตัวดัก DOM บันทึกให้เองอยู่แล้ว
+      /* ใช้ช่องกรอกในหน้า ไม่ใช้ prompt ของเบราว์เซอร์
+         prompt บล็อกทั้งหน้าจนกว่าจะตอบ ถ้ากล่องไปโผล่หลังหน้าต่างอื่นหรือถูกบล็อก
+         คนใช้จะเห็นแค่หน้าค้างโดยไม่มีอะไรบอกสาเหตุ */
+      const name=($("#stgname").value||"").trim();
+      if(!name){ $("#stgmsg").textContent="ใส่ชื่อเวทีก่อน"; $("#stgname").focus(); return }
+      nb.disabled=true; $("#stgmsg").textContent="กำลังสร้าง…";
+      /* คืนการควบคุมให้หน้าจอวาดข้อความก่อน แล้วค่อยสร้างและวาดตารางใหม่
+         การวาดตารางทั้งวันเป็นงานหนัก ถ้าทำในจังหวะเดียวกับการกดจะรู้สึกเหมือนค้าง */
+      setTimeout(()=>{
+        EV.stages=(EV.stages||[]).concat([name]);
+        // ใส่ช่วงแรกให้หนึ่งช่วง ไม่งั้นหน้ายังนับว่าเวทีว่างและตกกลับมาที่นี่อีก
+        SES.push({stage:name,day:1,date:EV.event_date||EV.eventDate||null,
+          time:"09:30-10:10",a:570,b:610,min:"40",no:null,title:null,kind:"talk",
+          cf:false,lock:false,mod:null,coord:null,slides:null,people:[]});
+        stg=null; pStage();
+      },30);
     });
+    const ni=$("#stgname");
+    if(ni)ni.addEventListener("keydown",e=>{ if(e.key==="Enter")nb.click() });
     return}
   stg===null?stageList():stageOne();
 }
@@ -4369,7 +4495,8 @@ function stageOne(){
        :'<b style="font-size:16px">'+esc(g)+'</b>')+
    '<div class="seg">'+[1,2,3].map(d=>{
      const dt=(SES.find(x=>x.day===d)||{}).date;
-     const lbl=dt?dt.slice(8)+" Aug":"";
+     /* ของเดิมฝังคำว่า Aug ไว้ตายตัว งานเดือนอื่นจึงขึ้นเดือนผิดทุกครั้ง */
+     const lbl=dt?dt.slice(8)+" "+THM[+dt.slice(5,7)-1]:"";
      return '<button data-d="'+d+'" aria-pressed="'+(day===d)+'">day '+d+
        (lbl?' · '+lbl:'')+'</button>'}).join("")+'</div>'+
    '<span class="sp" style="flex:1"></span>'+
