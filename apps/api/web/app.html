@@ -2573,7 +2573,7 @@ function linkDeal(b){
   let d=DEALS.find(x=>key(x.co)===key(b.co));
   if(!d){
     const tasks={}; (EV.tasks||[]).forEach(t=>tasks[t.code]=false);
-    d={id:Math.max(0,...DEALS.map(x=>x.id))+1, co:b.co, sales:b.sales||me,
+    d={id:Math.max(0,...DEALS.map(x=>+x.id||0))+1, co:b.co, sales:b.sales||me,
        pkg:b.pkg||null, booths:[], list:0, st:b.st, stage:"lead",
        contact:null, phone:null, form:false, tasks, acts:[], next:null, nextDate:null};
     DEALS.push(d);
@@ -2935,6 +2935,11 @@ function isStale(d){ const l=lastAct(d); if(!l)return true; return daysAgo(l.dat
 function noNext(d){ return !d.next||!d.nextDate }
 function overdue(d){ return d.nextDate&&daysAgo(d.nextDate)>0 }
 
+/* มุมมองของหน้าการขาย บอร์ดหรือตาราง
+   ตัวแปรนี้เคยไม่มีบรรทัดประกาศเลย มีแต่การกำหนดค่าอยู่ที่เดียวในหน้า Deals
+   ใครที่ยังไม่เคยเปิดบอร์ด พอมีอะไรเรียก pSales() จะได้ ReferenceError แล้วโค้ดหยุดกลางคัน
+   อาการที่เห็นคือกดปุ่มในแผงดีลแล้วเงียบ เพราะการวาดแผงใหม่อยู่บรรทัดถัดจากจุดที่พัง */
+let salesView="table";
 function pSales(){
   const list=DEALS.filter(mine);
   const open=list.filter(d=>!["paid","lost"].includes(d.stage));
@@ -3010,7 +3015,7 @@ function pSales(){
 
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-d]").forEach(tr=>
-    tr.addEventListener("click",()=>openDeal(+tr.dataset.d)));
+    tr.addEventListener("click",()=>openDeal(tr.dataset.d)));
   $("#page").querySelectorAll("[data-sv]").forEach(b=>
     b.addEventListener("click",()=>{salesView=b.dataset.sv;pSales()}));
   if(salesView==="board")bindBoard();
@@ -3046,7 +3051,7 @@ function board(list){
 function bindBoard(){
   const P=$("#page"), wr=can("deal")==="write";
   P.querySelectorAll(".kbc").forEach(c=>{
-    c.addEventListener("click",()=>openDeal(+c.dataset.d));
+    c.addEventListener("click",()=>openDeal(c.dataset.d));
     if(!wr)return;
     c.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/plain",c.dataset.d);
       e.dataTransfer.effectAllowed="move"; c.classList.add("drag") });
@@ -3058,7 +3063,7 @@ function bindBoard(){
       col.classList.add("over")});
     col.addEventListener("dragleave",()=>col.classList.remove("over"));
     col.addEventListener("drop",e=>{ e.preventDefault(); col.classList.remove("over");
-      const d=DEALS.find(x=>x.id===+e.dataTransfer.getData("text/plain"));
+      const d=dealBy(e.dataTransfer.getData("text/plain"));
       if(!d)return; const to=col.dataset.st;
       if(d.stage===to)return;
       d.stage=to;
@@ -3070,7 +3075,14 @@ function bindBoard(){
     });
   });
 }
-function openDeal(id){ dealOpen=DEALS.find(d=>d.id===id); drawDealPanel() }
+/* รหัสดีลที่มาจากฐานข้อมูลเป็นสตริง (bigint ของ Postgres) ส่วนที่สร้างในเบราว์เซอร์เป็นตัวเลข
+   โค้ดเดิมเทียบด้วย === หลังแปลงเป็นตัวเลข จึงหาไม่เจอเลยเมื่อต่อกับฐานข้อมูลจริง
+   ผลคือกดแถวในตารางดีลแล้วแผงไม่เปิด แก้ค่าในตารางแล้วไม่บันทึก ลบแถวก็ไม่ลบ
+   ทั้งหมดเงียบสนิทเพราะ find() คืน undefined แล้วโค้ดก็ return ออกไปเฉย ๆ
+   บนไฟล์เดโมที่รหัสเป็นตัวเลขล้วนจึงไม่มีอาการ เห็นเฉพาะบนของจริงเท่านั้น */
+const sameId=(a,b)=>String(a)===String(b);
+const dealBy=(id)=>DEALS.find(d=>sameId(d.id,id));
+function openDeal(id){ dealOpen=dealBy(id); drawDealPanel() }
 /* ---------- ผู้ติดต่อของลูกค้า ----------
    เดิมเก็บได้แค่ชื่อกับเบอร์ อย่างละหนึ่ง เก็บไลน์กับอีเมลไม่ได้ และมีได้คนเดียวต่อบริษัท
    ของจริงบริษัทหนึ่งมีคนที่ต้องคุยหลายคน คนตัดสินใจ คนจ่ายเงิน คนคุมหน้างาน คนละเบอร์กัน
@@ -3181,9 +3193,20 @@ function cardView(c){
 /* หน้าดีลถูกยุบรวมเป็นแท็บเดียวแล้ว การรีเฟรชต้องผ่าน pDeals ไม่ใช่ pSales ตรงๆ
    ถ้าเรียก pSales ตอนกำลังดูมุมมองตาราง มันจะพังกลางคัน แล้วแผงข้างไม่ถูกวาดใหม่
    ผลคือแก้ข้อมูลแล้วค่าเข้าไปแล้วจริง แต่หน้าจอยังโชว์ของเดิม */
+/* วาดสิ่งที่ค้างอยู่บนจอใหม่หลังแก้ข้อมูลดีล
+   ของเดิมตกมาที่ pSales() ทุกกรณี ถ้าเปิดแผงดีลจากผังพื้นที่หรือหน้าอื่น
+   การกดปุ่มในแผงจะเปลี่ยนหน้าหลักไปเป็นหน้าการขายทั้งที่ไม่ได้สั่ง
+   อยู่หน้าไหนก็วาดหน้านั้นใหม่ */
 function dealsRefresh(){
-  if(page==="sales"&&curTab(NAV.find(x=>x.id==="sales"))==="deals"){ pDeals(); return }
-  pSales();
+  if(page==="sales"){
+    const t=curTab(NAV.find(x=>x.id==="sales"));
+    if(t==="deals"){ pDeals(); return }
+    if(t==="mon"){ pSalesMon(); return }
+    if(t==="perf"){ pPerf(); return }
+    pSales(); return;
+  }
+  const fn=PAGE[page]||PAGE[page+":"+curTab(NAV.find(x=>x.id===page))];
+  if(typeof fn==="function")fn();
 }
 function drawDealPanel(){
   let sd=document.getElementById("dealpanel");
@@ -3765,7 +3788,7 @@ function pSalesMon(){
 
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-d]").forEach(tr=>
-    tr.addEventListener("click",()=>openDeal(+tr.dataset.d)));
+    tr.addEventListener("click",()=>openDeal(tr.dataset.d)));
 }
 
 /* ---------- ตารางทำงาน แก้ในช่องได้ เพิ่มดีลได้ ---------- */
@@ -3932,14 +3955,14 @@ function pGrid(){
   if(gc)gc.addEventListener("click",()=>{gRep=gStage=gPkg=gQ="";pGrid()});
 
   P.querySelectorAll("[data-gopen]").forEach(b=>b.addEventListener("click",e=>{
-    e.preventDefault(); e.stopPropagation(); openDeal(+b.dataset.gopen);
+    e.preventDefault(); e.stopPropagation(); openDeal(b.dataset.gopen);
   }));
 
   /* ของเดิมเก็บค่าตอนออกจากช่องอย่างเดียว ระหว่างที่ยังพิมพ์ค้างอยู่ค่ายังไม่เข้าข้อมูล
      อะไรก็ตามที่มาวาดตารางใหม่ก่อน (ย่อขยายหน้าต่าง สลับแท็บ ซิงก์จากเซิร์ฟเวอร์)
      ทำให้ที่พิมพ์ไปหายทั้งหมด เก็บระหว่างพิมพ์ด้วย โดยยังไม่วาดใหม่จนกว่าจะออกจากช่อง */
   const gCommit=(el)=>{
-    const d=DEALS.find(x=>x.id===+el.dataset.g); if(!d)return false;
+    const d=dealBy(el.dataset.g); if(!d)return false;
     const f2=el.dataset.gf, t=el.textContent.trim();
     if(f2==="list"){const v=+(t.replace(/[^0-9]/g,"")); if(!v)return false; if(d.list===v)return false; d.list=v;}
     else if(f2==="next"){ if((d.next||"")===t)return false;
@@ -3954,7 +3977,7 @@ function pGrid(){
     el.addEventListener("blur",()=>{ clearTimeout(t2); if(gCommit(el))pGrid() });
   });
   P.querySelectorAll("select.cell[data-g]").forEach(el=>el.addEventListener("change",()=>{
-    const d=DEALS.find(x=>x.id===+el.dataset.g); if(!d)return;
+    const d=dealBy(el.dataset.g); if(!d)return;
     const f2=el.dataset.gf;
     d[f2]=el.value||null;
     if(f2==="sales")B.forEach(b=>{if(d.booths.includes(b.code))b.sales=el.value});
@@ -3964,7 +3987,7 @@ function pGrid(){
   }));
   P.querySelectorAll("[data-gx]").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.armed){
-      const i=DEALS.findIndex(x=>x.id===+b.dataset.gx);
+      const i=DEALS.findIndex(x=>sameId(x.id,b.dataset.gx));
       if(i>=0){const d=DEALS[i];
         B.forEach(x=>{if(d.booths.includes(x.code)){x.st="free";x.co=null;x.sales=null}});
         DEALS.splice(i,1);}
@@ -4156,7 +4179,7 @@ function pPerf(){
 
   $("#page").innerHTML=h;
   $("#page").querySelectorAll("[data-mv]").forEach(el=>el.addEventListener("change",()=>{
-    const d=DEALS.find(x=>x.id===+el.dataset.mv); if(!d)return;
+    const d=dealBy(el.dataset.mv); if(!d)return;
     d.sales=el.value;
     B.forEach(b=>{if(d.booths.includes(b.code))b.sales=el.value});
     pPerf();
@@ -5082,12 +5105,12 @@ function bindExh(){
   P.querySelectorAll("[data-xv]").forEach(b=>b.addEventListener("click",()=>{exhView=b.dataset.xv;pExh()}));
   P.querySelectorAll("[data-xf]").forEach(b=>b.addEventListener("click",()=>{exhFilter=b.dataset.xf;pExh()}));
   P.querySelectorAll("[data-x]").forEach(tr=>tr.addEventListener("click",()=>{
-    exhOpen=+tr.dataset.x; drawExhPanel();}));
+    exhOpen=tr.dataset.x; drawExhPanel();}));
 }
 function drawExhPanel(){
   let sd=document.getElementById("exhpanel");
   if(!sd){sd=document.createElement("aside");sd.id="exhpanel";sd.className="side2";document.body.appendChild(sd)}
-  const d=DEALS.find(x=>x.id===exhOpen); if(!d){sd.remove();return}
+  const d=dealBy(exhOpen); if(!d){sd.remove();return}
   const own=EV.tasks.filter(t=>t.by==="exhibitor");
   const wr=can("exhibitor")==="write";
   sd.innerHTML='<button class="x" aria-label="Off">×</button>'+
