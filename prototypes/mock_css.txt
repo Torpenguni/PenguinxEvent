@@ -985,4 +985,19 @@ td.gts select.stsel:focus{outline:2px solid var(--accent);outline-offset:1px}
 /* โน้ตที่ยังว่าง ซ่อนไว้จนกว่าจะชี้เมาส์ที่แถว จะได้ไม่มีขีดห้อยทุกบรรทัด */
 .gtnote.empty{display:none}
 tr.gtr:hover .gtnote.empty,tr.gtr:focus-within .gtnote.empty{display:block}
+
+/* เส้นนำสายตาตอนเล็งและตอนลากช่วงเวลา */
+.tw.twg{position:relative}
+.gguide{position:absolute;z-index:2;pointer-events:none;display:block;
+ background:color-mix(in srgb,var(--accent) 11%,transparent);
+ box-shadow:inset 1px 0 0 var(--accent),inset -1px 0 0 var(--accent);border-radius:2px}
+.gguide[hidden]{display:none}
+.gchip{position:fixed;z-index:80;pointer-events:none;background:var(--nav);color:#fff;
+ font-size:12px;font-weight:600;padding:5px 10px;border-radius:7px;white-space:nowrap;
+ box-shadow:0 6px 20px rgba(0,0,0,.3);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.gchip[hidden]{display:none}
+.onguide{position:absolute;top:4px;bottom:4px;z-index:2;pointer-events:none;display:block;
+ background:color-mix(in srgb,var(--accent) 16%,transparent);
+ box-shadow:inset 1px 0 0 var(--accent),inset -1px 0 0 var(--accent);border-radius:2px}
+.onguide[hidden]{display:none}
 </style>

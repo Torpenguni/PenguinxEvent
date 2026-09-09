@@ -985,6 +985,21 @@ td.gts select.stsel:focus{outline:2px solid var(--accent);outline-offset:1px}
 /* โน้ตที่ยังว่าง ซ่อนไว้จนกว่าจะชี้เมาส์ที่แถว จะได้ไม่มีขีดห้อยทุกบรรทัด */
 .gtnote.empty{display:none}
 tr.gtr:hover .gtnote.empty,tr.gtr:focus-within .gtnote.empty{display:block}
+
+/* เส้นนำสายตาตอนเล็งและตอนลากช่วงเวลา */
+.tw.twg{position:relative}
+.gguide{position:absolute;z-index:2;pointer-events:none;display:block;
+ background:color-mix(in srgb,var(--accent) 11%,transparent);
+ box-shadow:inset 1px 0 0 var(--accent),inset -1px 0 0 var(--accent);border-radius:2px}
+.gguide[hidden]{display:none}
+.gchip{position:fixed;z-index:80;pointer-events:none;background:var(--nav);color:#fff;
+ font-size:12px;font-weight:600;padding:5px 10px;border-radius:7px;white-space:nowrap;
+ box-shadow:0 6px 20px rgba(0,0,0,.3);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.gchip[hidden]{display:none}
+.onguide{position:absolute;top:4px;bottom:4px;z-index:2;pointer-events:none;display:block;
+ background:color-mix(in srgb,var(--accent) 16%,transparent);
+ box-shadow:inset 1px 0 0 var(--accent),inset -1px 0 0 var(--accent);border-radius:2px}
+.onguide[hidden]{display:none}
 </style>
 
 <div id="login">
@@ -5442,7 +5457,7 @@ function pTimeline(ph){
     "Once a task becomes in progress or done, the actual bar starts as a copy of the plan — "+
     "drag it to match what really happened.");
 
-  h+='<div class="tw"><table class="gt"><thead>'+
+  h+='<div class="tw twg"><i class="gguide" hidden></i><table class="gt"><thead>'+
    '<tr><th class="gtno" rowspan="2"></th>'+
    '<th class="gtn" rowspan="2">Task · note</th>'+
    '<th class="gts" rowspan="2" title="'+
@@ -5590,18 +5605,32 @@ function pTimeline(ph){
                  : k===a ? "a" : k===b ? "b" : "move";
       tlDrag={row:r,w:w,mode:mode,a:a,b:b,k0:k,lo:a,hi:b,r:i};
       paintDrag(P);
+      guideOn(P,a,b);
+      tipShow(spanText(a,b,w),e.clientX,e.clientY);
     });
-    td.addEventListener("mouseenter",()=>{
-      if(!tlDrag)return;
-      const k=+td.dataset.k, d=tlDrag;
+    /* ยังไม่ลากก็ยังต้องเล็งได้ ไฮไลต์คอลัมน์ที่เมาส์อยู่พร้อมบอกสัปดาห์
+       ไม่งั้นต้องเงยไปดูหัวเดือนที่อยู่คนละที่กับแถวที่กำลังจะลาก */
+    td.addEventListener("mousemove",e=>{
+      const k=+td.dataset.k;
+      if(!tlDrag){
+        guideOn(P,k,k);
+        tipShow("Week ending "+tlDate(k),e.clientX,e.clientY);
+        return;
+      }
+      const d=tlDrag;
       if(d.mode==="move"){ const sh=k-d.k0; d.lo=d.a+sh; d.hi=d.b+sh }
       else if(d.mode==="a"){ d.lo=Math.min(k,d.b); d.hi=Math.max(k,d.b) }
       else { d.lo=Math.min(d.a,k); d.hi=Math.max(d.a,k) }
       paintDrag(P);
+      guideOn(P,Math.min(d.lo,d.hi),Math.max(d.lo,d.hi));
+      tipShow(spanText(Math.min(d.lo,d.hi),Math.max(d.lo,d.hi),d.w),e.clientX,e.clientY);
     });
   });
+  const twg=P.querySelector(".twg");
+  if(twg)twg.addEventListener("mouseleave",()=>{ if(!tlDrag)guideOff(P) });
   document.addEventListener("mouseup",tlUp);
   function tlUp(){ document.removeEventListener("mouseup",tlUp);
+    tipHide();
     if(!tlDrag)return; const d=tlDrag; tlDrag=null;
     const r=d.row, a=Math.min(d.lo,d.hi), b=Math.max(d.lo,d.hi);
     if(a===d.a&&b===d.b){ pTimeline(ph); return }        // กดแล้วไม่ได้ลาก ไม่ต้องแก้อะไร
@@ -5842,12 +5871,23 @@ function pTimelineOn(){
       const x=hourAt(td,e), edge=Math.min(1,(b-a)/4);
       const mode = x<=a+edge ? "a" : x>=b-edge ? "b" : "move";
       drag={row:r,w:w,td:td,mode:mode,a:a,b:b,x0:x,lo:a,hi:b}; paintOn() });
-    td.addEventListener("mousemove",e=>{ if(!drag||drag.td!==td)return;
+    td.addEventListener("mousemove",e=>{
+      if(!drag||drag.td!==td){
+        onGuide(td,hourAt(td,e));
+        tipShow(mh(hourAt(td,e)),e.clientX,e.clientY);
+        return;
+      }
       const x=hourAt(td,e), d=drag;
       if(d.mode==="move"){ const sh=x-d.x0; d.lo=d.a+sh; d.hi=d.b+sh }
       else if(d.mode==="a"){ d.lo=Math.min(x,d.b-.5); d.hi=d.b }
       else { d.lo=d.a; d.hi=Math.max(x,d.a+.5) }
-      paintOn() });
+      paintOn();
+      const lo=Math.min(d.lo,d.hi), hi=Math.max(d.lo,d.hi);
+      onGuide(td,null,lo,hi);
+      tipShow((d.w==="act"?"Actual":"Plan")+"  "+mh(lo)+" – "+mh(Math.max(hi,lo+.5)),
+        e.clientX,e.clientY);
+    });
+    td.addEventListener("mouseleave",()=>{ if(!drag){ onGuideOff(td); tipHide() } });
   });
   function paintOn(){ if(!drag)return;
     const a=Math.min(drag.lo,drag.hi), b=Math.max(drag.lo,drag.hi);
@@ -5856,8 +5896,21 @@ function pTimelineOn(){
     bar.style.left=pc(a)+"%"; bar.style.width=Math.max(pc(b)-pc(a),1.2)+"%";
     if(drag.w==="act"){ bar.classList.toggle("narrow",pc(b)-pc(a)<9);
       bar.querySelector("span").textContent=mh(a)+"–"+mh(Math.max(b,a+.5)) } }
+  /* เส้นนำสายตาในแถวหน้างาน วางเป็นเปอร์เซ็นต์เหมือนตัวแถบ จะได้ตรงกันเป๊ะ */
+  function onGuide(td,at,lo,hi){
+    let g=td.querySelector(".onguide");
+    if(!g){ g=document.createElement("i"); g.className="onguide";
+      const lane=td.querySelector(".onlane")||td; lane.appendChild(g) }
+    if(at!=null){ g.style.left=pc(at)+"%"; g.style.width="2px" }
+    else { g.style.left=pc(lo)+"%"; g.style.width=Math.max(pc(hi)-pc(lo),.6)+"%" }
+    g.hidden=false;
+  }
+  function onGuideOff(td){ const g=td.querySelector(".onguide"); if(g)g.hidden=true }
   document.addEventListener("mouseup",up);
-  function up(){ document.removeEventListener("mouseup",up); if(!drag)return;
+  function up(){ document.removeEventListener("mouseup",up);
+    tipHide();
+    if(drag){ const g=drag.td.querySelector(".onguide"); if(g)g.hidden=true }
+    if(!drag)return;
     const d=drag; drag=null; const r=d.row;
     const a=Math.min(d.lo,d.hi), b=Math.max(d.lo,d.hi);
     if(a===d.a&&b===d.b){ pTimelineOn(); return }
@@ -5910,6 +5963,47 @@ function pTimelineOn(){
     onDay=i; pTimelineOn()});
 }
 function ymdTH(d){ return d.getDate()+" "+THM[d.getMonth()] }
+/* ---------- เส้นนำสายตาตอนเล็งและตอนลาก ----------
+   เดิมต้องเดาว่าปล่อยตรงนี้แล้วจะได้สัปดาห์ไหน เพราะหัวเดือนอยู่ไกลจากแถวที่กำลังลาก
+   ตอนนี้มีแถบไฮไลต์คอลัมน์วิ่งตามเมาส์ กับป้ายลอยบอกช่วงที่จะได้ก่อนปล่อยมือ */
+let gTip=null;
+function tipEl(){
+  if(gTip&&gTip.isConnected)return gTip;
+  gTip=document.createElement("div"); gTip.className="gchip"; gTip.hidden=true;
+  document.body.appendChild(gTip); return gTip;
+}
+function tipShow(text,x,y){
+  const t=tipEl(); t.textContent=text; t.hidden=false;
+  const w=t.offsetWidth, h=t.offsetHeight;
+  t.style.left=Math.max(6,Math.min(x+14,innerWidth-w-6))+"px";
+  t.style.top=Math.max(6,Math.min(y-h-12,innerHeight-h-6))+"px";
+}
+function tipHide(){ if(gTip)gTip.hidden=true }
+/* วางแถบไฮไลต์ทับคอลัมน์ a ถึง b โดยคิดพิกัดจากกรอบที่เลื่อนได้ ไม่ใช่จากหน้าจอ
+   จะได้ยังตรงคอลัมน์เดิมแม้ผู้ใช้เลื่อนตารางไปทางขวา */
+function guideOn(P,a,b){
+  const tw=P.querySelector(".twg"); if(!tw)return;
+  const g=tw.querySelector(".gguide"); if(!g)return;
+  const c1=tw.querySelector('td.gtc[data-k="'+a+'"]'),
+        c2=tw.querySelector('td.gtc[data-k="'+b+'"]');
+  const head=tw.querySelector("table.gt thead"), tbl=tw.querySelector("table.gt");
+  if(!c1||!c2||!head||!tbl){ g.hidden=true; return }
+  const base=tw.getBoundingClientRect();
+  const r1=c1.getBoundingClientRect(), r2=c2.getBoundingClientRect();
+  const hb=head.getBoundingClientRect();
+  g.style.left=(r1.left-base.left+tw.scrollLeft)+"px";
+  g.style.width=Math.max(2,r2.right-r1.left)+"px";
+  g.style.top=(hb.bottom-base.top+tw.scrollTop)+"px";
+  g.style.height=(tbl.offsetHeight-head.offsetHeight)+"px";
+  g.hidden=false;
+}
+function guideOff(P){ const g=P.querySelector(".twg .gguide"); if(g)g.hidden=true; tipHide() }
+/* ป้ายบอกช่วง เขียนเป็นวันสิ้นสัปดาห์แบบเดียวกับคอลัมน์ Due by จะได้เทียบกันได้ตรงๆ */
+function spanText(a,b,w){
+  const n=b-a+1;
+  return (w==="act"?"Actual":"Plan")+"  "+tlDate(a)+" – "+tlDate(b)+
+    "  ·  "+n+" week"+(n===1?"":"s");
+}
 function paintDrag(P){
   if(!tlDrag)return; const a=Math.min(tlDrag.lo,tlDrag.hi), b=Math.max(tlDrag.lo,tlDrag.hi);
   P.querySelectorAll('td.gtc[data-r="'+tlDrag.r+'"]').forEach(td=>{
