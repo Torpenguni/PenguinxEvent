@@ -7,6 +7,11 @@
 --st-todo-bg:#D8DCD3;
 /* ชุดประเภท ใช้กับชนิดของช่วงบนเวที เป็นสีอ่อนพื้นหลังกับขอบซ้าย
    ตั้งใจไม่ให้ถมสีเต็ม จะได้ไม่ไปแย่งความหมายกับชุดสถานะข้างบน */
+/* กล่องบนตารางเวลาเป็นสีเข้มตัวหนังสือขาว อ่านชัดกว่าและดูเป็นตารางงานจริง
+   ยังแยกจากชุดสถานะอยู่ เพราะเป็นโทนลึกคนละกลุ่ม ไม่ใช่ส้ม เขียว แดง ของสถานะ */
+--k-keynote-solid:#1D5A49;--k-talk-solid:#2E4C77;--k-workshop-solid:#554063;
+--k-ceremony-solid:#77501F;--k-networking-solid:#3E5D2C;--k-break-solid:#565C54;
+--k-registration-solid:#3D5356;
 --k-keynote-bg:#E1EDE7;--k-keynote-bd:#2C7A62;
 --k-talk-bg:#E5EAF3;--k-talk-bd:#48699B;
 --k-workshop-bg:#F0E8F3;--k-workshop-bd:#7A5B8E;
@@ -26,6 +31,9 @@
 --line:#282D24;--line2:#383E34;--accent:#63C9A8;--accent2:#7FD9BC;--soft:#1A2620;
 --st-todo:#8A96A0;--st-doing:#E0A63A;--st-part:#6FA3E0;--st-done:#4FBE7F;--st-block:#E27563;
 --st-todo-bg:#303629;
+--k-keynote-solid:#245F4D;--k-talk-solid:#33537F;--k-workshop-solid:#5C4569;
+--k-ceremony-solid:#7E5624;--k-networking-solid:#456632;--k-break-solid:#5B6159;
+--k-registration-solid:#425A5D;
 --k-keynote-bg:#17302A;--k-keynote-bd:#5FBE9B;
 --k-talk-bg:#1B2432;--k-talk-bd:#7EA0D2;
 --k-workshop-bg:#291F30;--k-workshop-bd:#B08FC4;
@@ -44,6 +52,9 @@
 --line:#282D24;--line2:#383E34;--accent:#63C9A8;--accent2:#7FD9BC;--soft:#1A2620;
 --st-todo:#8A96A0;--st-doing:#E0A63A;--st-part:#6FA3E0;--st-done:#4FBE7F;--st-block:#E27563;
 --st-todo-bg:#303629;
+--k-keynote-solid:#245F4D;--k-talk-solid:#33537F;--k-workshop-solid:#5C4569;
+--k-ceremony-solid:#7E5624;--k-networking-solid:#456632;--k-break-solid:#5B6159;
+--k-registration-solid:#425A5D;
 --k-keynote-bg:#17302A;--k-keynote-bd:#5FBE9B;
 --k-talk-bg:#1B2432;--k-talk-bd:#7EA0D2;
 --k-workshop-bg:#291F30;--k-workshop-bd:#B08FC4;
@@ -385,13 +396,13 @@ svg#plan{display:block;min-width:740px;width:100%;height:auto}
 .hr{position:absolute;left:0;font-size:11px;color:var(--ink3);padding-left:8px;font-variant-numeric:tabular-nums}
 .col{position:relative;border-right:1px solid var(--line)}.col:last-child{border:0}
 .ev{position:absolute;left:4px;right:4px;border-radius:5px;padding:5px 8px;overflow:hidden;cursor:pointer;
-color:var(--ink);border:0;text-align:left;display:block;font:inherit}
+color:#fff;border:0;text-align:left;display:block;font:inherit}
 .ev:hover{filter:brightness(1.09)}
 .ev{padding:7px 10px}
-.ev .t{font-size:10.5px;color:var(--ink2);display:block;font-variant-numeric:tabular-nums}
+.ev .t{font-size:10.5px;color:rgba(255,255,255,.82);display:block;font-variant-numeric:tabular-nums}
 .ev .n{font-size:13px;font-weight:600;line-height:1.32;display:block;margin-top:1px}
 .ev .fa{display:flex;align-items:center;gap:5px;margin-top:6px;flex-wrap:wrap}
-.ev .fa .nm{font-size:11px;color:var(--ink2);line-height:1.3}
+.ev .fa .nm{font-size:11px;color:rgba(255,255,255,.88);line-height:1.3}
 .lgrow{display:flex;gap:11px;align-items:center;margin-bottom:11px}
 .lgrow .meta{min-width:0}
 .lgrow .meta b{display:block;font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis}
@@ -745,8 +756,7 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
 .sleg{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 12px;
   padding:9px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:12.5px}
 .slg{display:flex;align-items:center;gap:7px;color:var(--ink2);cursor:help}
-.slg i{width:22px;height:15px;border-radius:3px;display:inline-block;flex:0 0 22px;
- box-shadow:inset 0 0 0 1px var(--line2)}
+.slg i{width:22px;height:15px;border-radius:3px;display:inline-block;flex:0 0 22px}
 .slgh{margin-left:auto;color:var(--ink3);font-size:11.5px}
 /* การ์ดเวที แก้ชื่อได้ */
 .stgc{display:flex;flex-direction:column;gap:4px}
@@ -910,7 +920,7 @@ background:var(--ok);margin-right:6px;vertical-align:1px}
 /* กล่องช่วงเวลาที่กดเปิด ขึ้นหน้าสุดและกางเต็ม อ่านทั้งชื่อและคนพูดได้
    ช่วงสั้นๆ กล่องเตี้ยกว่าตัวหนังสือ ปกติเลยเห็นแค่บรรทัดแรก */
 .tl .col.hasopen{z-index:6}
-.ev.open{height:auto!important;min-height:64px;overflow:visible;z-index:9;background:var(--card)!important;
+.ev.open{height:auto!important;min-height:64px;overflow:visible;z-index:9;
  box-shadow:0 10px 30px rgba(0,0,0,.34);outline:2px solid var(--card);outline-offset:1px;
  padding-bottom:10px}
 .ev.open .n{white-space:normal}
@@ -3914,6 +3924,8 @@ const SKEYS={keynote:"keynote",talk:"talk",panel:"talk",workshop:"workshop",
  ceremony:"ceremony",networking:"networking",break:"break",registration:"registration"};
 const kBg=k=>cv("--k-"+(SKEYS[k]||"break")+"-bg");
 const kBd=k=>cv("--k-"+(SKEYS[k]||"break")+"-bd");
+/* สีเข้มสำหรับกล่องบนตารางเวลา ตัวหนังสือขาว */
+const kSolid=k=>cv("--k-"+(SKEYS[k]||"break")+"-solid");
 /* คำอธิบายสีของช่วงบนเวที ไม่งั้นกล่องสีไม่บอกอะไรเลย
    talk กับ panel ใช้สีเดียวกันเพราะเป็นเนื้อหาบนเวทีเหมือนกัน ต่างแค่จำนวนคนพูด */
 const SLEG=[["keynote","Keynote","The headline session of the day"],
@@ -3930,8 +3942,7 @@ function stageLegend(){
     if(!used.has(k)&&k!=="talk")return false;
     const c=SKEYS[k]; if(seen.has(c))return false; seen.add(c); return true});
   return '<div class="sleg">'+rows.map(([k,n,d])=>
-    '<span class="slg" title="'+esc(d)+'"><i style="background:'+kBg(k)+
-    ';border-left:3px solid '+kBd(k)+'"></i>'+
+    '<span class="slg" title="'+esc(d)+'"><i style="background:'+kSolid(k)+'"></i>'+
     esc(n)+'</span>').join("")+
     '<span class="slgh">Colour key · every block is one slot, its height is how long it runs</span></div>';
 }
@@ -4028,8 +4039,7 @@ function timelineHTML(){
          ผลคือกล่องล้นไปทับช่วงถัดไป กดแล้วให้เด้งขึ้นหน้าสุดถึงจะอ่านออก */
       const top=(s.a-T0)*PX, real=(s.b-s.a)*PX-4, ht=Math.max(26,real);
       h+='<button class="ev'+(real<58?" evtiny":"")+'" data-ei="'+SES.indexOf(s)+
-       '" style="top:'+top+'px;height:'+ht+'px;background:'+kBg(s.kind)+
-       ';border-left:3px solid '+kBd(s.kind)+
+       '" style="top:'+top+'px;height:'+ht+'px;background:'+kSolid(s.kind)+
        '" title="Click to bring this slot to the front">'+
        '<span class="t">'+s.time+(s.min?' · '+s.min+' min':'')+'</span>'+
        '<span class="n">'+esc(s.title||"—")+'</span>'+
@@ -4300,8 +4310,7 @@ function oneTimeline(g){
   SES.filter(s=>s.day===day&&s.stage===g).forEach(s=>{
     const top=(s.a-T0)*PX, real=(s.b-s.a)*PX-4, ht=Math.max(26,real);
     h+='<button class="ev'+(real<62?" evtiny":"")+'" data-ei="'+SES.indexOf(s)+
-     '" style="top:'+top+'px;height:'+ht+'px;background:'+kBg(s.kind)+
-     ';border-left:3px solid '+kBd(s.kind)+
+     '" style="top:'+top+'px;height:'+ht+'px;background:'+kSolid(s.kind)+
      '" title="Click to bring this slot to the front">'+
      '<span class="t">'+s.time+(s.min?' · '+s.min+' min':'')+'</span>'+
      '<span class="n">'+esc(s.title||"—")+'</span>'+
