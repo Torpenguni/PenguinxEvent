@@ -16,6 +16,8 @@ import shareRoutes from './routes/shares.js'
 import userRoutes, { setPassword } from './routes/users.js'
 import dealMailRoutes from './routes/dealMail.js'
 import mailRoutes, { cronReminders } from './routes/mail.js'
+import backupRoutes, { takeBackup } from './routes/backup.js'
+import { fetchFull } from './routes/full.js'
 import timelineRoutes from './routes/timeline.js'
 import exhibitorRoutes from './routes/exhibitors.js'
 import { mailBootReport } from './lib/mail.js'
@@ -53,6 +55,20 @@ if (isPortal) {
   app.post('/api/auth/set-password', setPassword)
   // cron เรียกเข้ามาวันละครั้ง ยืนยันตัวด้วย CRON_SECRET ไม่ใช่ session
   app.get('/api/cron/reminders', cronReminders)
+  app.use('/api/backups', backupRoutes)
+  /* สำรองข้อมูลรายวัน ยืนยันตัวด้วย CRON_SECRET เหมือนกัน */
+  app.get('/api/cron/backup', async (req, res, next) => {
+    try {
+      const secret = process.env.CRON_SECRET
+      if (!secret) return res.status(503).json({ error: 'ยังไม่ได้ตั้ง CRON_SECRET' })
+      if ((req.headers.authorization || '').replace(/^Bearer /, '') !== secret) {
+        return res.status(401).json({ error: 'ไม่มีสิทธิ์' })
+      }
+      const done = await takeBackup(fetchFull)
+      console.log('สำรองข้อมูล:', done.map((d) => `${d.code} ${Math.round(d.size / 1024)}KB`).join(', '))
+      res.json({ ok: true, taken: done })
+    } catch (e) { next(e) }
+  })
 }
 
 /* บอกตั้งแต่ตอนบูตว่าส่งเมลได้หรือไม่ได้ และขาด env ตัวไหน

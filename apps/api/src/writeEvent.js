@@ -42,6 +42,13 @@ export async function writeEvent (q, e, ctx) {
   }
   const agents = ctx.agents || {}
   const admin = { id: ctx.adminId }
+  /* ชื่อเซลล์ในข้อมูลตรงกับชื่อผู้ใช้ในระบบ ใช้ผูก owner_id ให้เอง
+     ของเดิมไม่เคยตั้ง ดีลทั้งหมดจึงไม่มีเจ้าของ สิทธิ์เห็นเฉพาะดีลตัวเองเลยเห็นศูนย์ดีล */
+  const users = {}
+  for (const u of (await q(`select id, name from app_user where active`, [])).rows) {
+    users[String(u.name).trim().toLowerCase()] = u.id
+  }
+  const ownerOf = (name) => users[String(name ?? '').trim().toLowerCase()] ?? null
 
     const year = +(String(e.eventDate || e.event_date || '').slice(0, 4)) || new Date().getFullYear()
     /* deal_item ชี้ไปที่ booth แบบ restrict ตั้งใจไว้กันลบบูธที่ยังผูกกับดีลอยู่
@@ -114,10 +121,10 @@ export async function writeEvent (q, e, ctx) {
 
     const deals = e.deals || []
     ;(await bulk('deal',
-      ['event_id', 'company_id', 'agent_id', 'kind', 'status', 'list_total', 'deal_total',
+      ['event_id', 'company_id', 'agent_id', 'owner_id', 'kind', 'status', 'list_total', 'deal_total',
         'hold_days', 'hold_started_at', 'hold_expires_at', 'key_product', 'form_received',
         'on_directory_board', 'next_step', 'next_date', 'created_by'],
-      deals.map((d) => [ev.id, company[d.co], agents[d.sales] || null, 'booth',
+      deals.map((d) => [ev.id, company[d.co], agents[d.sales] || null, ownerOf(d.sales), 'booth',
         DEAL_STATUS[d.stage] || 'lead', d.list || 0, d.list || 0,
         d.holdDays || null, day(d.holdStart), d.holdExp || null,
         d.product || null, !!d.form, !!d.board, d.next || null, d.nextDate || null, admin.id]),
@@ -137,6 +144,22 @@ export async function writeEvent (q, e, ctx) {
       (e.booths || []).map((b) => [ev.id, zone[b.zone] || null, btype[b.pkg] || null,
         b.code, b.name || null, b.x, b.y, b.w || 1, b.h || 1, STATUS[b.st] || 'available']),
       'id, code')).forEach((r) => { boothId[r.code] = r.id })
+
+    /* ผู้ติดต่อของลูกค้า หน้าเว็บเก็บไว้ที่บูธ ฐานข้อมูลเก็บที่บริษัท
+       ของเดิมไม่ได้เขียนส่วนนี้เลย ชื่อและเบอร์ที่ทีมกรอกจึงหายทุกครั้งที่บันทึก */
+    const seenCo = new Set()
+    const contacts = []
+    for (const b of e.booths || []) {
+      const cid = company[b.co]
+      if (!cid || seenCo.has(cid)) continue
+      if (!b.contact && !b.phone && !b.email) continue
+      seenCo.add(cid)
+      contacts.push([cid, b.contact || b.co, b.phone || null, b.email || null, true])
+    }
+    if (contacts.length) {
+      await q(`delete from contact_person where company_id = any($1)`, [[...seenCo]])
+      await bulk('contact_person', ['company_id', 'name', 'phone', 'email', 'is_primary'], contacts)
+    }
 
     // ผูกบูธเข้ากับดีลผ่าน deal_item
     const items = []

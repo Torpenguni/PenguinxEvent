@@ -77,8 +77,19 @@ async function fetchFull (code, perms, user) {
     ])
 
     const S = set.rows[0]?.settings ?? {}
+
+    /* ผู้ติดต่อของแต่ละบริษัท และดีลที่ผูกกับบูธแต่ละช่อง
+       ใช้แนบข้อมูลติดต่อเข้ากับบูธ เพราะหน้าเว็บอ่านจากบูธ ไม่ได้อ่านจากบริษัท */
+    const contacts = await q(
+      `select distinct on (company_id) company_id, name, phone, email
+         from contact_person order by company_id, is_primary desc, id`, [])
+    const contactByCompany = Object.fromEntries(contacts.rows.map((c) => [c.company_id, c]))
     const boothByDeal = {}
     for (const it of items.rows) (boothByDeal[it.deal_id] ??= []).push(it.code)
+    const dealByBooth = {}
+    for (const d of deals.rows) {
+      for (const code of boothByDeal[d.id] ?? []) dealByBooth[code] = d
+    }
     const taskByDeal = {}
     for (const t of etasks.rows) ((taskByDeal[t.deal_id] ??= {})[t.code] = t.done)
     const benByPkg = {}
@@ -117,13 +128,19 @@ async function fetchFull (code, perms, user) {
       }])),
       addons: addons.rows.map((a) => [a.name, seePrice ? Number(a.list_price) : null]),
 
-      booths: booths.rows.map((b) => ({
+      booths: booths.rows.map((b) => {
+        const ct = contactByCompany[dealByBooth[b.code]?.company_id] ?? {}
+        return ({
         code: b.code, name: b.label, zone: b.zone_code, x: b.grid_x, y: b.grid_y,
         w: b.grid_w, h: b.grid_h, food: false, st: ST[b.status] ?? 'free',
         co: b.label, sales: null, pkg: b.pkg, product: null,
-        contact: null, phone: null, email: null, form: false, board: false,
+        /* ผู้ติดต่อเก็บอยู่ที่บริษัท ไม่ใช่ที่บูธ แต่หน้าเว็บอ่านจากบูธ
+           แนบผู้ติดต่อหลักของบริษัทที่ซื้อบูธนั้นเข้าไปให้ ของเดิมส่ง null ทุกช่อง
+           ทีมจึงไม่รู้ว่าต้องโทรหาใครทั้งที่ข้อมูลมีอยู่ */
+        contact: ct.name ?? null, phone: ct.phone ?? null, email: ct.email ?? null,
+        form: false, board: false,
         list: seePrice ? Number(types.rows.find((t) => t.name === b.pkg)?.list_price ?? 0) : null,
-      })),
+        }) }),
 
       deals: deals.rows
         .filter((d) => !own || (myAgent != null && String(d.agent_id) === String(myAgent)))
@@ -289,4 +306,5 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
   } catch (e) { next(e) }
 })
 
+export { fetchFull }   // ตัวสำรองข้อมูลใช้ตัวเดียวกัน จะได้เก็บก้อนรูปแบบเดียวกับที่หน้าเว็บใช้
 export default r
