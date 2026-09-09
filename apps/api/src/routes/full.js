@@ -86,7 +86,9 @@ async function fetchFull (code, perms, user) {
       eventDate: ev.start_date, event_date: ev.start_date, end_date: ev.end_date,
       target: seeTarget ? Number(ev.revenue_goal ?? 0) : null,
       target_note: seeTarget ? (S.targetNote ?? null) : null,
-      logo: S.logo ?? null, manual: S.manual ?? null,
+      /* โลโก้ ตัวเดโมเคยฝังรูปไว้ในไฟล์ตอน build โหมดต่อเซิร์ฟเวอร์จึงไม่มีรูปเลย
+         ใช้ไฟล์ที่ผูกไว้กับงานใน event.logo_url แทน หน้าเว็บใส่ใน img ได้เหมือนกัน */
+      logo: S.logo ?? ev.logo_url ?? null, manual: S.manual ?? null,
       tlRange: S.tlRange ?? null, tlCols: S.tlCols ?? [],
       buildDays: S.buildDays ?? 1, strikeDays: S.strikeDays ?? 1,
       onH0: S.onH0 ?? 7, onH1: S.onH1 ?? 23,

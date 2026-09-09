@@ -52,12 +52,18 @@ export async function writeEvent (q, e, ctx) {
     await q(`delete from booth_queue where booth_id in
                (select b.id from booth b join event ev on ev.id = b.event_id where ev.code = $1)`, [e.id])
     await q(`delete from event where code = $1`, [e.id])
+    /* logo_url ต้องเขียนกลับด้วย ของเดิมไม่มีในคำสั่ง insert ทุกครั้งที่บันทึกทั้งงาน
+       โลโก้จึงหายไปเงียบ ๆ ค่าที่หน้าเว็บส่งมาเป็น path ของไฟล์ เช่น /logos/restech.png
+       ถ้าส่งรูปฝังมาเป็น data URI ให้เก็บใน settings เหมือนเดิม ไม่ยัดลงคอลัมน์นี้ */
+    const logoPath = typeof e.logo === 'string' && e.logo.startsWith('/') ? e.logo : null
     const ev = await one(
-      `insert into event (code, name, edition_year, venue, start_date, end_date, status, revenue_goal)
-       values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
+      `insert into event (code, name, edition_year, venue, start_date, end_date, status,
+         revenue_goal, logo_url)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
       [e.id, e.name, year, e.venue || null,
        day(e.eventDate || e.event_date), day(e.end_date),
-       e.status === 'selling' ? 'selling' : 'planning', e.target || null])
+       e.status === 'selling' ? 'selling' : 'planning', e.target || null,
+       logoPath ?? e.logo_url ?? null])
 
     await bulk('event_brand', ['event_id', 'code', 'name'],
       (e.brands || []).map((b) => [ev.id, b, b]))
@@ -241,7 +247,7 @@ export async function writeEvent (q, e, ctx) {
     await q(`insert into event_setting (event_id, settings) values ($1,$2)
              on conflict (event_id) do update set settings = excluded.settings`,
             [ev.id, JSON.stringify({
-              logo: e.logo || null, tlRange: e.tlRange || null, tlCols: e.tlCols || [],
+              logo: logoPath ? null : (e.logo || null), tlRange: e.tlRange || null, tlCols: e.tlCols || [],
               buildDays: e.buildDays ?? 1, strikeDays: e.strikeDays ?? 1,
               onH0: e.onH0 ?? 7, onH1: e.onH1 ?? 23,
               manual: e.manual || null, targetNote: e.target_note || null,

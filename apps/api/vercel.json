@@ -1,19 +1,38 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
   "functions": {
-    "api/index.js": { "includeFiles": "{portal,web}/**" }
+    "api/index.js": {
+      "includeFiles": "{portal,web}/**"
+    }
   },
   "crons": [
-    { "path": "/api/cron/reminders", "schedule": "0 2 * * *" }
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 2 * * *"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
-        { "key": "Referrer-Policy", "value": "no-referrer" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
       ]
     }
+  ],
+  "regions": [
+    "sin1"
   ]
 }
