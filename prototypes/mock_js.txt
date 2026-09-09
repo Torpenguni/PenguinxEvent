@@ -1561,6 +1561,120 @@ function bindBoard(){
   });
 }
 function openDeal(id){ dealOpen=DEALS.find(d=>d.id===id); drawDealPanel() }
+/* ---------- ผู้ติดต่อของลูกค้า ----------
+   เดิมเก็บได้แค่ชื่อกับเบอร์ อย่างละหนึ่ง เก็บไลน์กับอีเมลไม่ได้ และมีได้คนเดียวต่อบริษัท
+   ของจริงบริษัทหนึ่งมีคนที่ต้องคุยหลายคน คนตัดสินใจ คนจ่ายเงิน คนคุมหน้างาน คนละเบอร์กัน
+   ย้ายมาเก็บเป็นรายชื่อ แนบรูปนามบัตรได้ และยกคนหลักขึ้นมาโชว์ในตารางเหมือนเดิม */
+function peopleOf(d){
+  if(!Array.isArray(d.people)){
+    d.people = (d.contact||d.phone)
+      ? [{n:d.contact||"",pos:"",tel:d.phone||"",line:"",mail:d.email||"",card:null,main:true}]
+      : [];
+  }
+  return d.people;
+}
+/* ตารางกับที่อื่นยังอ่าน d.contact กับ d.phone อยู่ ซิงก์คนหลักกลับไปให้ตรงกันเสมอ */
+function syncMain(d){
+  const P=peopleOf(d), m=P.find(x=>x.main)||P[0];
+  d.contact=m?(m.n||null):null;
+  d.phone=m?(m.tel||null):null;
+  d.email=m?(m.mail||null):null;
+}
+const CFIELDS=[["n","Name","Who they are"],["pos","Position","Their job title"],
+  ["tel","Phone","08x xxx xxxx"],["line","LINE","LINE ID"],["mail","Email","name@company.com"]];
+function peopleBox(d){
+  const wr=can("deal")==="write", P=peopleOf(d);
+  return '<div class="ppl"><b class="pplh">People at this client'+
+    (P.length?' <span class="pn">'+P.length+'</span>':'')+'</b>'+
+   (P.length?P.map((c,i)=>'<div class="pcard'+(c.main?" main":"")+'" data-pi="'+i+'">'+
+     '<div class="prow">'+
+       (c.card?'<button class="pcard-img" data-pcv="'+i+'" title="Open the business card">'+
+          '<img src="'+c.card+'" alt="Business card"></button>':'')+
+       '<div class="pfields">'+CFIELDS.map(fd=>
+         '<label class="pf"><span>'+fd[1]+'</span>'+
+         (wr?'<input data-pf="'+fd[0]+'" data-pi="'+i+'" value="'+esc(c[fd[0]]||"")+
+             '" placeholder="'+esc(fd[2])+'">'
+            :'<i>'+esc(c[fd[0]]||"—")+'</i>')+'</label>').join("")+
+       '</div></div>'+
+     '<div class="pacts">'+
+       (c.tel?'<a class="pgo" href="tel:'+esc(c.tel.replace(/[^0-9+]/g,""))+'">Call</a>':'')+
+       (c.line?'<a class="pgo" href="https://line.me/ti/p/~'+encodeURIComponent(c.line)+
+          '" target="_blank" rel="noopener">LINE</a>':'')+
+       (c.mail?'<a class="pgo" href="mailto:'+esc(c.mail)+'">Email</a>':'')+
+       (wr?'<label class="pgo pup">'+(c.card?"Replace card":"Add business card")+
+          '<input type="file" accept="image/*" data-pcard="'+i+'" hidden></label>':'')+
+       (wr&&!c.main?'<button class="pgo" data-pmain="'+i+'">Make main</button>':'')+
+       (c.main?'<span class="pmain">Main contact</span>':'')+
+       (wr?'<button class="pgo dg" data-pdel="'+i+'">Remove</button>':'')+
+     '</div></div>').join("")
+    :'<p class="pnone">No one recorded yet — add the person you actually talk to</p>')+
+   (wr?'<button class="act" id="padd">+ Add a person</button>':'')+'</div>';
+}
+/* ย่อรูปนามบัตรก่อนเก็บ ภาพจากมือถือใบนึง 4 MB ถ้าเก็บดิบๆ ไม่กี่ใบก็เต็มที่บันทึกอัตโนมัติแล้ว */
+function shrinkCard(file,cb){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const im=new Image();
+    im.onload=()=>{
+      const max=1000, sc=Math.min(1,max/Math.max(im.width,im.height));
+      const cvs=document.createElement("canvas");
+      cvs.width=Math.round(im.width*sc); cvs.height=Math.round(im.height*sc);
+      cvs.getContext("2d").drawImage(im,0,0,cvs.width,cvs.height);
+      cb(cvs.toDataURL("image/jpeg",.62));
+    };
+    im.onerror=()=>cb(null);
+    im.src=fr.result;
+  };
+  fr.onerror=()=>cb(null);
+  fr.readAsDataURL(file);
+}
+function wirePeople(sd,d,redraw){
+  const P=peopleOf(d);
+  sd.querySelectorAll("[data-pf]").forEach(el=>el.addEventListener("change",()=>{
+    P[+el.dataset.pi][el.dataset.pf]=el.value.trim(); syncMain(d); redraw();
+  }));
+  sd.querySelectorAll("[data-pmain]").forEach(b=>b.addEventListener("click",()=>{
+    P.forEach((x,i)=>x.main=(i===+b.dataset.pmain)); syncMain(d); redraw();
+  }));
+  sd.querySelectorAll("[data-pdel]").forEach(b=>b.addEventListener("click",()=>{
+    const i=+b.dataset.pdel;
+    if(!confirm("Remove "+(P[i].n||"this person")+"?"))return;
+    P.splice(i,1); if(P.length&&!P.some(x=>x.main))P[0].main=true;
+    syncMain(d); redraw();
+  }));
+  sd.querySelectorAll("[data-pcard]").forEach(inp=>inp.addEventListener("change",e=>{
+    const fl=e.target.files&&e.target.files[0]; if(!fl)return;
+    shrinkCard(fl,url=>{ if(!url){alert("That file could not be read as an image");return}
+      P[+inp.dataset.pcard].card=url; redraw() });
+  }));
+  sd.querySelectorAll("[data-pcv]").forEach(b=>b.addEventListener("click",()=>{
+    cardView(P[+b.dataset.pcv]);
+  }));
+  const ad=sd.querySelector("#padd");
+  if(ad)ad.addEventListener("click",()=>{
+    P.push({n:"",pos:"",tel:"",line:"",mail:"",card:null,main:!P.length});
+    syncMain(d); redraw();
+    const last=sd.querySelectorAll('[data-pf="n"]');
+    if(last.length)last[last.length-1].focus();
+  });
+}
+/* ดูนามบัตรเต็มใบ กดที่ไหนก็ปิด */
+function cardView(c){
+  const b=document.createElement("div"); b.className="cardview";
+  b.innerHTML='<img src="'+c.card+'" alt="Business card of '+esc(c.n||"this contact")+'">'+
+    '<span>'+esc(c.n||"")+(c.pos?" · "+esc(c.pos):"")+'</span>';
+  b.addEventListener("click",()=>b.remove());
+  document.addEventListener("keydown",function k(e){
+    if(e.key==="Escape"){ b.remove(); document.removeEventListener("keydown",k) } });
+  document.body.appendChild(b);
+}
+/* หน้าดีลถูกยุบรวมเป็นแท็บเดียวแล้ว การรีเฟรชต้องผ่าน pDeals ไม่ใช่ pSales ตรงๆ
+   ถ้าเรียก pSales ตอนกำลังดูมุมมองตาราง มันจะพังกลางคัน แล้วแผงข้างไม่ถูกวาดใหม่
+   ผลคือแก้ข้อมูลแล้วค่าเข้าไปแล้วจริง แต่หน้าจอยังโชว์ของเดิม */
+function dealsRefresh(){
+  if(page==="sales"&&curTab(NAV.find(x=>x.id==="sales"))==="deals"){ pDeals(); return }
+  pSales();
+}
 function drawDealPanel(){
   let sd=document.getElementById("dealpanel");
   if(!sd){ sd=document.createElement("aside"); sd.id="dealpanel"; sd.className="side2";
@@ -1574,8 +1688,8 @@ function drawDealPanel(){
    '<dl class="kv"><dt>Stage</dt><dd><select id="dstage">'+STAGES.map(x=>
      '<option value="'+x[0]+'"'+(d.stage===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
    '</select></dd>'+
-   (d.contact?'<dt>Contact</dt><dd>'+esc(d.contact)+(d.phone?'<br>'+esc(d.phone):'')+'</dd>':'')+
    '<dt>Next step</dt><dd>'+(d.next?esc(d.next)+' · '+esc(d.nextDate):'<span style="color:var(--warn)">None yet</span>')+'</dd></dl>'+
+   peopleBox(d)+
    '<div class="acts"><b style="font-size:13px">Log a contact</b>'+
    '<select id="atype">'+ACTS.map(a=>'<option value="'+a[0]+'">'+a[1]+'</option>').join("")+'</select>'+
    '<input id="anote" placeholder="what was discussed, what came of it">'+
@@ -1587,7 +1701,8 @@ function drawDealPanel(){
      ' — '+esc(a.note||"—")+'</span></li>').join("")+'</ul>'
     :'<p style="color:var(--ink2);font-size:13px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)">No contact history</p>');
   sd.querySelector(".x").addEventListener("click",()=>{dealOpen=null;sd.remove()});
-  sd.querySelector("#dstage").addEventListener("change",e=>{d.stage=e.target.value;pSales();drawDealPanel()});
+  sd.querySelector("#dstage").addEventListener("change",e=>{d.stage=e.target.value;dealsRefresh();drawDealPanel()});
+  wirePeople(sd,d,()=>{ dealsRefresh(); drawDealPanel() });
   sd.querySelector("#asave").addEventListener("click",()=>{
     const note=sd.querySelector("#anote").value.trim();
     const nx=sd.querySelector("#anext").value.trim();
@@ -1595,7 +1710,7 @@ function drawDealPanel(){
     if(!note&&!nx){sd.querySelector("#anote").focus();return}
     d.acts.push({date:dt,type:sd.querySelector("#atype").value,note:note});
     if(nx){d.next=nx; d.nextDate=dt;}
-    pSales(); drawDealPanel();
+    dealsRefresh(); drawDealPanel();
   });
 }
 
@@ -4398,7 +4513,7 @@ function pTimeline(ph){
      Object.keys(TLST).map(k=>TLST[k].l).join(" · ")+'">Status</th>'+
    '<th class="gtby" rowspan="2">Owner</th>'+
    '<th class="gtd gtd2" rowspan="2">Due by<br><small>Plan / actual</small></th>'+
-   mons.map(m=>'<th colspan="'+m.n+'" class="gtm">'+m.l+'</th>').join("")+
+   mons.map(m=>'<th colspan="'+m.n+'" class="gtm"><span>'+m.l+'</span></th>').join("")+
    colHead(wr)+'</tr><tr>'+
    cols.map(k=>{const d=tlWeekStart(k), w=Math.floor((d.getDate()-1)/7)+1;
      return '<th class="gtw'+band[k]+(k===now?" gtnow":"")+(k===0?" gtshow":"")+'">W'+w+'</th>'}).join("")+

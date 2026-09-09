@@ -148,6 +148,7 @@ create table contact_person (
   phone      text,
   email      text,
   line_id    text,
+  card_url   text,                       -- รูปนามบัตร เก็บไฟล์ไว้ที่ object storage แล้วอ้างด้วย url
   is_primary boolean not null default false
 );
 

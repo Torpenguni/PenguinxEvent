@@ -444,7 +444,7 @@ table.gt th.gtd,table.gt td.gtd{width:88px;min-width:88px;padding:7px 8px;font-s
 table.gt th.gtno{z-index:5}table.gt th.gtn{z-index:5}table.gt th.gts{z-index:5}
 table.gt th.gtby{z-index:5}table.gt th.gtd{z-index:5}
 /* หัวหมวดกินสี่คอลัมน์รวมกัน ปุ่มจึงไม่ล้นไปทับช่องอื่น */
-table.gt td.gtgh{width:556px;min-width:556px;max-width:556px}
+table.gt td.gtgh{width:594px;min-width:594px;max-width:594px}
 table.gt td.gts select{width:100%;font-size:12px;padding:4px 6px;border-radius:7px}
 table.gt th.gtd2,table.gt td.gtd2{width:126px;min-width:126px}
 table.gt th.gtd2 small{display:block;font-weight:600;font-size:10.5px;color:var(--ink3);margin-top:1px}
@@ -484,7 +484,7 @@ td.gtc.gsel{background:color-mix(in srgb,var(--accent) 25%,transparent)}
 
 /* แถวหัวหมวด */
 tr.gtg td{background:var(--soft)}
-tr.gtg td.gtn{background:var(--soft)}
+tr.gtg td.gtn,tr.gtg td.gtby{background:var(--soft)}
 tr.gtg td.gtc{border-left-color:color-mix(in srgb,var(--accent) 12%,var(--tl-grid))}
 .gtgh{display:table-cell;white-space:nowrap}
 .gtgn{font-weight:700;font-size:13.5px;color:var(--ink);margin:0 8px 0 4px;
@@ -499,11 +499,13 @@ table.gt tbody tr.gtr:hover>td,
 table.gt tbody tr.gtr:hover>td.gtalt,
 table.gt tbody tr.gtr:hover>td.gtn,
 table.gt tbody tr.gtr:hover>td.gts,
+table.gt tbody tr.gtr:hover>td.gtby,
 table.gt tbody tr.gtr:hover>td.gtd,
 table.gt tbody tr.gtr:hover>td.gtx3{background:var(--soft)}
 table.gt tbody tr.gtr:hover>td.gtno{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 table.gt tbody tr.gtr.sel:hover>td.gtno{background:var(--accent)}
 table.gt tbody tr.gtr.sel>td.gtn,table.gt tbody tr.gtr.sel>td.gts,
+table.gt tbody tr.gtr.sel>td.gtby,
 table.gt tbody tr.gtr.sel>td.gtd,table.gt tbody tr.gtr.sel>td.gtc{background:var(--soft)}
 /* แถวหัวหมวดไม่ต้องไฮไลต์ตอนชี้ มันเป็นหัวข้อไม่ใช่ของที่กดได้ */
 table.gt tbody tr.gtg:hover>td{background:var(--bg2)}
@@ -932,7 +934,6 @@ td.gtc .gplan.pk,td.gtc .gact.pk{cursor:ew-resize}
 .onbar.pk{box-shadow:0 0 0 2px var(--ink);outline:1px solid var(--card);cursor:ew-resize}
 
 /* คอลัมน์ฝ่ายที่รับผิดชอบ ติ๊กได้หลายฝ่าย แสดงเป็นป้ายเล็กๆ */
-table.gt th.gtby{padding:7px 8px;text-align:left;vertical-align:top}
 td.gtby{vertical-align:middle;padding:5px 8px}
 .tmb{display:flex;flex-wrap:wrap;gap:4px 5px;align-items:center;width:100%;text-align:left;
  background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 6px;
@@ -1000,4 +1001,59 @@ tr.gtr:hover .gtnote.empty,tr.gtr:focus-within .gtnote.empty{display:block}
  background:color-mix(in srgb,var(--accent) 16%,transparent);
  box-shadow:inset 1px 0 0 var(--accent),inset -1px 0 0 var(--accent);border-radius:2px}
 .onguide[hidden]{display:none}
+
+/* หัวคอลัมน์ที่คร่อมสองแถว ต้องเริ่มบรรทัดแรกที่ระดับเดียวกันทั้งหมด
+   ของเดิม th ปกติจัดกลางแนวตั้ง พอ Due by มีสองบรรทัดมันเลยลอยสูงกว่าอันอื่น
+   ส่วน Owner เคยตั้ง top ไว้อันเดียว กลายเป็นต่ำกว่าเพื่อน */
+table.gt thead th.gtno,table.gt thead th.gtn,table.gt thead th.gts,
+table.gt thead th.gtby,table.gt thead th.gtd{
+  vertical-align:top;padding-top:10px;padding-bottom:8px;text-align:left;
+  line-height:1.35}
+table.gt thead th.gtno{text-align:center}
+table.gt th.gtd2 small{margin-top:3px;line-height:1.35}
+
+/* ---------- ผู้ติดต่อของลูกค้า ---------- */
+.ppl{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+.pplh{display:block;font-size:13px;margin-bottom:10px}
+.pplh .pn{font-size:11.5px;font-weight:600;background:var(--soft);color:var(--accent);
+ padding:1px 8px;border-radius:99px;margin-left:5px}
+.pnone{font-size:13px;color:var(--ink3);margin:0 0 10px}
+.pcard{border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:9px;
+ background:var(--card)}
+.pcard.main{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.prow{display:flex;gap:11px;align-items:flex-start}
+.pcard-img{flex:0 0 76px;width:76px;height:48px;padding:0;border:1px solid var(--line2);
+ border-radius:6px;overflow:hidden;background:var(--paper);cursor:zoom-in}
+.pcard-img img{width:100%;height:100%;object-fit:cover;display:block}
+.pfields{flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:7px 9px}
+.pf{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pf:first-child{grid-column:1/-1}
+.pf>span{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.pf input{padding:6px 9px;border:1px solid var(--line2);border-radius:7px;
+ background:var(--paper);color:var(--ink);font-size:13px;min-width:0}
+.pf input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.pf>i{font-style:normal;font-size:13.5px;color:var(--ink);word-break:break-word}
+.pacts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px}
+.pgo{font-size:12px;font-weight:600;border:1px solid var(--line2);background:var(--card);
+ color:var(--ink);padding:4px 10px;border-radius:99px;cursor:pointer;text-decoration:none;
+ display:inline-block;line-height:1.5}
+.pgo:hover{border-color:var(--accent);color:var(--accent)}
+.pgo.dg{color:var(--st-block);border-color:transparent}
+.pgo.dg:hover{border-color:var(--st-block)}
+.pmain{font-size:11.5px;font-weight:600;color:var(--accent);margin-left:auto}
+.cardview{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.72);display:grid;
+ place-items:center;gap:12px;padding:24px;cursor:zoom-out;grid-auto-rows:min-content;
+ align-content:center}
+.cardview img{max-width:min(94vw,900px);max-height:78vh;border-radius:10px;
+ box-shadow:0 20px 60px rgba(0,0,0,.5);display:block}
+.cardview span{color:#fff;font-size:14px;font-weight:600;text-align:center}
+@media(max-width:700px){.pfields{grid-template-columns:1fr}}
+
+/* หัวเดือนกว้างหลายสัปดาห์ พอเลื่อนตารางไปทางขวา ครึ่งซ้ายของมันมุดเข้าไปใต้คอลัมน์ตรึง
+   เหลือให้เห็นแค่หางคำ กลายเป็นเลข 2027 ลอยอยู่ข้างคอลัมน์ Due by เหมือนตารางซ้อนเข้าไปใน Task
+   ตรึงตัวหนังสือไว้ที่ขอบซ้ายของพื้นที่ตารางแทน เดือนไหนกำลังดูอยู่ก็ยังอ่านชื่อได้เต็ม
+   640 = เลขแถว 36 + งาน 240 + สถานะ 104 + ฝ่าย 124 + กำหนด 126 บวกเส้นขอบ */
+table.gt th.gtm{text-align:left;padding-left:10px}
+table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
+@media(max-width:900px){table.gt th.gtm>span{left:196px}}
 </style>
