@@ -1056,4 +1056,8 @@ table.gt th.gtd2 small{margin-top:3px;line-height:1.35}
 table.gt th.gtm{text-align:left;padding-left:10px}
 table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
 @media(max-width:900px){table.gt th.gtm>span{left:196px}}
+
+/* หัวข้อกับปุ่มเลือกวันอยู่บรรทัดเดียวกัน เหนือตาราง */
+.secbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:26px 0 12px}
+.secbar .sec{margin:0}
 </style>

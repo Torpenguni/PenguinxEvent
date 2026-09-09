@@ -2847,9 +2847,15 @@ function stageList(){
       (wr&&!all.length?'<button class="rowdel" data-sx="'+esc(g)+'">Remove</button>':'')+
       '</span></div>'}).join("")+'</div>'+
    (wr?'<div class="addbar"><button id="stgadd">+ Add stage</button></div>':'')+
-   '<h2 class="sec">all three stages at once</h2>'+timelineHTML(1)+
-   '<div style="margin-top:10px"><div class="seg">'+[1,2,3].map(d=>
-    '<button data-d="'+d+'" aria-pressed="'+(day===d)+'">day '+d+'</button>').join("")+'</div></div>';
+   /* ปุ่มเลือกวันต้องอยู่เหนือตาราง คนเลือกวันก่อนแล้วค่อยอ่านตาราง
+      ของเดิมอยู่ใต้ตารางที่สูงเกือบสองพันพิกเซล ต้องเลื่อนลงไปสุดถึงจะเจอ */
+   '<div class="secbar"><h2 class="sec">all three stages at once</h2>'+
+   '<div class="seg">'+[1,2,3].map(d=>{
+     const dt=(SES.find(x=>x.day===d)||{}).date;
+     const lbl=dt?dt.slice(8)+" "+THM[+dt.slice(5,7)-1]:"";
+     return '<button data-d="'+d+'" aria-pressed="'+(day===d)+'">day '+d+
+       (lbl?' · '+lbl:'')+'</button>'}).join("")+'</div></div>'+
+   timelineHTML(1);
   $("#page").querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{stg=+b.dataset.g;pStage()}));
   $("#page").querySelectorAll("[data-sn]").forEach(el=>{
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();el.blur()}
@@ -3087,9 +3093,15 @@ function bindSheet(){
   /* ช่องเลือกเวลา เขียนกลับเป็น 09:00-09:40 แล้วคำนวณนาทีให้เอง */
   P.querySelectorAll("[data-tp]").forEach(el=>el.addEventListener("change",()=>{
     const s=SES[+el.dataset.si]; if(!s)return;
-    const box=el.closest(".tpick");
-    const a=box.querySelector('[data-tp="a"]').value;
-    let b=box.querySelector('[data-tp="b"]').value;
+    /* มุมมองชีตห่อช่องเวลาไว้ใน .tpick แต่มุมมองการ์ดห่อไว้ใน .sct
+       เดิมมองหาแต่ .tpick พอเป็นการ์ดจึงได้ null แล้วตัวจัดการพังกลางคัน
+       ผลคือช่องโชว์เวลาใหม่ตามที่พิมพ์ แต่ข้อมูลไม่เคยถูกบันทึก
+       ออกจากหน้าแล้วกลับมาเลยเห็นเวลาเดิม */
+    const box=el.closest(".tpick")||el.closest(".sct")||el.parentNode;
+    const ia=box.querySelector('[data-tp="a"]'), ib=box.querySelector('[data-tp="b"]');
+    if(!ia)return;
+    const a=ia.value;
+    let b=ib?ib.value:"";
     if(!a){ pStage(); return }
     if(!b){                          // ใส่แต่เวลาเริ่ม ต่อความยาวเดิมให้
       const len=+s.min||20, t=a.split(":"), m=+t[0]*60+ +t[1]+len;
