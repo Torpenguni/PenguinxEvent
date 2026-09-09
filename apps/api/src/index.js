@@ -20,6 +20,7 @@ import backupRoutes, { takeBackup } from './routes/backup.js'
 import { fetchFull } from './routes/full.js'
 import timelineRoutes from './routes/timeline.js'
 import exhibitorRoutes from './routes/exhibitors.js'
+import eventEditRoutes from './routes/eventEdit.js'
 import { mailBootReport } from './lib/mail.js'
 
 /* โฮสต์เดียวกันสองหน้าตา เลือกด้วย PXE_APP
@@ -30,7 +31,7 @@ const isPortal = process.env.PXE_APP === 'portal'
 
 const app = express()
 app.use(cors({ origin: process.env.WEB_ORIGIN?.split(',') ?? true, credentials: true }))
-app.use(express.json({ limit: '2mb' }))
+app.use(express.json({ limit: '8mb' }))   // ไฟล์ผังพื้นที่เป็น data URI ก้อนใหญ่ ต้องรับไหว
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, app: isPortal ? 'portal' : 'internal' }))
 
@@ -46,6 +47,7 @@ if (isPortal) {
   app.use('/api/events', fullRoutes)
   app.use('/api/events', timelineRoutes)
   app.use('/api/events', exhibitorRoutes)
+  app.use('/api/events', eventEditRoutes)
   app.use('/api/exhibitor-access', accessRoutes)
   app.use('/api/shares', shareRoutes)
   app.use('/api/users', userRoutes)

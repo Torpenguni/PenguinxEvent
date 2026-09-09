@@ -1083,6 +1083,16 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
  background:var(--soft);color:var(--accent)}
 .lmsg.bad{background:color-mix(in srgb,var(--risk) 12%,transparent);color:var(--risk);font-weight:600}
 .lmsg[hidden]{display:none}
+/* ฟอร์มแก้ข้อมูลงาน สองคอลัมน์บนจอกว้าง คอลัมน์เดียวบนมือถือ */
+.evform{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 18px;
+  padding:20px;max-width:860px}
+.evf{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--ink2);font-weight:600}
+.evf input,.evf select{font:inherit;font-size:14px;font-weight:400;padding:9px 11px;
+  border:1px solid var(--line2);border-radius:8px;background:var(--paper);color:var(--ink)}
+.evf input:disabled,.evf select:disabled{opacity:.6}
+.evf small{font-weight:400;color:var(--ink3);font-size:11.5px}
+.evfbtn{grid-column:1/-1;display:flex;align-items:center;gap:14px}
+.evfmsg{font-size:13px;color:var(--ink2)}
 </style>
 
 <div id="login">
@@ -1218,6 +1228,7 @@ const NAV=[
  {id:"tl",    t:"Timeline",  tabs:[
     ["pre","Pre-event","timeline"],["on","On-site","timeline"],["post","Post-event","timeline"]]},
  {id:"set",   t:"Settings",    tabs:[
+    ["event","Event details","user"],
     ["share","Share event","share"],["users","Users & permissions","user"],
     ["modules","Modules","user"],["export","Export data",null]]},
 ];
@@ -1259,7 +1270,7 @@ const PAGE={
  "exh:portal":()=>{exhView="portal";pExh()},
  "exh:setup":pTaskSetup,
  "tl:pre":()=>pTimeline("pre"), "tl:on":pTimelineOn, "tl:post":()=>pTimeline("post"),
- "set:share":pShare, "set:users":pUsers, "set:modules":pModules, "set:export":pExport,
+ "set:event":pEventInfo, "set:share":pShare, "set:users":pUsers, "set:modules":pModules, "set:export":pExport,
 };
 const ST={free:{l:"Free",c:"--s-free",t:"var(--ink)"},booked:{l:"Booked",c:"--s-booked",t:"#fff"},
  deposit:{l:"Deposit paid",c:"--s-deposit",t:"#fff"},paid:{l:"Paid in full",c:"--s-paid",t:"#fff"}};
@@ -1686,7 +1697,16 @@ function pickLogo(id){
   const inp=document.createElement("input");
   inp.type="file"; inp.accept="image/*";
   inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f)return;
-    shrinkImg(f,320,url=>{ const e=EVENTS.find(x=>x.id===id); if(e){e.logo=url; showPick()} }) };
+    shrinkImg(f,320,async url=>{ const e=EVENTS.find(x=>x.id===id); if(!e)return;
+      e.logo=url; showPick();
+      /* โลโก้ถูกกันไม่ให้ติดไปกับการบันทึกทั้งงานเพราะเป็นก้อนใหญ่
+         ส่งแยกทางนี้ทันที ไม่งั้นกดอัปโหลดแล้วเห็นชั่วคราว รีเฟรชก็หาย */
+      if(online()){
+        try{ await api("/api/events/"+encodeURIComponent(id)+"/file/logo",
+          {method:"PUT",body:JSON.stringify({data:url,name:f.name})});
+          toastTL("บันทึกโลโก้แล้ว") }
+        catch(err){ toastTL("บันทึกโลโก้ไม่สำเร็จ · "+err.message) }
+      } }) };
   inp.click();
 }
 function showPick(){
@@ -2319,8 +2339,15 @@ function wirePlanBar(P,redraw){
     if(f.size>PLAN_MAX){ alert("File is larger than "+fsize(PLAN_MAX)+" Try a lower resolution, or export only the pages you need"); return }
     const ext=(f.name.match(/\.(\w+)$/)||[,""])[1].toLowerCase();
     const kind=isPlanImg(f)?"img":(ext==="pdf"||/pdf/.test(f.type))?"pdf":"cad";
-    const done=url=>{ EV.planFile={name:f.name,size:f.size,kind,url,show:true,op:45,sc:100};
-      redraw(); toastTL("Upload "+f.name+" then") };
+    const done=async url=>{ EV.planFile={name:f.name,size:f.size,kind,url,show:true,op:45,sc:100};
+      redraw(); toastTL("Upload "+f.name+" then");
+      // ไฟล์ผังก็ถูกกันไม่ให้ติดไปกับการบันทึกทั้งงานเหมือนโลโก้ ส่งแยกทางนี้
+      if(online()){
+        try{ await api("/api/events/"+encodeURIComponent(EV.id)+"/file/plan",
+          {method:"PUT",body:JSON.stringify({data:url,name:f.name})});
+          toastTL("บันทึกไฟล์ผังแล้ว") }
+        catch(err){ toastTL("บันทึกไฟล์ผังไม่สำเร็จ · "+err.message) }
+      } };
     if(kind==="img")shrinkImg(f,2400,done);
     else { const fr=new FileReader(); fr.onload=()=>done(fr.result); fr.readAsDataURL(f) }
   });
@@ -2333,7 +2360,9 @@ function wirePlanBar(P,redraw){
   const d=P.querySelector("#pfdel");
   if(d)d.addEventListener("click",()=>{
     if(!confirm("Remove the floor plan file from this event?"))return;
-    EV.planFile=null; redraw() });
+    EV.planFile=null; redraw();
+    if(online())api("/api/events/"+encodeURIComponent(EV.id)+"/file/plan",
+      {method:"PUT",body:JSON.stringify({data:null,name:null})}).catch(()=>{}) });
   const sh=P.querySelector("#pfshow");
   if(sh)sh.addEventListener("change",()=>{ planFile().show=sh.checked; redraw() });
   const op=P.querySelector("#pfop");
@@ -5172,6 +5201,59 @@ function pExport(){
       btn.textContent="Saved";
     }catch(err){ btn.textContent = err&&err.code==="declined"?"Cancelled":"Could not save" }
     setTimeout(()=>{btn.textContent=label},2500);
+  });
+}
+/* แก้ข้อมูลระดับงาน ของเดิมกรอกได้ครั้งเดียวตอนสร้าง หลังจากนั้นแก้เองไม่ได้เลย
+   ทั้งที่งานจริงเลื่อนวัน ย้ายห้อง เพิ่มที่นั่ง กันเป็นเรื่องปกติ
+   บันทึกทีละช่องผ่านเส้นทางของตัวเอง ไม่ต้องเขียนบูธทั้ง 181 ช่องใหม่เพราะแก้ชื่องาน */
+function pEventInfo(){
+  const wr=can("user")==="write";
+  const F=(label,id,val,type,hint)=>
+    '<label class="evf"><span>'+esc(label)+'</span>'+
+    '<input id="'+id+'" type="'+(type||"text")+'" value="'+esc(val==null?"":String(val))+'"'+
+    (wr?"":" disabled")+'>'+(hint?'<small>'+esc(hint)+'</small>':'')+'</label>';
+  $("#page").innerHTML='<h2 class="sec">Event details</h2>'+
+    '<div class="c evform">'+
+      F("Event name","ei_name",EV.name)+
+      F("Short name","ei_short",EV.short)+
+      F("Brands (comma separated)","ei_brands",(EV.brands||[]).join(", "))+
+      F("Venue","ei_venue",EV.venue)+
+      F("Start date","ei_d1",(EV.eventDate||"").slice(0,10),"date")+
+      F("End date","ei_d2",(EV.end_date||"").slice(0,10),"date")+
+      F("Date shown on cards","ei_dates",EV.dates,"text","e.g. 21–24 สิงหาคม 2027")+
+      F("Seats","ei_seats",EV.seats,"number","leave blank if there is no seated programme")+
+      F("Ticket price (THB)","ei_tprice",EV.ticketPrice,"number")+
+      F("Tickets sold","ei_tsold",EV.ticketsSold,"number")+
+      F("Revenue target (THB)","ei_target",EV.target,"number")+
+      '<label class="evf"><span>Status</span><select id="ei_status"'+(wr?"":" disabled")+'>'+
+        [["planning","In planning"],["selling","Selling"],["onsite","On site"],["closed","Closed"]]
+        .map(([v,l])=>'<option value="'+v+'"'+(EV.status===v?" selected":"")+'>'+l+'</option>').join("")+
+      '</select></label>'+
+      (wr?'<div class="evfbtn"><button class="act go" id="ei_save">Save changes</button>'+
+          '<span id="ei_msg" class="evfmsg"></span></div>':'')+
+    '</div>';
+  const b=$("#ei_save");
+  if(b)b.addEventListener("click",async()=>{
+    const v=id=>($("#"+id)||{}).value;
+    const body={ name:v("ei_name").trim(), short:v("ei_short").trim(),
+      brands:v("ei_brands").split(",").map(x=>x.trim()).filter(Boolean),
+      venue:v("ei_venue").trim(), eventDate:v("ei_d1")||null, endDate:v("ei_d2")||null,
+      dates:v("ei_dates").trim(), seats:v("ei_seats")||null, ticketPrice:v("ei_tprice")||null,
+      ticketsSold:v("ei_tsold")||null, target:v("ei_target")||null, status:v("ei_status") };
+    if(!body.name){ $("#ei_msg").textContent="ชื่องานว่างไม่ได้"; return }
+    b.disabled=true; $("#ei_msg").textContent="กำลังบันทึก…";
+    try{
+      if(online())await api("/api/events/"+encodeURIComponent(EV.id),
+        {method:"PATCH",body:JSON.stringify(body)});
+      Object.assign(EV,{name:body.name,short:body.short,brands:body.brands,venue:body.venue,
+        eventDate:body.eventDate,event_date:body.eventDate,end_date:body.endDate,
+        dates:body.dates,seats:+body.seats||null,ticketPrice:+body.ticketPrice||null,
+        ticketsSold:+body.ticketsSold||null,target:+body.target||null,status:body.status});
+      const thin=EVENTS.find(x=>x.id===EV.id); if(thin)Object.assign(thin,{name:EV.name,
+        short:EV.short,venue:EV.venue,dates:EV.dates,status:EV.status,brands:EV.brands});
+      $("#ei_msg").textContent="บันทึกแล้ว"; draw();
+    }catch(err){ $("#ei_msg").textContent="บันทึกไม่สำเร็จ · "+err.message }
+    finally{ b.disabled=false }
   });
 }
 function pShare(){

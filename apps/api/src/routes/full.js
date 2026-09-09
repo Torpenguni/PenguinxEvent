@@ -114,6 +114,8 @@ async function fetchFull (code, perms, user) {
       /* โลโก้ ตัวเดโมเคยฝังรูปไว้ในไฟล์ตอน build โหมดต่อเซิร์ฟเวอร์จึงไม่มีรูปเลย
          ใช้ไฟล์ที่ผูกไว้กับงานใน event.logo_url แทน หน้าเว็บใส่ใน img ได้เหมือนกัน */
       logo: S.logo ?? ev.logo_url ?? null, manual: S.manual ?? null,
+      /* ไฟล์ผังพื้นที่ที่อัปโหลดไว้ ของเดิมไม่เคยส่งกลับ อัปแล้วรีเฟรชก็หาย */
+      planFile: S.planFile ?? null, planFileName: S.planFileName ?? null,
       tlRange: S.tlRange ?? null, tlCols: S.tlCols ?? [],
       /* บล็อกบนผังที่ไม่ใช่บูธ เวที ทางเดิน กองอำนวยการ ห้องน้ำ
          ไม่มีตารางของตัวเองในฐานข้อมูล เก็บรวมใน settings ไปก่อน
