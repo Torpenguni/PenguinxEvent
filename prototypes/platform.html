@@ -1798,8 +1798,10 @@ function go(p){page=p;sel=null;dealOpen=null;costOpen=null;exhOpen=null;
 /* ───────── ถอยหลัง เดินหน้า ─────────
    เก็บภาพนิ่งของงานที่เปิดอยู่หลังการวาดหน้าทุกครั้ง ถ้าต่างจากอันล่าสุดถึงจะเก็บ
    วิธีนี้ครอบคลุมทุกการแก้โดยไม่ต้องไปแตะโค้ดทุกจุดที่แก้ข้อมูล
-   ไม่เก็บโลโก้กับไฟล์ผัง เพราะเป็น data URI ก้อนใหญ่และแทบไม่เปลี่ยน */
-const HEAVY=["logo","planFile"];
+   ไม่เก็บโลโก้กับไฟล์ผัง เพราะเป็น data URI ก้อนใหญ่และแทบไม่เปลี่ยน
+   ไม่เก็บ rev กับ savedAt เพราะเป็นของเซิร์ฟเวอร์ ไม่ใช่เนื้องาน ถ้าปนเข้ามา
+   เลขรอบที่ขยับทุกครั้งหลังบันทึกจะทำให้ระบบคิดว่ายังมีของค้างแล้วบันทึกวนไม่จบ */
+const HEAVY=["logo","planFile","rev","savedAt"];
 const UNDO={ list:[], at:-1, busy:false, max:40, unlock:null };
 function snapNow(){
   const o={}; for(const k in EV) if(!HEAVY.includes(k)) o[k]=EV[k];
@@ -1904,7 +1906,7 @@ async function api(path,opt){
   try{ body=await res.json() }catch(e){}
   if(!res.ok){
     const err=new Error((body&&body.error)||("ต่อเซิร์ฟเวอร์ไม่ได้ ("+res.status+")"));
-    err.status=res.status; throw err;
+    err.status=res.status; err.body=body; throw err;
   }
   return body;
 }
@@ -1931,10 +1933,21 @@ async function pushUp(js){
   pushing=true; paintSaved("busy");
   try{
     const body={}; for(const k in EV) if(!HEAVY.includes(k)) body[k]=EV[k];
-    await api("/api/events/"+encodeURIComponent(EV.id)+"/full",
+    /* ส่งเลขรอบที่อ่านมาไปด้วย เซิร์ฟเวอร์จะได้รู้ว่ามีใครบันทึกคั่นระหว่างที่เรากำลังแก้ไหม */
+    body.rev=EV.rev;
+    const out=await api("/api/events/"+encodeURIComponent(EV.id)+"/full",
       {method:"PUT",body:JSON.stringify({event:body})});
+    if(out&&out.rev!=null)EV.rev=out.rev;
     savedJS=js; saveAt=Date.now(); paintSaved("ok");
   }catch(err){
+    /* ชนกับคนอื่น ห้ามลองใหม่เองเด็ดขาด ยิ่งลองยิ่งทับ
+       หยุดบันทึกอัตโนมัติไว้ก่อน เก็บของที่แก้ไว้ในเครื่อง แล้วให้คนตัดสินใจเอง */
+    if(err&&err.status===409){
+      saveOn=false;
+      try{ localStorage.setItem(SKEY,js) }catch(e2){}
+      paintSaved("clash",err.body&&err.body.by?("โดย "+err.body.by):"");
+      pushing=false; return;
+    }
     paintSaved("err",err.message);
     try{ localStorage.setItem(SKEY,js) }catch(e2){}
   }finally{
@@ -1969,6 +1982,16 @@ function paintSaved(kind,detail){
   if(kind==="full"){ el.textContent="Not saved — browser storage is full";
     el.className="svst bad"; el.title="Clear some space, or export a backup from Settings"; return }
   if(kind==="busy"){ el.textContent="Saving…"; el.className="svst"; el.title=""; return }
+  if(kind==="clash"){
+    el.innerHTML='หยุดบันทึกไว้ — มีคนอื่นแก้งานนี้'+(detail?" "+esc(detail):"")+
+      ' <button id="svreload" class="act" style="padding:2px 8px;font-size:12px;margin-left:6px">'+
+      'โหลดของล่าสุด</button>';
+    el.className="svst bad";
+    el.title="ถ้าบันทึกทับตอนนี้ งานของอีกคนจะหายทั้งหมด สิ่งที่คุณเพิ่งแก้ถูกเก็บไว้ในเครื่องแล้ว";
+    const rb=document.getElementById("svreload");
+    if(rb)rb.addEventListener("click",()=>{ try{ localStorage.removeItem(SKEY) }catch(e){} location.reload() });
+    return;
+  }
   if(kind==="err"){ el.textContent="Not saved — kept on this device";
     el.className="svst bad"; el.title=detail||"The server did not accept the change"; return }
   el.textContent="Saved "+saveWhen();
@@ -5400,8 +5423,11 @@ function pEventInfo(){
     if(!body.name){ $("#ei_msg").textContent="ชื่องานว่างไม่ได้"; return }
     b.disabled=true; $("#ei_msg").textContent="กำลังบันทึก…";
     try{
-      if(online())await api("/api/events/"+encodeURIComponent(EV.id),
-        {method:"PATCH",body:JSON.stringify(body)});
+      if(online()){
+        const out=await api("/api/events/"+encodeURIComponent(EV.id),
+          {method:"PATCH",body:JSON.stringify(body)});
+        if(out&&out.rev!=null)EV.rev=out.rev;
+      }
       Object.assign(EV,{name:body.name,short:body.short,brands:body.brands,venue:body.venue,
         eventDate:body.eventDate,event_date:body.eventDate,end_date:body.endDate,
         dates:body.dates,seats:+body.seats||null,ticketPrice:+body.ticketPrice||null,

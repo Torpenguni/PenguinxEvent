@@ -6,6 +6,7 @@
    และการติ๊กงานหนึ่งช่องไม่ควรต้องเขียนทั้งงานใหม่ */
 import { Router } from 'express'
 import { q } from '../db.js'
+import { bumpRevById } from '../rev.js'
 import { require as need, audit } from '../auth.js'
 
 const r = Router()
@@ -98,7 +99,9 @@ r.patch('/:code/exhibitors/:dealId/tasks/:templateId', need('exhibitor', 'write'
         [req.params.dealId, req.params.templateId, done, req.user.id],
       )
       await audit(req, 'exhibitor_task', req.params.dealId, 'update', 'done', null, String(done))
-      res.json(rows[0])
+      const ev = (await q(`select event_id from deal where id = $1`, [req.params.dealId])).rows[0]
+      const rev = ev ? await bumpRevById(ev.event_id, req.user.id) : null
+      res.json({ ...rows[0], rev })
     } catch (e) { next(e) }
   })
 

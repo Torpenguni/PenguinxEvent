@@ -919,3 +919,8 @@ create index if not exists event_backup_code_idx on event_backup (code, taken_on
 alter table event add column if not exists seats int;              -- ความจุที่นั่ง
 alter table event add column if not exists ticket_price numeric(12,2); -- ราคาบัตรตั้ง
 alter table event add column if not exists tickets_sold int;       -- ขายได้แล้วกี่ใบ
+
+-- ตัวนับรอบการบันทึก กันสองคนเขียนทับกัน (db/rev.sql)
+alter table event add column if not exists rev        bigint not null default 1;
+alter table event add column if not exists updated_at timestamptz;
+alter table event add column if not exists updated_by bigint references app_user(id);

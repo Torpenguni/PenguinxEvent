@@ -98,7 +98,10 @@ async function fetchFull (code, perms, user) {
     for (const p of people.rows) (peopleBySession[p.session_id] ??= []).push(p)
 
     const out = {
-      id: ev.code, name: ev.name, short: S.short ?? ev.name,
+      /* เลขรอบการบันทึก หน้าเว็บต้องส่งกลับมาตอนบันทึก จะได้รู้ว่ามีใครแก้คั่นระหว่างทางไหม */
+      rev: Number(ev.rev ?? 1),
+      savedAt: ev.updated_at ? new Date(ev.updated_at).toISOString() : null,
+      id: ev.code, name: ev.name, short: S.short ?? ev.name, hall: ev.hall ?? null,
       dates: S.dates ?? null, venue: ev.venue, status: ev.status,
       brands: brands.rows.map((b) => b.name),
       /* ส่งวันที่เป็น YYYY-MM-DD ไม่ใช่ ISO เต็มรูปแบบ หน้าเว็บเอาไปต่อท้ายด้วย T00:00:00
@@ -261,10 +264,29 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
       try {
         const stat = await writeEvent(q, body, { agents: agents0, adminId: admin0?.id ?? req.user.id })
         await q('commit')
-        return res.status(201).json({ ok: true, created: true, saved: stat, at: new Date().toISOString() })
+        return res.status(201).json({ ok: true, created: true, saved: stat,
+          rev: 1, at: new Date().toISOString() })
       } catch (e) { await q('rollback').catch(() => {}); throw e }
     }
     const base = cur.event
+
+    /* ด่านกันเขียนทับกัน
+       หน้าเว็บอ่านงานไปตอน rev เท่าไหร่ ต้องส่งเลขนั้นกลับมาด้วย
+       ถ้าไม่ตรงกับในฐานข้อมูลแปลว่ามีคนอื่นบันทึกคั่นไประหว่างที่ยังแก้อยู่
+       เขียนต่อไปเท่ากับลบงานของคนนั้นทิ้งทั้งหมด เพราะการบันทึกที่นี่เขียนใหม่ทั้งก้อน
+       ปฏิเสธแล้วบอกให้โหลดของใหม่ก่อน ปลอดภัยกว่าเงียบแล้วข้อมูลหาย */
+    const sent = body.rev == null ? null : Number(body.rev)
+    if (sent !== Number(base.rev)) {
+      const who = (await q(
+        `select u.name from event e left join app_user u on u.id = e.updated_by
+          where e.code = $1`, [req.params.code])).rows[0]?.name ?? null
+      return res.status(409).json({
+        error: sent == null
+          ? 'หน้านี้เปิดค้างมาจากเวอร์ชันก่อน โหลดหน้าใหม่ก่อนแล้วค่อยบันทึก'
+          : 'มีคนอื่นบันทึกงานนี้ไปแล้วระหว่างที่คุณกำลังแก้ ถ้าบันทึกทับตอนนี้งานของเขาจะหาย',
+        conflict: true, rev: Number(base.rev), by: who, at: base.savedAt,
+      })
+    }
 
     const keep = (cond, keys) => {
       if (cond) return
@@ -314,8 +336,13 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
         [req.user.id, req.params.code,
          kept.length ? 'kept:' + kept.join(',') : null,
          JSON.stringify(stat)])
+      const bumped = (await q(
+        `update event set rev = rev + 1, updated_at = now(), updated_by = $2
+          where code = $1 returning rev, updated_at`,
+        [req.params.code, req.user.id])).rows[0]
       await q('commit')
-      res.json({ ok: true, saved: stat, kept, at: new Date().toISOString() })
+      res.json({ ok: true, saved: stat, kept, rev: Number(bumped.rev),
+        at: bumped.updated_at.toISOString() })
     } catch (e) { await q('rollback').catch(() => {}); throw e }
   } catch (e) { next(e) }
 })

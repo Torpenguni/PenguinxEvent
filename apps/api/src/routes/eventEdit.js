@@ -6,6 +6,7 @@
 import { Router } from 'express'
 import { q } from '../db.js'
 import { require as need, audit } from '../auth.js'
+import { bumpRevById } from '../rev.js'
 
 const r = Router()
 
@@ -72,10 +73,13 @@ r.patch('/:code', need('user', 'write'), async (req, res, next) => {
     if (!touched.length) return res.status(400).json({ error: 'ไม่มีอะไรให้แก้' })
     await audit(req, 'event', ev.id, 'update', touched.join(','), null,
       JSON.stringify(req.body).slice(0, 300))
+    /* แก้ทีละช่องก็นับเป็นการบันทึกงาน ต้องเดินเลขรอบด้วย
+       แล้วคืนเลขใหม่ให้หน้าเว็บถือต่อ ไม่งั้นการบันทึกครั้งถัดไปของตัวเองจะโดนปฏิเสธ */
+    const rev = await bumpRevById(ev.id, req.user.id)
     const out = (await q(
       `select code, name, venue, hall, start_date::text, end_date::text, status,
               revenue_goal, seats, ticket_price, tickets_sold from event where id = $1`, [ev.id])).rows[0]
-    res.json(out)
+    res.json({ ...out, rev })
   } catch (e) { next(e) }
 })
 
@@ -110,7 +114,8 @@ r.put('/:code/file/:kind', need('user', 'write'), async (req, res, next) => {
     /* โลโก้ที่อัปโหลดเองทับ path ของไฟล์ที่ตั้งไว้ ไม่งั้นจะเห็นของเก่าค้าง */
     if (kind === 'logo') await q(`update event set logo_url = null where id = $1`, [ev.id])
     await audit(req, 'event', ev.id, 'upload', kind, null, name ?? (data ? 'uploaded' : 'removed'))
-    res.json({ ok: true, kind, size: data ? data.length : 0, name })
+    const rev = await bumpRevById(ev.id, req.user.id)
+    res.json({ ok: true, kind, size: data ? data.length : 0, name, rev })
   } catch (e) { next(e) }
 })
 

@@ -4,6 +4,7 @@
    บน Vercel จะไม่ทันหมดเวลาก่อน คนใช้เห็นแค่คำว่ากำลังบันทึกค้างอยู่ */
 import { Router } from 'express'
 import { q } from '../db.js'
+import { bumpRevById } from '../rev.js'
 import { require as need, audit } from '../auth.js'
 
 const r = Router()
@@ -52,7 +53,10 @@ r.patch('/:code/timeline/:id', need('timeline', 'write'), async (req, res, next)
     )
     await audit(req, 'timeline_task', req.params.id, 'update',
       Object.keys(req.body).join(','), null, JSON.stringify(req.body).slice(0, 200))
-    res.json(rows[0])
+    // แก้ไทม์ไลน์ก็คือแก้ข้อมูลของงาน ต้องเดินเลขรอบ ไม่งั้นอีกหน้าจอบันทึกทับได้
+    const ev = (await q(`select event_id from timeline_task where id = $1`, [req.params.id])).rows[0]
+    const rev = ev ? await bumpRevById(ev.event_id, req.user.id) : null
+    res.json({ ...rows[0], rev })
   } catch (e) { next(e) }
 })
 

@@ -58,6 +58,17 @@ export async function writeEvent (q, e, ctx) {
                (select d.id from deal d join event ev on ev.id = d.event_id where ev.code = $1)`, [e.id])
     await q(`delete from booth_queue where booth_id in
                (select b.id from booth b join event ev on ev.id = b.event_id where ev.code = $1)`, [e.id])
+    /* แถว event ถูกลบแล้วสร้างใหม่ทุกครั้งที่บันทึกทั้งงาน เลขรอบจึงถูกรีเซ็ตกลับเป็นค่าตั้งต้น
+       ทำให้ด่านกันเขียนทับกันใช้ไม่ได้ตั้งแต่การบันทึกครั้งที่สองเป็นต้นไป
+       อ่านเลขเดิมเก็บไว้ก่อนลบ แล้วใส่กลับตอน insert */
+    /* ก้อนที่หน้าเว็บส่งมาไม่ได้บรรจุทุกคอลัมน์ของตาราง event
+       hall, move_in_from, move_out_to, created_at, cloned_from ไม่เคยถูกส่งออกไปตั้งแต่ตอนอ่าน
+       พอลบแถวแล้วสร้างใหม่จึงกลายเป็นค่าว่างทุกครั้งที่บันทึก แก้ห้องไว้ก็หายรอบถัดไป
+       และวันที่สร้างงานถูกรีเซ็ตเป็นเวลาที่กดบันทึกล่าสุด อ่านของเดิมเก็บไว้แล้วใส่กลับ */
+    const prev = await one(
+      `select rev, hall, move_in_from, move_out_to, created_at, cloned_from
+         from event where code = $1`, [e.id])
+    const keepRev = Number(prev?.rev ?? 1)
     await q(`delete from event where code = $1`, [e.id])
     /* logo_url ต้องเขียนกลับด้วย ของเดิมไม่มีในคำสั่ง insert ทุกครั้งที่บันทึกทั้งงาน
        โลโก้จึงหายไปเงียบ ๆ ค่าที่หน้าเว็บส่งมาเป็น path ของไฟล์ เช่น /logos/restech.png
@@ -65,13 +76,17 @@ export async function writeEvent (q, e, ctx) {
     const logoPath = typeof e.logo === 'string' && e.logo.startsWith('/') ? e.logo : null
     const ev = await one(
       `insert into event (code, name, edition_year, venue, start_date, end_date, status,
-         revenue_goal, logo_url, seats, ticket_price, tickets_sold)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
+         revenue_goal, logo_url, seats, ticket_price, tickets_sold, rev,
+         hall, move_in_from, move_out_to, cloned_from, created_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,
+               $14,$15,$16,$17, coalesce($18, now())) returning id`,
       [e.id, e.name, year, e.venue || null,
        day(e.eventDate || e.event_date), day(e.end_date),
        e.status === 'selling' ? 'selling' : 'planning', e.target || null,
        logoPath ?? e.logo_url ?? null,
-       e.seats ?? null, e.ticketPrice ?? null, e.ticketsSold ?? null])
+       e.seats ?? null, e.ticketPrice ?? null, e.ticketsSold ?? null, keepRev,
+       e.hall ?? prev?.hall ?? null, prev?.move_in_from ?? null, prev?.move_out_to ?? null,
+       prev?.cloned_from ?? null, prev?.created_at ?? null])
 
     await bulk('event_brand', ['event_id', 'code', 'name'],
       (e.brands || []).map((b) => [ev.id, b, b]))
