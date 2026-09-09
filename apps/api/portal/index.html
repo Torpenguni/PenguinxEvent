@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>พอร์ทัลผู้ออกบูธ · Penguin X</title>
+<style>
+  :root {
+    --ink: #14171a; --muted: #6b7280; --line: #e5e7eb;
+    --bg: #f7f7f8; --card: #fff; --warn: #b42318; --ok: #067647;
+  }
+  * { box-sizing: border-box }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 -apple-system, "Noto Sans Thai", "Helvetica Neue", sans-serif;
+  }
+  header { background: var(--ink); color: #fff; padding: 20px 16px }
+  header h1 { margin: 0; font-size: 19px }
+  header p { margin: 4px 0 0; opacity: .75; font-size: 14px }
+  main { max-width: 720px; margin: 0 auto; padding: 16px }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+            padding: 16px; margin-bottom: 16px }
+  h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: .01em }
+  .row { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0;
+         border-top: 1px solid var(--line) }
+  .row:first-of-type { border-top: 0 }
+  .grow { flex: 1; min-width: 0 }
+  .muted { color: var(--muted); font-size: 14px }
+  .due { font-size: 13px; white-space: nowrap }
+  .late { color: var(--warn); font-weight: 600 }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px;
+         background: #fdecec; color: var(--warn); margin-left: 6px; vertical-align: 1px }
+  .count { float: right; font-weight: 600; color: var(--muted) }
+  input[type=checkbox] { width: 20px; height: 20px; margin-top: 4px; accent-color: var(--ink) }
+  input[type=text] { width: 100%; padding: 9px 10px; border: 1px solid var(--line);
+                     border-radius: 8px; font: inherit; font-size: 15px }
+  button { background: var(--ink); color: #fff; border: 0; border-radius: 8px;
+           padding: 9px 16px; font: inherit; font-size: 15px; cursor: pointer }
+  button.link { background: none; color: var(--muted); padding: 4px 6px; font-size: 14px }
+  .form { display: flex; gap: 8px; margin-top: 12px }
+  .form input { flex: 1 }
+  .err { background: #fdecec; color: var(--warn); padding: 12px; border-radius: 8px;
+         margin-bottom: 16px }
+  .done { color: var(--muted); text-decoration: line-through }
+  select { padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="company">พอร์ทัลผู้ออกบูธ</h1>
+  <p id="event">กำลังเปิด…</p>
+</header>
+<main id="app"></main>
+
+<script>
+const $ = (s) => document.querySelector(s)
+const app = $('#app')
+const fmt = (d) => d ? new Date(d).toLocaleDateString('th-TH',
+  { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
+const daysLeft = (d) => Math.ceil((new Date(d) - new Date()) / 86400000)
+const esc = (s) => String(s ?? '').replace(/[<>&"]/g, (c) =>
+  ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]))
+
+let token = sessionStorage.getItem('pxe_portal')
+let data = null
+
+async function api (path, opts = {}) {
+  const res = await fetch('/api/portal' + path, {
+    ...opts,
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error || 'เรียกข้อมูลไม่สำเร็จ')
+  return body
+}
+
+function fail (msg) {
+  app.innerHTML = `<div class="err">${esc(msg)}</div>`
+}
+
+async function start () {
+  // ลิงก์ที่ทีมงานส่งมาเก็บกุญแจไว้หลัง # เพื่อไม่ให้ติดไปกับ log ของเซิร์ฟเวอร์
+  const key = location.hash.slice(1)
+  if (key) {
+    try {
+      const out = await (await fetch('/api/portal/session', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ key }),
+      })).json().then((b) => b.error ? Promise.reject(new Error(b.error)) : b)
+      token = out.token
+      sessionStorage.setItem('pxe_portal', token)
+      history.replaceState(null, '', location.pathname)
+    } catch (e) { return fail(e.message) }
+  }
+  if (!token) return fail('เปิดหน้านี้จากลิงก์ที่ทีมงานส่งให้ทางอีเมล')
+  try {
+    data = await api('/me')
+    render()
+  } catch (e) {
+    sessionStorage.removeItem('pxe_portal')
+    fail(e.message)
+  }
+}
+
+function render () {
+  $('#company').textContent = data.name_th || data.company
+  $('#event').textContent =
+    `${data.event} · ${data.venue || ''} ${data.hall || ''} · ${fmt(data.start_date)}`
+
+  const doneN = data.tasks.filter((t) => t.done).length
+  const staffOf = (t) => data.staff.filter((s) => s.badge_type === t)
+
+  app.innerHTML = `
+    <section>
+      <h2>บูธของคุณ</h2>
+      ${data.booths.map((b) => `
+        <div class="row">
+          <div class="grow">
+            <b>${esc(b.code)}</b> ${esc(b.package || '')}
+            <div class="muted">${esc(b.zone || '')} ·
+              ${b.width_m ? `${b.width_m}×${b.depth_m} ม. (${b.sqm} ตร.ม.)` : ''}
+              ${b.build === 'shell_scheme' ? '· มีโครงสร้างให้' : b.build === 'raw_space' ? '· พื้นที่เปล่า' : ''}</div>
+          </div>
+        </div>`).join('') || '<p class="muted">ยังไม่ได้ระบุบูธ</p>'}
+      <div class="row muted">
+        เข้าพื้นที่ ${fmt(data.move_in_from)} · จัดงาน ${fmt(data.start_date)}–${fmt(data.end_date)}
+      </div>
+    </section>
+
+    <section>
+      <h2>สิ่งที่ต้องส่ง <span class="count">${doneN}/${data.tasks.length}</span></h2>
+      ${data.tasks.map((t) => {
+        const left = t.due_date ? daysLeft(t.due_date) : null
+        return `
+        <div class="row">
+          <input type="checkbox" data-task="${t.template_id}" ${t.done ? 'checked' : ''}>
+          <div class="grow">
+            <span class="${t.done ? 'done' : ''}">${esc(t.label)}</span>
+            ${t.required ? '<span class="tag">บังคับ</span>' : ''}
+            ${t.instructions ? `<div class="muted">${esc(t.instructions)}</div>` : ''}
+          </div>
+          <div class="due ${!t.done && left !== null && left < 7 ? 'late' : 'muted'}">
+            ${t.done ? 'ส่งแล้ว'
+              : left === null ? ''
+              : left < 0 ? `เลย ${-left} วัน` : `อีก ${left} วัน`}
+          </div>
+        </div>`
+      }).join('')}
+      <p class="muted">ไฟล์ยังส่งทางอีเมลถึงทีมงานเหมือนเดิม ติ๊กที่นี่เพื่อบอกว่าส่งแล้ว</p>
+    </section>
+
+    ${['exhibitor', 'contractor'].map((kind) => {
+      const quota = kind === 'exhibitor' ? data.quota_exhibitor : data.quota_contractor
+      const list = staffOf(kind)
+      const label = kind === 'exhibitor' ? 'บัตรผู้ออกบูธ' : 'บัตรผู้รับเหมา'
+      return `
+      <section>
+        <h2>${label} <span class="count">${list.length}/${quota}</span></h2>
+        ${list.map((s) => `
+          <div class="row">
+            <div class="grow">${esc(s.name)}
+              <span class="muted">${esc(s.role || '')}${s.phone ? ' · ' + esc(s.phone) : ''}</span>
+            </div>
+            <button class="link" data-del="${s.id}">ลบ</button>
+          </div>`).join('') || '<p class="muted">ยังไม่ได้กรอกรายชื่อ</p>'}
+        ${list.length < quota ? `
+          <div class="form">
+            <input type="text" placeholder="ชื่อ-นามสกุล" data-name="${kind}">
+            <input type="text" placeholder="เบอร์โทร" data-phone="${kind}" style="max-width:140px">
+            <button data-add="${kind}">เพิ่ม</button>
+          </div>` : '<p class="muted">ครบโควตาตามแพ็กเกจแล้ว ต้องการเพิ่มติดต่อทีมงาน</p>'}
+      </section>`
+    }).join('')}
+
+    <p class="muted">มีคำถามติดต่อทีมงานได้เลย ลิงก์นี้เป็นของบูธคุณเท่านั้น อย่าส่งต่อ</p>
+  `
+
+  app.querySelectorAll('[data-task]').forEach((el) => {
+    el.onchange = async () => {
+      try {
+        await api('/tasks/' + el.dataset.task, {
+          method: 'POST', body: JSON.stringify({ done: el.checked }),
+        })
+        data.tasks.find((t) => String(t.template_id) === el.dataset.task).done = el.checked
+        render()
+      } catch (e) { el.checked = !el.checked; alert(e.message) }
+    }
+  })
+  app.querySelectorAll('[data-add]').forEach((el) => {
+    el.onclick = async () => {
+      const kind = el.dataset.add
+      const name = app.querySelector(`[data-name="${kind}"]`).value.trim()
+      const phone = app.querySelector(`[data-phone="${kind}"]`).value.trim()
+      if (!name) return
+      try {
+        const row = await api('/staff', {
+          method: 'POST',
+          body: JSON.stringify({ name, phone: phone || null, badge_type: kind }),
+        })
+        data.staff.push(row)
+        render()
+      } catch (e) { alert(e.message) }
+    }
+  })
+  app.querySelectorAll('[data-del]').forEach((el) => {
+    el.onclick = async () => {
+      try {
+        await api('/staff/' + el.dataset.del, { method: 'DELETE' })
+        data.staff = data.staff.filter((s) => String(s.id) !== el.dataset.del)
+        render()
+      } catch (e) { alert(e.message) }
+    }
+  })
+}
+
+start()
+</script>
+</body>
+</html>

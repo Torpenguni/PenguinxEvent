@@ -4,23 +4,39 @@ import cors from 'cors'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { attachUser } from './auth.js'
+import { attachPortal } from './portalAuth.js'
 import authRoutes from './routes/auth.js'
 import eventRoutes from './routes/events.js'
 import boothRoutes from './routes/booths.js'
 import dealRoutes from './routes/deals.js'
 import fullRoutes from './routes/full.js'
+import portalRoutes from './routes/portal.js'
+import accessRoutes from './routes/access.js'
+
+/* โฮสต์เดียวกันสองหน้าตา เลือกด้วย PXE_APP
+   portal = โดเมนผู้ออกบูธ mount เฉพาะ /api/portal เส้นทางที่มีราคาและงบไม่ได้ถูก mount เลย
+   ไม่ตั้ง = โดเมนทีมเรา หรือรันบนเครื่อง
+   แยกที่ชั้น mount ไม่ใช่เช็กในแต่ละเส้น เพราะพลาดจุดเดียวข้อมูลเงินหลุดถึงคนนอก */
+const isPortal = process.env.PXE_APP === 'portal'
 
 const app = express()
 app.use(cors({ origin: process.env.WEB_ORIGIN?.split(',') ?? true, credentials: true }))
 app.use(express.json({ limit: '2mb' }))
-app.use(attachUser)
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }))
-app.use('/api/auth', authRoutes)
-app.use('/api/events', eventRoutes)
-app.use('/api/booths', boothRoutes)
-app.use('/api/deals', dealRoutes)
-app.use('/api/events', fullRoutes)
+app.get('/api/health', (_req, res) => res.json({ ok: true, app: isPortal ? 'portal' : 'internal' }))
+
+if (isPortal) {
+  app.use(attachPortal)
+  app.use('/api/portal', portalRoutes)
+} else {
+  app.use(attachUser)
+  app.use('/api/auth', authRoutes)
+  app.use('/api/events', eventRoutes)
+  app.use('/api/booths', boothRoutes)
+  app.use('/api/deals', dealRoutes)
+  app.use('/api/events', fullRoutes)
+  app.use('/api/exhibitor-access', accessRoutes)
+}
 
 // ต่อฐานข้อมูลไม่ได้เป็นคนละเรื่องกับบั๊ก ตอบ 503 พร้อมบอกว่าเกิดอะไร
 const DB_DOWN = new Set(['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P03', '3D000'])
@@ -28,9 +44,12 @@ const DB_DOWN = new Set(['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P03', '3D0
 // ตอนขึ้นจริงเสิร์ฟหน้าเว็บจากโดเมนเดียวกับ API
 if (process.env.NODE_ENV === 'production') {
   const here = path.dirname(fileURLToPath(import.meta.url))
-  const dist = path.resolve(here, '../../web/dist')
+  /* โดเมนผู้ออกบูธเสิร์ฟหน้าเดียวจบ ไม่ใช่แอปของทีมเรา
+     ไฟล์อยู่ใน apps/api/portal เพราะ Vercel แพ็กเฉพาะของที่อยู่ใต้ root ของฟังก์ชัน */
+  const dist = isPortal ? path.resolve(here, '../portal')
+                        : path.resolve(here, '../../web/dist')
   app.use(express.static(dist))
-  // ทุกเส้นทางที่ไม่ใช่ /api ส่ง index.html ให้ React จัดการเอง
+  // ทุกเส้นทางที่ไม่ใช่ /api ส่ง index.html ให้หน้าเว็บจัดการเอง
   app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')))
 }
 
