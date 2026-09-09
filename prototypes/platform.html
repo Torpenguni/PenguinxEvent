@@ -1398,12 +1398,14 @@ function slugId(name){
   return id;
 }
 /* ผังบูธตั้งต้น เรียงเป็นตารางตามจำนวนบูธที่กรอก แบ่งโซนละ 24 บูธ */
-function seedBooths(n,price){
+function seedBooths(n,price,pkg){
   const out=[], perRow=12, Z="ABCDEFGHIJKLMNOP";
   for(let i=0;i<n;i++){
     const z=Z[Math.floor(i/24)]||"Z", k=i%24+1;
+    /* ผูกแพ็กเกจตั้งต้นให้ทุกบูธด้วย ไม่งั้นแผงบูธขึ้นว่ายังไม่มีแพ็กเกจ
+       ทั้งที่เพิ่งกรอกราคาต่อบูธไปในฟอร์มสร้างงาน */
     out.push({code:z+k,name:null,zone:z,x:i%perRow+1,y:Math.floor(i/perRow)+1,w:1,h:1,
-      food:false,st:"free",co:null,sales:null,pkg:null,product:null,contact:null,
+      food:false,st:"free",co:null,sales:null,pkg:pkg||null,product:null,contact:null,
       phone:null,email:null,form:false,board:false,list:price});
   }
   return out;
@@ -1424,11 +1426,18 @@ function newEventFrom(f){
     status:"planning", brands:f.brands, logo:f.logo||null,
     owner:f.owner, client:f.owner==="client"?f.client:null,
     sqm:f.sqm||null, boothCount:f.n||0,
-    booths:seedBooths(f.n||0,f.price||0), areas:[], deals:[], sessions:[],
+    booths:seedBooths(f.n||0,f.price||0,f.copyPrice?null:"Standard booth"),
+    areas:[], deals:[], sessions:[],
     sales:[], target:0, target_note:"No target set yet",
     budget:cloneJ(D.template||[]), catTotals:{},
     tasks:cloneJ((EVENTS[0]&&EVENTS[0].tasks)||[]),
-    packages:f.copyPrice?cloneJ(EVENTS[0].packages||{}):{},
+    /* งานที่เริ่มจากศูนย์เคยได้แพ็กเกจเปล่า แผงบูธเลยขึ้นว่า no package set
+       ทั้งที่เพิ่งกรอกราคาต่อบูธไปในฟอร์ม ตั้งแพ็กเกจมาตรฐานให้หนึ่งอันจากราคานั้น
+       ทีมแก้ชื่อและเพิ่มแพ็กเกจอื่นได้ที่หน้า Packages & pricing */
+    packages:f.copyPrice?cloneJ(EVENTS[0].packages||{})
+      :{"Standard booth":{size:"3x3 m",build:"Shell scheme",price:f.price||0,badge:4,
+         b:[["included","Shell scheme booth, one 3x3 m unit"],
+            ["limit","Exhibitor badges 4 · Contractor 2"]]}},
     addons:f.copyPrice?cloneJ(EVENTS[0].addons||[]):[],
     zoneNames:seedZoneNames(f.n||0),
     manual:{name:"Exhibitor Manual "+(f.short||f.name)+".pdf",url:null},
@@ -1516,8 +1525,14 @@ function pNewEvent(){
   const copyBox=P.querySelector("#nf_copy"), fromSel=P.querySelector("#nf_from");
   const srcMode=()=>P.querySelector("[name=src]:checked").value;
   const syncSrc=()=>{ const cl=srcMode()==="clone";
-    copyBox.hidden=!cl; fromSel.disabled=!cl; fromSel.style.opacity=cl?1:.45 };
+    copyBox.hidden=!cl; fromSel.style.opacity=cl?1:.55 };
   P.querySelectorAll("[name=src]").forEach(r=>r.addEventListener("change",()=>{syncSrc();P.querySelector("#nf_sum").hidden=true}));
+  /* หยิบงานต้นทางขึ้นมาเลือก แปลว่าตั้งใจจะโคลน ติ๊กให้เองไม่ต้องย้อนไปกดปุ่มวงกลม
+     ของเดิมช่องนี้ถูกปิดไว้จนกว่าจะเลือกโหมด ซึ่งคนใช้กดแล้วไม่มีอะไรเกิดขึ้น */
+  fromSel.addEventListener("change",()=>{
+    P.querySelector('[name=src][value=clone]').checked=true;
+    syncSrc(); P.querySelector("#nf_sum").hidden=true;
+  });
   syncSrc();
 
   let confirmed=false;
@@ -2513,16 +2528,21 @@ function sidebar(){
 }
 function act(a){
   const b=B.find(x=>x.code===sel),i=$("#cu"),n=i?i.value.trim():"";
-  if(a==="book"){if(!n){i.focus();return}b.st="booked";b.co=n;b.sales=me;
+  /* ของเดิมแค่ focus ช่องแล้วจบเงียบ ๆ คนกดไม่รู้ว่าปุ่มเสียหรือตัวเองทำอะไรผิด
+     บอกไปตรง ๆ ว่าขาดอะไร ค่าใช้จ่ายคือข้อความบรรทัดเดียว */
+  if(a==="book"){if(!n){i.focus();toastTL("Type the company name first, then press again");return}
+    b.st="booked";b.co=n;b.sales=me;
     const hd=$("#hd2")?+$("#hd2").value:30; b.hold=hd; b.due=addDays(hd);
     const u=$("#cs")&&$("#cs").value.trim(); if(u)SITE[n]=norm(u);}
   else if(a==="sethold"){const hd=+$("#hd").value; b.hold=hd; b.due=addDays(hd);}
   else if(a==="fetch"){
-    const u=$("#site").value.trim(); if(!u){$("#site").focus();return}
+    const u=$("#site").value.trim();
+    if(!u){$("#site").focus();toastTL("Paste the company website first");return}
     SITE[b.co]=norm(u); LOGO[b.co]=fakeLogo(SITE[b.co]);}
   else if(a==="rmlogo")delete LOGO[b.co];
   else if(a==="next"){b.st=NEXT[b.st]||b.st; if(b.st!=="booked"){b.due=null;b.hold=null}}
-  else if(a==="q"){if(!n){i.focus();return}(Q[b.code]=Q[b.code]||[]).push({co:n,sales:me})}
+  else if(a==="q"){if(!n){i.focus();toastTL("Type the client name first, then press again");return}
+    (Q[b.code]=Q[b.code]||[]).push({co:n,sales:me})}
   else if(a==="rel"){const qs=Q[b.code]||[];
     if(qs.length){const x=qs.shift();b.st="booked";b.co=x.co;b.sales=x.sales;
       b.hold=30;b.due=addDays(30);if(!qs.length)delete Q[b.code]}
@@ -3701,7 +3721,8 @@ function pGrid(){
   const ga=P.querySelector("#gadd");
   if(ga)ga.addEventListener("click",()=>{
     const co=P.querySelector("#newco").value.trim();
-    if(!co){P.querySelector("#newco").focus();return}
+    if(!co){P.querySelector("#newco").focus();
+      toastTL("Type the company name first, then press Add deal again");return}
     const pk=P.querySelector("#newpk").value;
     const tasks={}; EV.tasks.forEach(t=>tasks[t.code]=false);
     DEALS.push({id:Math.max(0,...DEALS.map(d=>d.id))+1, co, sales:me, pkg:pk||null,
@@ -4078,10 +4099,27 @@ function stageLegend(){
 let stg=null, sview="cards";
 const SOPT=[["","—"],["Confirm","Confirm"],["Maybe CF","Maybe CF"],["Maybe not","Maybe not"],["Cancel","Cancel"]];
 function pStage(){
+  /* งานที่ยังไม่มีตารางเวที เคยเป็นทางตัน ข้อความบอกให้ส่งไฟล์มาให้คนทำระบบ import ให้
+     ทั้งที่โมดูลอื่นสร้างของเองได้หมด ตอนนี้เริ่มเวทีแรกเองได้จากตรงนี้เลย
+     ส่วนการ import ไฟล์ Agenda ทั้งก้อนก็ยังเป็นทางที่เร็วกว่าถ้ามีไฟล์อยู่แล้ว */
   if(!SES.length){$("#page").innerHTML='<div class="deny" style="border-left-color:var(--warn)">'+
-    '<h3>the stage schedule for this event has not been imported yet</h3>'+
-    '<p>the module is ready — it only needs the Agenda file for '+esc(EV.name)+'</p>'+
-    '<p>send the sheet and it can be imported the same way as Restech x TRC 2026</p></div>';return}
+    '<h3>this event has no stage schedule yet</h3>'+
+    '<p>start the first stage here and add the slots one by one</p>'+
+    '<p>or send the Agenda sheet for '+esc(EV.name)+
+      ' and the whole schedule can be imported at once, the same way as Restech x TRC 2026</p>'+
+    '<div class="addbar"><button id="stgnew" class="act go">Start the first stage</button></div></div>';
+    const nb=$("#stgnew");
+    if(nb)nb.addEventListener("click",()=>{
+      const name=(prompt("What is this stage called?","Main Stage")||"").trim();
+      if(!name)return;
+      EV.stages=(EV.stages||[]).concat([name]);
+      /* ใส่ช่วงแรกให้หนึ่งช่วง ไม่งั้นหน้ายังนับว่าเวทียังไม่มีอะไรและตกกลับมาที่นี่อีก */
+      SES.push({stage:name,day:1,date:EV.event_date||null,
+        time:"09:30-10:10",a:570,b:610,min:"40",no:null,title:null,kind:"talk",
+        cf:false,lock:false,mod:null,coord:null,slides:null,people:[]});
+      stg=null; pStage();   // การวาดใหม่ทำให้ตัวดัก DOM บันทึกให้เองอยู่แล้ว
+    });
+    return}
   stg===null?stageList():stageOne();
 }
 
