@@ -9,6 +9,13 @@ const ST = { available: 'free', held: 'booked', contracted: 'booked',
              deposit_paid: 'deposit', paid: 'paid', blocked: 'free' }
 const TL = { plan: '', doing: 'doing', done: 'done', risk: 'risk' }
 const hhmm = (t) => (t ? String(t).slice(0, 5) : null)
+// นาทีนับจากเที่ยงคืน 09:30 = 570 ใช้วางตำแหน่งบล็อกในตารางเวที
+const mins = (t) => {
+  const v = hhmm(t)
+  if (!v) return null
+  const [h, m] = v.split(':').map(Number)
+  return h * 60 + m
+}
 /* pg คืน date มาเป็น Date ของ JS ถ้าเอา String() ครอบจะได้ 'Mon Mar 01 2027 ...'
    ตัดสิบตัวแรกเลยได้ 'Mon Mar 01' ซึ่งเขียนกลับลงคอลัมน์ date ไม่ได้
    ประกอบเองจากส่วนของเวลาท้องถิ่น ไม่ใช้ toISOString ที่เลื่อนวันตามโซนเวลา */
@@ -93,6 +100,10 @@ async function fetchFull (code, perms, user) {
          ใช้ไฟล์ที่ผูกไว้กับงานใน event.logo_url แทน หน้าเว็บใส่ใน img ได้เหมือนกัน */
       logo: S.logo ?? ev.logo_url ?? null, manual: S.manual ?? null,
       tlRange: S.tlRange ?? null, tlCols: S.tlCols ?? [],
+      /* บล็อกบนผังที่ไม่ใช่บูธ เวที ทางเดิน กองอำนวยการ ห้องน้ำ
+         ไม่มีตารางของตัวเองในฐานข้อมูล เก็บรวมใน settings ไปก่อน
+         ของเดิมไม่ได้เก็บเลย ผังในโหมดต่อเซิร์ฟเวอร์จึงว่างไปทั้งชั้น */
+      areas: S.areas ?? [],
       buildDays: S.buildDays ?? 1, strikeDays: S.strikeDays ?? 1,
       onH0: S.onH0 ?? 7, onH1: S.onH1 ?? 23,
       zoneNames: Object.fromEntries(zones.rows.map((z) => [z.code, z.name])),
@@ -145,6 +156,9 @@ async function fetchFull (code, perms, user) {
       sessions: sessions.rows.map((s) => ({
         stage: s.stage, day: s.day_no, date: ymd(s.on_date),
         time: hhmm(s.starts_at) + (s.ends_at ? '-' + hhmm(s.ends_at) : ''),   // ไม่มีเวลาจบก็ไม่ต้องมีขีดค้างไว้
+        /* ตารางเวทีวางบล็อกตามนาทีจากเที่ยงคืน ไม่ได้อ่านจากสตริงเวลา
+           ไม่ส่ง a กับ b ไป บล็อกทุกอันจะไปกองอยู่ที่เดียวกันบนหัวตาราง */
+        a: mins(s.starts_at), b: mins(s.ends_at),
         min: s.minutes, title: s.title, kind: s.kind,
         cf: s.title_confirmed, lock: s.time_locked, mod: s.remark,
         script: s.script_url, _id: s.id,

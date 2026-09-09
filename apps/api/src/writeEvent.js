@@ -247,6 +247,7 @@ export async function writeEvent (q, e, ctx) {
     await q(`insert into event_setting (event_id, settings) values ($1,$2)
              on conflict (event_id) do update set settings = excluded.settings`,
             [ev.id, JSON.stringify({
+              areas: e.areas || [],
               logo: logoPath ? null : (e.logo || null), tlRange: e.tlRange || null, tlCols: e.tlCols || [],
               buildDays: e.buildDays ?? 1, strikeDays: e.strikeDays ?? 1,
               onH0: e.onH0 ?? 7, onH1: e.onH1 ?? 23,
