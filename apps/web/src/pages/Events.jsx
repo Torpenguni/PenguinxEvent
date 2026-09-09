@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
-export default function Events({ me, onPick, onOut }) {
-  const [rows, setRows] = useState(null)
+export default function Events({ me, rows: given, onPick, onAdmin, onOut }) {
+  const [rows, setRows] = useState(given ?? null)
   const [err, setErr] = useState(null)
 
-  useEffect(() => { api('/events').then(setRows).catch((e) => setErr(e.message)) }, [])
+  // App ดึงรายชื่องานให้แล้วตอนล็อกอิน ดึงเองเฉพาะตอนที่ยังไม่มา
+  useEffect(() => { if (given) setRows(given) }, [given])
+  useEffect(() => {
+    if (given) return
+    api('/events').then(setRows).catch((e) => setErr(e.message))
+  }, [])
 
   return (
     <div className="mid top">
@@ -31,7 +36,9 @@ export default function Events({ me, onPick, onOut }) {
           ))}
         </div>
         <p className="sub out">
-          เข้าระบบเป็น <b>{me.user.name}</b> · <button className="link" onClick={onOut}>ออกจากระบบ</button>
+          เข้าระบบเป็น <b>{me.user.name}</b>
+          {onAdmin && <> · <button className="link" onClick={onAdmin}>ผู้ใช้และการแชร์</button></>}
+          {' · '}<button className="link" onClick={onOut}>ออกจากระบบ</button>
         </p>
       </div>
     </div>

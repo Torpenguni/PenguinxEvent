@@ -4,6 +4,9 @@
   "functions": {
     "api/index.js": { "includeFiles": "portal/**" }
   },
+  "crons": [
+    { "path": "/api/cron/reminders", "schedule": "0 2 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

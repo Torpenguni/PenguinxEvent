@@ -12,6 +12,11 @@ import dealRoutes from './routes/deals.js'
 import fullRoutes from './routes/full.js'
 import portalRoutes from './routes/portal.js'
 import accessRoutes from './routes/access.js'
+import shareRoutes from './routes/shares.js'
+import userRoutes, { setPassword } from './routes/users.js'
+import dealMailRoutes from './routes/dealMail.js'
+import mailRoutes, { cronReminders } from './routes/mail.js'
+import { mailBootReport } from './lib/mail.js'
 
 /* โฮสต์เดียวกันสองหน้าตา เลือกด้วย PXE_APP
    portal = โดเมนผู้ออกบูธ mount เฉพาะ /api/portal เส้นทางที่มีราคาและงบไม่ได้ถูก mount เลย
@@ -36,7 +41,19 @@ if (isPortal) {
   app.use('/api/deals', dealRoutes)
   app.use('/api/events', fullRoutes)
   app.use('/api/exhibitor-access', accessRoutes)
+  app.use('/api/shares', shareRoutes)
+  app.use('/api/users', userRoutes)
+  app.use('/api/deals', dealMailRoutes)
+  app.use('/api/mail', mailRoutes)
+  // ตั้งรหัสผ่านจากลิงก์ในเมล เปิดได้โดยไม่ต้องล็อกอิน จึงอยู่ใต้ /api/auth
+  app.post('/api/auth/set-password', setPassword)
+  // cron เรียกเข้ามาวันละครั้ง ยืนยันตัวด้วย CRON_SECRET ไม่ใช่ session
+  app.get('/api/cron/reminders', cronReminders)
 }
+
+/* บอกตั้งแต่ตอนบูตว่าส่งเมลได้หรือไม่ได้ และขาด env ตัวไหน
+   "ไม่ได้ตั้งค่า" กับ "พิมพ์ชื่อ env ผิด" หน้าตาเหมือนกันเป๊ะถ้าไม่มีบรรทัดนี้ */
+mailBootReport()
 
 // ต่อฐานข้อมูลไม่ได้เป็นคนละเรื่องกับบั๊ก ตอบ 503 พร้อมบอกว่าเกิดอะไร
 const DB_DOWN = new Set(['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P03', '3D000'])

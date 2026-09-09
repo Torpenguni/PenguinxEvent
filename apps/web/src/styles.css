@@ -64,3 +64,13 @@ dd{margin:0}
 .acts{display:flex;flex-direction:column;gap:8px}
 .acts .warn{background:none;border:1px solid var(--risk);color:var(--risk)}
 @media(max-width:700px){.panel{left:12px;right:12px;width:auto}}
+
+/* หน้าผู้ใช้และการแชร์ ใช้ฟอร์มกับการ์ดชุดเดียวกับหน้าอื่น
+   เพิ่มเฉพาะที่หน้าอื่นยังไม่มี คือ select ปุ่มลิงก์เรียงแนวนอน และกล่องเตือนแบบย่อหน้า */
+label select{display:block;width:100%;margin-top:5px;padding:10px 13px;border:1px solid var(--line2);
+border-radius:8px;background:var(--paper);color:var(--ink);font-weight:400}
+.wrap form.card,.wrap .card{margin-bottom:14px}
+.wrap .card b + .tg{margin-left:8px}
+p.alert{background:var(--soft);border:1px solid var(--line);border-radius:9px;
+padding:11px 14px;font-size:13.5px;margin:0 0 14px;color:var(--ink2)}
+.rowacts{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
