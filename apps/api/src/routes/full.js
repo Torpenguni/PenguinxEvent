@@ -224,7 +224,23 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
       deal: { level: 'write', scope: 'all' }, stage: { level: 'write' },
       exhibitor: { level: 'write' }, timeline: { level: 'write' },
     }, { agent_id: null })
-    if (!cur) return res.status(404).json({ error: 'ไม่พบงานนี้' })
+    /* ยังไม่มีงานนี้ในระบบ แปลว่ากำลังสร้างงานใหม่
+       ของเดิมตอบ 404 ทิ้ง หน้าเว็บสร้างงานได้แต่ในหน่วยความจำของเบราว์เซอร์เท่านั้น
+       รีเฟรชแล้วหาย และไม่มีใครในทีมเห็นงานนั้นเลย */
+    if (!cur) {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'สร้างงานใหม่ได้เฉพาะผู้ดูแลระบบ' })
+      }
+      const agents0 = {}
+      for (const a of (await q(`select id, name from sales_agent`)).rows) agents0[a.name] = a.id
+      const admin0 = (await q(`select id from app_user where role='admin' order by id limit 1`)).rows[0]
+      await q('begin')
+      try {
+        const stat = await writeEvent(q, body, { agents: agents0, adminId: admin0?.id ?? req.user.id })
+        await q('commit')
+        return res.status(201).json({ ok: true, created: true, saved: stat, at: new Date().toISOString() })
+      } catch (e) { await q('rollback').catch(() => {}); throw e }
+    }
     const base = cur.event
 
     const keep = (cond, keys) => {

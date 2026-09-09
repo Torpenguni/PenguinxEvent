@@ -454,6 +454,9 @@ function pNewEvent(){
     ev.modules=Object.fromEntries(MODULES.map(([k])=>[k,mods.includes(k)]));
     EVENTS.push(ev);
     enter(ev.id); go(mods.includes("tl")?"tl":"dash");
+    /* โหมดต่อเซิร์ฟเวอร์ต้องส่งงานที่เพิ่งสร้างขึ้นไปทันที ไม่ใช่รอให้มีการแก้อะไรสักอย่างก่อน
+       ของเดิมงานใหม่อยู่แค่ในเบราว์เซอร์ รีเฟรชแล้วหาย และทีมคนอื่นไม่เห็น */
+    if(online())saveNow();
   });
 }
 /* คัดลอกเฉพาะโครง ไม่เอาลูกค้า ดีล และตัวเลขเงิน */
