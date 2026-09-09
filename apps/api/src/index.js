@@ -43,5 +43,11 @@ app.use((err, _req, res, _next) => {
   res.status(err.status || 500).json({ error: err.status ? err.message : 'เกิดข้อผิดพลาดในระบบ' })
 })
 
-const port = process.env.PORT || 4000
-app.listen(port, () => console.log(`api ฟังอยู่ที่ :${port}`))
+/* บน Vercel ไม่ต้อง listen เอง เขาเรียก handler ให้เป็นครั้งๆ
+   รันเองบนเครื่องถึงจะเปิดพอร์ต แยกสองทางด้วยตัวแปรที่ Vercel ตั้งให้ */
+if (!process.env.VERCEL) {
+  const port = process.env.PORT || 4000
+  app.listen(port, () => console.log(`api ฟังอยู่ที่ :${port}`))
+}
+
+export default app
