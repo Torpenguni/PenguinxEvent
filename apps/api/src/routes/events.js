@@ -9,6 +9,7 @@ r.get('/', need('floorplan'), async (req, res, next) => {
   try {
     const { rows } = await q(
       `select e.id, e.code, e.name, e.venue, e.hall, e.start_date, e.end_date, e.status,
+              e.logo_url,
               coalesce(json_agg(b.name order by b.id) filter (where b.id is not null), '[]') as brands
          from event e
          left join event_brand b on b.event_id = e.id

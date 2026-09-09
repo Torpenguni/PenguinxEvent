@@ -74,3 +74,7 @@ border-radius:8px;background:var(--paper);color:var(--ink);font-weight:400}
 p.alert{background:var(--soft);border:1px solid var(--line);border-radius:9px;
 padding:11px 14px;font-size:13.5px;margin:0 0 14px;color:var(--ink2)}
 .rowacts{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+
+/* โลโก้งานในหน้าเลือกงาน กล่องเท่าตัวย่อเดิม รูปไม่ถูกบีบผิดสัดส่วน */
+.card.ev .evlogo{width:46px;height:46px;object-fit:contain;border-radius:9px;
+background:var(--card);padding:2px;margin-bottom:6px}
