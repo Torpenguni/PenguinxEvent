@@ -2435,7 +2435,7 @@ function pPlan(){
       st:"free",co:null,sales:null,pkg:last.pkg||null,product:null,contact:null,
       phone:null,email:null,form:false,board:false,
       list:last.pkg&&EV.packages[last.pkg]?EV.packages[last.pkg].price||0:0});
-    sel=code; redraw(); toastTL("เพิ่มบูธ "+code+" แล้ว");
+    sel=code; pPlan(); toastTL("เพิ่มบูธ "+code+" แล้ว");   // วาดหน้าผังใหม่ทั้งหน้า ตัวนับกับตัวกรองจะได้ตรง
   });
   const fc=$("#fclear");
   if(fc)fc.addEventListener("click",()=>{fZone="";fPkg="";q="";pPlan()});
