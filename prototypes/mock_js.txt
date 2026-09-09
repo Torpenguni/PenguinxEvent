@@ -296,7 +296,9 @@ function newEventFrom(f){
     areas:[], deals:[], sessions:[],
     sales:[], target:0, target_note:"No target set yet",
     budget:cloneJ(D.template||[]), catTotals:{},
-    tasks:cloneJ((EVENTS[0]&&EVENTS[0].tasks)||[]),
+    /* โหมดต่อเซิร์ฟเวอร์ไม่มีงานเก่าฝังมาในไฟล์ EVENTS[0] จึงว่าง
+       ใช้โครงมาตรฐานที่ build ใส่มาให้แทน ไม่งั้นงานใหม่ไม่มีเช็กลิสต์ผู้ออกบูธเลย */
+    tasks:cloneJ((EVENTS[0]&&EVENTS[0].tasks&&EVENTS[0].tasks.length?EVENTS[0].tasks:D.taskTemplate)||[]),
     /* งานที่เริ่มจากศูนย์เคยได้แพ็กเกจเปล่า แผงบูธเลยขึ้นว่า no package set
        ทั้งที่เพิ่งกรอกราคาต่อบูธไปในฟอร์ม ตั้งแพ็กเกจมาตรฐานให้หนึ่งอันจากราคานั้น
        ทีมแก้ชื่อและเพิ่มแพ็กเกจอื่นได้ที่หน้า Packages & pricing */

@@ -49,8 +49,12 @@ for data,out in (('app4.json','platform.html'),('demo.json','demo.html')):
     # ข้อมูลไม่อยู่ในไฟล์ จึงเอาชุดจริงขึ้นเว็บได้โดยไม่หลุดให้คนที่ยังไม่ล็อกอิน
     if out=='platform.html':
         api=os.environ.get('PXE_API','http://localhost:4000')
+        # เช็กลิสต์ผู้ออกบูธก็เป็นโครงมาตรฐานเหมือนไทม์ไลน์กับผังบัญชี
+        # ไม่ส่งไปด้วย งานที่สร้างใหม่ในโหมดต่อเซิร์ฟเวอร์จะไม่มีเช็กลิสต์เลยสักข้อ
+        tasks=next((e.get('tasks') for e in D['events'] if e.get('tasks')),[])
         thin=json.dumps({'events':[],'reps':[],'template':D.get('template',[]),
-                         'timelineTemplate':D.get('timelineTemplate',[])},ensure_ascii=False)
+                         'timelineTemplate':D.get('timelineTemplate',[]),
+                         'taskTemplate':tasks},ensure_ascii=False)
         live=css+'\n'+html+'\n'+js.replace('__DATA__',thin)
         open(os.path.join('dist','live.html'),'w',encoding='utf-8').write(
           '<!doctype html>\n<html lang="th">\n<head>\n<meta charset="utf-8">\n'
