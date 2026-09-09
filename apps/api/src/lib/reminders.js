@@ -116,6 +116,15 @@ export async function runReminders ({
       out.push({ ...row, status: 'duplicate', error: 'ส่งให้ดีลนี้ไปแล้วภายใน 20 ชั่วโมง' })
       continue
     }
+    /* ยังไม่ได้กรอกอีเมลผู้ติดต่อ ไม่ใช่ความผิดพลาดของระบบ เป็นข้อมูลที่ยังขาด
+       ของเดิมปล่อยให้ไปตายที่ sendMail แล้วถูกบันทึกเป็น "ไม่สำเร็จ" ทุกคืน
+       ทั้งที่ไม่มีอะไรให้แก้ในฝั่งโปรแกรม กลายเป็นเสียงรบกวนที่กลบของที่พังจริง
+       ข้ามไปตรงนี้เลยและบอกให้ชัดว่าติดที่ยังไม่มีอีเมล จะได้รู้ว่าต้องไปกรอกที่ไหน */
+    if (!d.contact_email) {
+      out.push({ ...row, status: 'skipped',
+        error: 'ยังไม่ได้กรอกอีเมลผู้ติดต่อของ ' + d.company })
+      continue
+    }
     const mail = exhibitorReminder({
       company: d.company,
       event: d.event,
