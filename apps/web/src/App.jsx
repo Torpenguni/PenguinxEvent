@@ -3,6 +3,7 @@ import { api, token, can } from './api.js'
 import Login from './pages/Login.jsx'
 import Events from './pages/Events.jsx'
 import Plan from './pages/Plan.jsx'
+import Timeline from './pages/Timeline.jsx'
 import Admin from './pages/Admin.jsx'
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
   const [events, setEvents] = useState(null)
   const [evErr, setEvErr] = useState(null)
   const [admin, setAdmin] = useState(false)
+  const [view, setView] = useState('plan')   // หน้าไหนภายในงานที่เปิดอยู่
 
   useEffect(() => {
     if (!token.get()) return setLoading(false)
@@ -39,11 +41,14 @@ export default function App() {
       rows={events}
       err={evErr}
       onRetry={loadEvents}
-      onPick={setEvent}
+      onPick={(e) => { setEvent(e); setView('plan') }}
       onAdmin={can(me.permissions, 'user') || can(me.permissions, 'share')
         ? () => setAdmin(true)
         : null}
       onOut={() => { token.clear(); setMe(null) }} />
   }
-  return <Plan me={me} event={event} onBack={() => setEvent(null)} />
+  const back = () => { setEvent(null); setView('plan') }
+  return view === 'timeline'
+    ? <Timeline me={me} event={event} onBack={() => setView('plan')} />
+    : <Plan me={me} event={event} onBack={back} onTimeline={() => setView('timeline')} />
 }

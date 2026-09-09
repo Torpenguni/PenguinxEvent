@@ -16,6 +16,7 @@ import shareRoutes from './routes/shares.js'
 import userRoutes, { setPassword } from './routes/users.js'
 import dealMailRoutes from './routes/dealMail.js'
 import mailRoutes, { cronReminders } from './routes/mail.js'
+import timelineRoutes from './routes/timeline.js'
 import { mailBootReport } from './lib/mail.js'
 
 /* โฮสต์เดียวกันสองหน้าตา เลือกด้วย PXE_APP
@@ -40,6 +41,7 @@ if (isPortal) {
   app.use('/api/booths', boothRoutes)
   app.use('/api/deals', dealRoutes)
   app.use('/api/events', fullRoutes)
+  app.use('/api/events', timelineRoutes)
   app.use('/api/exhibitor-access', accessRoutes)
   app.use('/api/shares', shareRoutes)
   app.use('/api/users', userRoutes)

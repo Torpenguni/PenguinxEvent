@@ -10,7 +10,7 @@ const ST = {
   blocked:      { label: 'ไม่ขาย',      fill: '#9AA093', ink: '#fff' },
 }
 
-export default function Plan({ me, event, onBack }) {
+export default function Plan({ me, event, onBack, onTimeline }) {
   const [booths, setBooths] = useState(null)
   const [sel, setSel] = useState(null)
   const [err, setErr] = useState(null)
@@ -57,6 +57,7 @@ export default function Plan({ me, event, onBack }) {
     <div className="app">
       <header className="bar">
         <button className="link" onClick={onBack}>← ทุกงาน</button>
+        {onTimeline && <button className="link" onClick={onTimeline}>ไทม์ไลน์</button>}
         <b>{event.name}</b>
         <span className="spacer" />
         <span className="sub">{me.user.name}</span>

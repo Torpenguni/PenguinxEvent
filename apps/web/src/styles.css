@@ -78,3 +78,48 @@ padding:11px 14px;font-size:13.5px;margin:0 0 14px;color:var(--ink2)}
 /* โลโก้งานในหน้าเลือกงาน กล่องเท่าตัวย่อเดิม รูปไม่ถูกบีบผิดสัดส่วน */
 .card.ev .evlogo{width:46px;height:46px;object-fit:contain;border-radius:9px;
 background:var(--card);padding:2px;margin-bottom:6px}
+
+/* ---------- ไทม์ไลน์ ---------- */
+.tlpage{min-height:100vh;background:var(--paper)}
+.tlpage .bar{gap:12px}
+.tlpage .bar .meta{color:var(--ink3);font-size:12.5px;min-width:96px;text-align:end}
+.tlwrap{overflow:auto;max-height:calc(100vh - 60px);padding:0 0 40px}
+table.tl{border-collapse:collapse;font-size:13.5px;background:var(--card)}
+table.tl th,table.tl td{border-bottom:1px solid var(--line);padding:0}
+table.tl thead th{position:sticky;top:0;z-index:3;background:var(--card);
+  border-bottom:1px solid var(--line2);font-size:11px;color:var(--ink3);
+  font-weight:700;padding:7px 4px;white-space:nowrap}
+table.tl th.tln,table.tl td.tln{width:250px;min-width:250px;padding:8px 12px;text-align:start;
+  position:sticky;inset-inline-start:0;background:var(--card);z-index:2}
+table.tl thead th.tln{z-index:4}
+table.tl td.tln b{font-weight:600;display:block}
+table.tl td.tln .meta{color:var(--ink3);font-size:11.5px}
+table.tl th.tls,table.tl td.tls{width:132px;min-width:132px;padding:6px 8px}
+table.tl td.tls select{width:100%;font:inherit;font-size:12.5px;padding:5px 6px;
+  border:1px solid var(--line2);border-radius:7px;background:var(--paper);color:var(--ink)}
+table.tl th.tld,table.tl td.tld{width:150px;min-width:150px;padding:7px 10px;
+  font-size:11.5px;color:var(--ink2);white-space:nowrap;border-inline-end:1px solid var(--line)}
+table.tl td.tld .ac{display:block;font-weight:700;color:var(--ink3)}
+table.tl td.tld .ac.none{font-weight:400;font-style:italic}
+table.tl th.tlc,table.tl td.tlc{width:38px;min-width:38px;height:44px;position:relative;
+  border-inline-start:1px solid var(--line);text-align:center}
+table.tl td.tlc{cursor:pointer}
+table.tl .tlc.now{box-shadow:inset 1px 0 0 var(--accent);
+  background:color-mix(in srgb,var(--accent) 7%,transparent)}
+table.tl td.tlc.guide{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+table.tl tr.tlg td{background:var(--soft);font-weight:700;padding:7px 12px;
+  position:sticky;inset-inline-start:0}
+table.tl tr.tlg .meta{font-weight:400;color:var(--ink2);font-size:12px}
+/* แถบบางด้านบนคือแผน แถบหนาด้านล่างคือที่ทำจริง */
+.tlplan,.tlact{position:absolute;inset-inline:-1px;display:block;pointer-events:none}
+.tlplan{top:8px;height:8px;border:1.5px solid var(--st-todo);border-inline:0;opacity:.9}
+.tlplan.s{inset-inline-start:2px;border-inline-start:1.5px solid var(--st-todo);
+  border-start-start-radius:5px;border-end-start-radius:5px}
+.tlplan.e{inset-inline-end:2px;border-inline-end:1.5px solid var(--st-todo);
+  border-start-end-radius:5px;border-end-end-radius:5px}
+.tlact{top:21px;height:14px}
+.tlact.s{inset-inline-start:2px;border-start-start-radius:7px;border-end-start-radius:7px}
+.tlact.e{inset-inline-end:2px;border-start-end-radius:7px;border-end-end-radius:7px}
+:root{--st-todo:#8A96A0;--st-doing:#D08A0A;--st-done:#2F9E62;--st-block:#C2412D}
+@media(prefers-color-scheme:dark){:root{--st-todo:#94A0A8;--st-doing:#E0A63A;
+  --st-done:#4FBE7F;--st-block:#E27563}}
