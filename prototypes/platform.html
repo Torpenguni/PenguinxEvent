@@ -2402,6 +2402,10 @@ function pPlan(){
      Object.keys(EV.packages||{}).map(k=>'<option value="'+esc(k)+'"'+(fPkg===k?" selected":"")+'>'+
        esc(k)+'</option>').join("")+'</select>'+
    ((fZone||fPkg||q)?'<button class="act" id="fclear" style="padding:9px 14px">Clear filters</button>':'')+
+   /* เพิ่มบูธเองไม่ได้มาก่อน ผังถูกวางเป็นกริดตอนสร้างงานแล้วแก้อะไรไม่ได้อีกเลย
+      ทั้งที่จำนวนบูธเปลี่ยนตลอดช่วงขาย */
+   (can("floorplan")==="write"
+     ?'<button class="act" id="baddb" style="padding:9px 14px">+ Add booth</button>':'')+
    '<div class="seg">'+["free","booked","deposit","paid"].map(k=>
      '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
      cv(ST[k].c)+'"></i>'+ST[k].l+' '+shown().filter(x=>x.st===k).length+'</span>').join("")+'</div></div>'+
@@ -2415,6 +2419,24 @@ function pPlan(){
   $("#q").addEventListener("input",e=>{q=e.target.value;paint()});
   $("#fz").addEventListener("change",e=>{fZone=e.target.value;pPlan()});
   $("#fp").addEventListener("change",e=>{fPkg=e.target.value;pPlan()});
+  const ab=$("#baddb");
+  if(ab)ab.addEventListener("click",()=>{
+    /* วางต่อท้ายแถวล่างสุด ใช้โซนกับแพ็กเกจของบูธสุดท้ายเป็นค่าตั้งต้น
+       รหัสบูธเลี่ยงเลขที่ใช้ไปแล้วในโซนนั้น */
+    const last=B[B.length-1]||{zone:Object.keys(EV.zoneNames||{})[0]||"A",x:1,y:1,w:1,h:1,pkg:null,list:0};
+    const zone=last.zone||"A";
+    const used=new Set(B.map(b=>b.code));
+    let n=B.filter(b=>b.zone===zone).length+1, code=zone+n;
+    while(used.has(code)){ n++; code=zone+n }
+    const maxY=Math.max(...B.map(b=>b.y+ (b.h||1)),1);
+    const row=B.filter(b=>b.y===maxY-1);
+    const x=row.length?Math.max(...row.map(b=>b.x+(b.w||1))):1;
+    B.push({code,name:null,zone,x:x<14?x:1,y:x<14?maxY-1:maxY,w:1,h:1,food:false,
+      st:"free",co:null,sales:null,pkg:last.pkg||null,product:null,contact:null,
+      phone:null,email:null,form:false,board:false,
+      list:last.pkg&&EV.packages[last.pkg]?EV.packages[last.pkg].price||0:0});
+    sel=code; redraw(); toastTL("เพิ่มบูธ "+code+" แล้ว");
+  });
   const fc=$("#fclear");
   if(fc)fc.addEventListener("click",()=>{fZone="";fPkg="";q="";pPlan()});
   const rel=$("#rel");
@@ -2576,7 +2598,10 @@ function sidebar(){
     '<label style="font-size:12px;color:var(--ink2)">Deposit term</label>'+
     '<select id="hd2">'+HOLD_OPTS.map(n=>'<option value="'+n+'"'+(n===30?" selected":"")+'>'+
       n+' day</option>').join("")+'</select>'+
-    '<button class="act go" data-a="book">Booked under '+esc(me)+'</button>';
+    '<button class="act go" data-a="book">Booked under '+esc(me)+'</button>'+
+    /* ลบได้เฉพาะบูธที่ยังว่างและไม่มีดีลผูกอยู่ กันลบบูธที่ขายไปแล้วโดยไม่ตั้งใจ */
+    (DEALS.some(d=>(d.booths||[]).includes(b.code))?''
+      :'<button class="act warn" data-a="del">Remove this booth</button>');
   else if(!own)h+='<p style="color:var(--ink2);font-size:13.5px;margin:0 0 6px">Booths of '+esc(b.sales)+' you cannot edit</p>'+
     '<input id="cu" placeholder="Client to queue next"><button class="act" data-a="q">Join queue</button>';
   else h+=(NEXT[b.st]?'<button class="act go" data-a="next">moved to '+ST[NEXT[b.st]].l+'</button>':'')+
@@ -2626,6 +2651,11 @@ function act(a){
   else if(a==="next"){b.st=NEXT[b.st]||b.st; if(b.st!=="booked"){b.due=null;b.hold=null}}
   else if(a==="q"){if(!n){i.focus();toastTL("Type the client name first, then press again");return}
     (Q[b.code]=Q[b.code]||[]).push({co:n,sales:me})}
+  else if(a==="del"){
+    if(!confirm("ลบบูธ "+b.code+" ออกจากผัง"))return;
+    const i=B.indexOf(b); if(i>=0)B.splice(i,1);
+    delete Q[b.code]; sel=null; paint(); sidebar(); toastTL("ลบบูธ "+b.code+" แล้ว"); return;
+  }
   else if(a==="rel"){const qs=Q[b.code]||[];
     if(qs.length){const x=qs.shift();b.st="booked";b.co=x.co;b.sales=x.sales;
       b.hold=30;b.due=addDays(30);if(!qs.length)delete Q[b.code]}
