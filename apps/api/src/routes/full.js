@@ -222,6 +222,26 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
     keep(canWrite('timeline'), ['timeline'])
     keep(canWrite('floorplan'), ['booths', 'areas', 'zoneNames'])
 
+    /* กันของหายทั้งก้อน การบันทึกที่นี่คือลบทั้งงานแล้วเขียนใหม่จากสิ่งที่ส่งมา
+       ถ้าฝั่งหน้าเว็บส่งก้อนที่ขาดบางส่วนมา เช่นอ่านข้อมูลไปตอนที่อีกคนกำลังบันทึกอยู่
+       ส่วนนั้นจะหายถาวรโดยไม่มีใครรู้ตัว งบ 93 บรรทัดเคยหายไปแบบนี้มาแล้วครั้งหนึ่ง
+       กติกาคือของที่มีอยู่ในฐานข้อมูลแล้ว จะถูกลบทิ้งด้วยก้อนที่ว่างเปล่าไม่ได้
+       การลบจริงต้องทำผ่านหน้าจอของมันเอง ซึ่งลบทีละรายการ ไม่ใช่ทั้งชุดพร้อมกัน */
+    const size = (v) => Array.isArray(v) ? v.length
+      : (v && typeof v === 'object' ? Object.keys(v).length : 0)
+    const kept = []
+    for (const k of ['booths', 'deals', 'budget', 'sessions', 'stages', 'timeline',
+      'tasks', 'packages', 'zoneNames']) {
+      if (size(base[k]) > 0 && size(body[k]) === 0) { body[k] = base[k]; kept.push(k) }
+    }
+    /* คนบนเวทีซ่อนอยู่ข้างในช่วงเวทีอีกชั้น ด่านข้างบนจึงมองไม่เห็น
+       เคยหายไปทั้ง 88 คนมาแล้วเพราะเหตุนี้ */
+    const people = (list) => (list || []).reduce((n, s) => n + (s.people || []).length, 0)
+    if (people(base.sessions) > 0 && people(body.sessions) === 0) {
+      body.sessions = base.sessions
+      kept.push('sessions.people')
+    }
+
     const agents = {}
     for (const a of (await q(`select id, name from sales_agent`)).rows) agents[a.name] = a.id
     const admin = (await q(`select id from app_user where role='admin' order by id limit 1`)).rows[0]
@@ -230,7 +250,7 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
     try {
       const stat = await writeEvent(q, body, { agents, adminId: admin?.id ?? req.user.id })
       await q('commit')
-      res.json({ ok: true, saved: stat, at: new Date().toISOString() })
+      res.json({ ok: true, saved: stat, kept, at: new Date().toISOString() })
     } catch (e) { await q('rollback').catch(() => {}); throw e }
   } catch (e) { next(e) }
 })

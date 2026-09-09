@@ -34,11 +34,14 @@ export async function login(email, password, ip, ua) {
     throw err
   }
 
-  const token = jwt.sign({ uid: user.id }, process.env.JWT_SECRET, { expiresIn: '12h' })
+  /* ค้างได้ 30 วัน ของเดิม 12 ชั่วโมง แปลว่าทีมต้องล็อกอินใหม่ทุกเช้า
+     ปรับได้ด้วย SESSION_DAYS ถ้าอยากสั้นลงตอนแยกบัญชีรายคนแล้ว */
+  const days = Number(process.env.SESSION_DAYS || 30)
+  const token = jwt.sign({ uid: user.id }, process.env.JWT_SECRET, { expiresIn: days + 'd' })
   await q(
     `insert into auth_session (user_id, token_hash, expires_at, ip, user_agent)
-     values ($1, $2, now() + interval '12 hours', $3, $4)`,
-    [user.id, sha(token), ip, ua],
+     values ($1, $2, now() + ($5 || ' days')::interval, $3, $4)`,
+    [user.id, sha(token), ip, ua, String(days)],
   )
   await q(`update app_user set last_login_at = now() where id = $1`, [user.id])
 

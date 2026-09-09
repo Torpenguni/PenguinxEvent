@@ -203,6 +203,15 @@ $("#lform").addEventListener("submit",async e=>{
     loginMsg(err.status===401?"That email and password do not match":err.message,true);
   }finally{ btn.disabled=false; btn.textContent=lbl }
 });
+/* โหมดต่อเซิร์ฟเวอร์ต้องล็อกอินด้วยบัญชีจริง ล้างอีเมลกับรหัสตัวอย่างที่ฝังไว้ในฟอร์มทิ้ง
+   ไม่งั้นค่าสาธิตจะทับค่าที่เบราว์เซอร์จำไว้ให้ คนใช้ต้องลบเองทุกครั้งก่อนพิมพ์
+   ปล่อยช่องว่างไว้แล้วเบราว์เซอร์จะเติมบัญชีที่บันทึกไว้ให้เอง */
+if(online()){
+  const em=document.getElementById("em"), pw=document.getElementById("pw");
+  if(em)em.value=""; if(pw)pw.value="";
+  const hint=document.querySelector("#lform .hint");
+  if(hint)hint.textContent="เข้าด้วยบัญชีที่ได้รับเชิญ ระบบจะจำการเข้าระบบไว้ 30 วัน";
+}
 /* ดึงตัวตนและรายชื่องานจากเซิร์ฟเวอร์ แล้วค่อยโหลดงานทีละงานตอนกดเข้า */
 async function afterLogin(){
   const who=await api("/api/auth/me");

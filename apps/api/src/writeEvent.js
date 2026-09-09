@@ -97,8 +97,14 @@ export async function writeEvent (q, e, ctx) {
     const company = {}
     const dealId = {}
     const names = [...new Set((e.deals || []).map((d) => d.co))]
-    ;(await bulk('company', ['name'], names.map((n) => [n]), 'id'))
-      .forEach((r, i) => { company[names[i]] = r.id })
+    /* บริษัทไม่ได้ผูกกับงาน ลบงานทิ้งแล้วแถวบริษัทยังอยู่ ของเดิมใส่ใหม่ทุกครั้งที่บันทึก
+       ตารางบริษัทจึงโตเป็นเท่าตัวทุกครั้ง จาก 441 เป็น 882 ใช้ของเดิมถ้าชื่อตรงกัน */
+    for (const row of (await q(`select id, name from company where name = any($1)`, [names])).rows) {
+      company[row.name] = row.id
+    }
+    const fresh = names.filter((n) => !company[n])
+    ;(await bulk('company', ['name'], fresh.map((n) => [n]), 'id'))
+      .forEach((r, i) => { company[fresh[i]] = r.id })
 
     const deals = e.deals || []
     ;(await bulk('deal',
@@ -183,8 +189,16 @@ export async function writeEvent (q, e, ctx) {
         pKeys.push(key)
         pRows.push([p.n || null, p.real || null, p.pos || null, p.contact || null, p.coord || null])
       }
-    ;(await bulk('person', ['nickname', 'name_th', 'title', 'phone', 'note'], pRows, 'id'))
-      .forEach((r, i) => { person[pKeys[i]] = r.id })
+    // คนบนเวทีก็ไม่ได้ผูกกับงานเหมือนกัน ใช้ของเดิมถ้าชื่อจริงตรงกัน
+    for (const row of (await q(
+      `select id, coalesce(name_th, nickname) as key from person
+        where coalesce(name_th, nickname) = any($1)`, [pKeys])).rows) {
+      if (person[row.key] == null) person[row.key] = row.id
+    }
+    const newKeys = pKeys.filter((k) => person[k] == null)
+    const newRows = newKeys.map((k) => pRows[pKeys.indexOf(k)])
+    ;(await bulk('person', ['nickname', 'name_th', 'title', 'phone', 'note'], newRows, 'id'))
+      .forEach((r, i) => { person[newKeys[i]] = r.id })
 
     const links = []
     ses.forEach((s, si) => {
