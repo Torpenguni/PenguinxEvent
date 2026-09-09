@@ -60,6 +60,7 @@ export default function Exhibitors ({ me, event, onBack }) {
     return {
       all: rows.length,
       done: rows.filter((r) => r.done >= r.total).length,
+      open: rows.filter((r) => r.done < r.total).length,
       late: rows.filter((r) => r.overdue > 0).length,
       noemail: rows.filter((r) => !r.contact_email).length,
     }

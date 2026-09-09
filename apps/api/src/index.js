@@ -71,9 +71,24 @@ if (process.env.NODE_ENV === 'production') {
      apps/api/web สร้างจาก npm -w apps/web run build แล้วคัดลอกเข้ามา */
   const dist = isPortal ? path.resolve(here, '../portal')
                         : path.resolve(here, '../web')
-  app.use(express.static(dist))
-  // ทุกเส้นทางที่ไม่ใช่ /api ส่ง index.html ให้หน้าเว็บจัดการเอง
-  app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')))
+  /* index.html ห้ามแคช ไม่งั้นคนที่เคยเปิดจะถือหน้าเก่าที่อ้างไฟล์ JS ชื่อเดิม
+     ซึ่งหายไปแล้วหลัง build ใหม่ ส่วนไฟล์ใน assets ชื่อมีแฮชอยู่แล้ว แคชยาวได้เลย */
+  app.use(express.static(dist, {
+    setHeaders: (res, file) => {
+      if (file.endsWith('.html')) res.setHeader('cache-control', 'no-store')
+      else if (file.includes('/assets/')) {
+        res.setHeader('cache-control', 'public, max-age=31536000, immutable')
+      }
+    },
+  }))
+  /* ทุกเส้นทางที่ไม่ใช่ /api ส่ง index.html ให้หน้าเว็บจัดการเอง
+     ยกเว้นสิ่งที่ขอมาเป็นชื่อไฟล์ ต้องตอบ 404 ให้ชัด ของเดิมส่ง index.html กลับไป
+     เบราว์เซอร์เลยได้ HTML มาแทนไฟล์ JS แล้วหน้าขาวโดยไม่มีอะไรบอกสาเหตุ */
+  app.get(/^\/(?!api\/).*/, (req, res) => {
+    if (/\.[a-z0-9]+$/i.test(req.path)) return res.status(404).json({ error: 'ไม่พบไฟล์นี้' })
+    res.setHeader('cache-control', 'no-store')
+    res.sendFile(path.join(dist, 'index.html'))
+  })
 }
 
 app.use((err, _req, res, _next) => {
