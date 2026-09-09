@@ -74,6 +74,9 @@ if (process.env.NODE_ENV === 'production') {
   /* index.html ห้ามแคช ไม่งั้นคนที่เคยเปิดจะถือหน้าเก่าที่อ้างไฟล์ JS ชื่อเดิม
      ซึ่งหายไปแล้วหลัง build ใหม่ ส่วนไฟล์ใน assets ชื่อมีแฮชอยู่แล้ว แคชยาวได้เลย */
   app.use(express.static(dist, {
+    /* ปิดการเสิร์ฟ index.html อัตโนมัติที่ราก ไม่งั้นมันชนะเส้นทางที่ตั้งไว้ข้างล่าง
+       แล้วเปิดโดเมนจะได้แอปรุ่นถัดไปแทนตัวหลัก */
+    index: false,
     setHeaders: (res, file) => {
       if (file.endsWith('.html')) res.setHeader('cache-control', 'no-store')
       else if (file.includes('/assets/')) {
@@ -81,11 +84,17 @@ if (process.env.NODE_ENV === 'production') {
       }
     },
   }))
-  /* หน้าตาชุดเต็มที่ทีมคุ้นจากเดโม แต่ต่อฐานข้อมูลจริง เสิร์ฟจากโดเมนเดียวกัน
-     จึงไม่ต้องตั้ง CORS และล็อกอินด้วยบัญชีจริงเหมือนกัน */
-  app.get('/app', (_req, res) => {
+  /* หน้าตาชุดเต็มต่อฐานข้อมูลจริง คือตัวหลักที่ใช้พัฒนากันอยู่ตอนนี้
+     เปิดโดเมนแล้วเจอตัวนี้เลย ไม่ต้องจำว่าต้องต่อ /app
+     แอปรุ่นถัดไปที่ยังทำไม่เสร็จ ย้ายไปอยู่ที่ /next เข้าดูได้แต่ยังไม่ใช่ตัวหลัก */
+  app.get(['/', '/app'], (_req, res) => {
     res.setHeader('cache-control', 'no-store')
     res.sendFile(path.join(dist, 'app.html'))
+  })
+  /* หน้าที่มาจากลิงก์ในอีเมล ต้องอยู่กับแอปรุ่นถัดไปเพราะมันเป็นคนทำหน้าพวกนี้ */
+  app.get(['/next', '/set-password', '/invite'], (_req, res) => {
+    res.setHeader('cache-control', 'no-store')
+    res.sendFile(path.join(dist, 'index.html'))
   })
   /* ทุกเส้นทางที่ไม่ใช่ /api ส่ง index.html ให้หน้าเว็บจัดการเอง
      ยกเว้นสิ่งที่ขอมาเป็นชื่อไฟล์ ต้องตอบ 404 ให้ชัด ของเดิมส่ง index.html กลับไป
