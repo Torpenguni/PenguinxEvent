@@ -10,6 +10,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [event, setEvent] = useState(null)
   const [events, setEvents] = useState(null)
+  const [evErr, setEvErr] = useState(null)
   const [admin, setAdmin] = useState(false)
 
   useEffect(() => {
@@ -20,8 +21,14 @@ export default function App() {
       .finally(() => setLoading(false))
   }, [])
 
-  // รายชื่องานใช้ทั้งหน้าเลือกงานและหน้าแชร์ ดึงครั้งเดียวพอ
-  useEffect(() => { if (me) api('/events').then(setEvents).catch(() => {}) }, [me])
+  /* รายชื่องานดึงที่เดียวตรงนี้ ใช้ทั้งหน้าเลือกงานและหน้าแชร์
+     ของเดิมหน้าเลือกงานดึงซ้ำอีกรอบด้วย กลายเป็นสองคำขอแข่งกันตอนเซิร์ฟเวอร์เพิ่งตื่น
+     และถ้าพลาดก็เงียบ เพราะ catch เปล่า คนใช้เห็นแค่คำว่ากำลังโหลดค้างอยู่ */
+  const loadEvents = () => {
+    setEvErr(null)
+    return api('/events').then(setEvents).catch((e) => setEvErr(e.message))
+  }
+  useEffect(() => { if (me) loadEvents() }, [me])
 
   if (loading) return <p className="mid">กำลังโหลด…</p>
   if (!me) return <Login onDone={setMe} />
@@ -30,6 +37,8 @@ export default function App() {
     return <Events
       me={me}
       rows={events}
+      err={evErr}
+      onRetry={loadEvents}
       onPick={setEvent}
       onAdmin={can(me.permissions, 'user') || can(me.permissions, 'share')
         ? () => setAdmin(true)
