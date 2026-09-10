@@ -24,17 +24,26 @@ assert not css.split('</style>')[1].strip(), 'มี CSS หลุดอยู�
 html=open('mock_html.txt',encoding='utf-8').read()
 js=open('mock_js.txt',encoding='utf-8').read()
 assert js.count('__DATA__')==1,"ต้องมี __DATA__ ตัวเดียว"
+# เดโมฉบับสาธารณะสร้างจากชุดข้อมูลสมมติ ไม่ใช่ชุดที่ใช้ภายใน
+# ใครก็เปิดดูได้โดยไม่ต้องล็อกอิน จึงต้องไม่มีชื่องานจริง ชื่อลูกค้า ราคา หรือชื่อคนในทีม
+subprocess.run(['python3','anonymize.py'],check=True)
+
 found=[]
-for data,out in (('app4.json','platform.html'),('demo.json','demo.html')):
+for data,out in (('app4.json','platform.html'),('demo.json','demo.html'),
+                 ('demo.public.json','public.html')):
     D=json.load(open(data))
     for e in D['events']:
-        u=load_logo(e['id'])
+        # โลโก้เป็นเครื่องหมายการค้าของงานจริง ฉบับสาธารณะไม่ฝังไปด้วย
+        u=None if out=='public.html' else load_logo(e['id'])
         if u:
             e['logo']=u
             if out=='platform.html': found.append(e['id'])
+        elif out=='public.html':
+            e['logo']=None
     d=json.dumps(D,ensure_ascii=False)
     p=css+'\n'+html+'\n'+js.replace('__DATA__',d)
-    open(out,'w',encoding='utf-8').write(p); print(out,round(len(p)/1024),'KB')
+    if out!='public.html':
+        open(out,'w',encoding='utf-8').write(p); print(out,round(len(p)/1024),'KB')
     # ฉบับเอาไปวางบนโฮสต์เอง ต้องเป็นเอกสารเต็มและประกาศ charset ให้ชัด
     # ไม่งั้นเซิร์ฟเวอร์ที่ไม่ส่ง charset มาด้วย เบราว์เซอร์จะเดาผิดแล้วภาษาไทยพัง
     doc=('<!doctype html>\n<html lang="th">\n<head>\n'
@@ -43,16 +52,16 @@ for data,out in (('app4.json','platform.html'),('demo.json','demo.html')):
          '<meta name="robots" content="noindex,nofollow">\n'
          '</head>\n<body>\n'+p+'\n</body>\n</html>\n')
     os.makedirs('dist',exist_ok=True)
-    name='index.html' if out=='platform.html' else 'demo.html'
-    open(os.path.join('dist',name),'w',encoding='utf-8').write(doc)
     # โปรเจกต์ penguinx-demo บน Vercel ตั้ง Output Directory ไว้ที่ public ตั้งแต่ตอนสร้าง
     # ในรีโปไม่มีโฟลเดอร์นั้น ทุกครั้งที่ push จึง build ไม่ผ่านและส่งเมลแจ้งเตือนมา
-    # เขียนฉบับเดโมลงไปให้ตรงตามที่มันหา ได้เว็บเดโมที่เปิดดูได้โดยไม่ต้องมีบัญชีไปด้วยเลย
-    if out=='demo.html':
+    if out=='public.html':
         pub=os.path.join('..','public')
         os.makedirs(pub,exist_ok=True)
         open(os.path.join(pub,'index.html'),'w',encoding='utf-8').write(doc)
-        print('public/index.html',round(len(doc)/1024),'KB')
+        print('public/index.html',round(len(doc)/1024),'KB · ข้อมูลสมมติ ไม่มีของจริง')
+    else:
+        name='index.html' if out=='platform.html' else 'demo.html'
+        open(os.path.join('dist',name),'w',encoding='utf-8').write(doc)
     # ฉบับต่อเซิร์ฟเวอร์จริง ไม่ฝังข้อมูล ล็อกอินแล้วดึงจาก API
     # ข้อมูลไม่อยู่ในไฟล์ จึงเอาชุดจริงขึ้นเว็บได้โดยไม่หลุดให้คนที่ยังไม่ล็อกอิน
     if out=='platform.html':

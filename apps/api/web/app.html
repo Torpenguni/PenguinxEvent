@@ -1173,7 +1173,7 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
     <h1>Sign in</h1>
     <p class="sub">Internal system — invited accounts only</p>
     <div class="f"><label for="em">Email</label>
-      <input id="em" type="email" value="snoox@penguinx.co" autocomplete="username"></div>
+      <input id="em" type="email" value="demo@example.com" autocomplete="username"></div>
     <div class="f"><label for="pw">Password</label>
       <input id="pw" type="password" value="demo1234" autocomplete="current-password"></div>
     <div class="f" id="rlrow"><label for="rl">Role <span style="color:var(--ink3);font-weight:400">— pick one in this demo to see what each role can do</span></label>
@@ -1452,7 +1452,7 @@ $("#lform").addEventListener("submit",async e=>{
    ปุ่มทุกปุ่มจะกดไม่ติดโดยไม่มีอะไรบอกสาเหตุบนหน้าจอ */
 if(window.PXE_API){
   const em=document.getElementById("em"), pw=document.getElementById("pw");
-  if(em&&em.value==="snoox@penguinx.co")em.value="";
+  if(em&&em.value==="demo@example.com")em.value="";
   if(pw&&pw.value==="demo1234")pw.value="";
   // เติมอีเมลที่เคยเข้าครั้งล่าสุดให้ ถ้าเบราว์เซอร์ไม่ได้เติมมาเอง
   try{ const last=localStorage.getItem("pxe.lastEmail");
@@ -1615,10 +1615,10 @@ function pNewEvent(){
      (D.timelineTemplate||[]).length+' items, a floor plan and a budget of '+
      (D.template||[]).length+' sub-categories, and the exhibitor checklist</p>'+
    '<div class="nfg">'+
-    fld("Full event name","<input id=nf_name required placeholder=’e.g. Restech &amp; Thailand Restaurant Conference’>")+
-    fld("Short name used in the system","<input id=nf_short required placeholder=’e.g. Restech x TRC "+y+"'>")+
-    fld("Brands at this event, comma separated","<input id=nf_brands placeholder=’e.g. Restech, Thailand Restaurant Conference’>")+
-    fld("Venue","<input id=nf_venue required placeholder=’e.g. IMPACT Hall 6–7’>")+
+    fld("Full event name","<input id=nf_name required placeholder=’e.g. Bangkok Food &amp; Beverage Expo’>")+
+    fld("Short name used in the system","<input id=nf_short required placeholder=’e.g. BFB Expo "+y+"'>")+
+    fld("Brands at this event, comma separated","<input id=nf_brands placeholder=’e.g. Bangkok Food, Beverage Forum’>")+
+    fld("Venue","<input id=nf_venue required placeholder=’e.g. ศูนย์ประชุม ฮอลล์ 6–7’>")+
     fld("Start date","<input type=date id=nf_d1 required>")+
     fld("End date","<input type=date id=nf_d2 required>")+
     fld("Whose event is this",
@@ -4438,9 +4438,14 @@ function pBudget(){
   B.forEach(b=>{const k=b.pkg||"No package set",r=g[k]||(g[k]={n:0,h:0,list:0,con:0,got:0});
     r.n++;r.list+=b.list||0;
     if(b.st!=="free"){r.h++;r.con+=b.list||0;r.got+=(b.list||0)*(b.st==="paid"?1:b.st==="deposit"?dep:0)}});
-  const ORD=["Title Sponsor","Platinum Sponsor","Gold Sponsor","Silver Sponsor","Restech","Martech",
-   "Equipment","Cafe","Banking/Fintech","Food","No package set"];
-  const ks=Object.keys(g).sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b));
+  /* ลำดับการแสดงแพ็กเกจ ไล่จากชั้นสปอนเซอร์ลงมา
+     ของเดิมมีชื่อแพ็กเกจเฉพาะของงานหนึ่งฝังไว้ในตัวโปรแกรม งานอื่นจึงไม่ได้อะไรจากมัน
+     และ indexOf คืน -1 ให้แพ็กเกจที่ไม่อยู่ในลิสต์ มันจึงเด้งขึ้นไปอยู่เหนือ Title Sponsor
+     ตอนนี้ชื่อที่ไม่รู้จักไปต่อท้าย ส่วนบูธที่ยังไม่ระบุแพ็กเกจอยู่ท้ายสุดเสมอ */
+  const ORD=["Title Sponsor","Platinum Sponsor","Gold Sponsor","Silver Sponsor",
+   "Equipment","Cafe","Banking/Fintech","Food"];
+  const ordOf=(k)=>k==="No package set"?999:(ORD.indexOf(k)<0?500:ORD.indexOf(k));
+  const ks=Object.keys(g).sort((a,b)=>ordOf(a)-ordOf(b));
   const T=ks.reduce((a,k)=>{const r=g[k];["n","h","list","con","got"].forEach(x=>a[x]+=r[x]);return a},
    {n:0,h:0,list:0,con:0,got:0});
   const cost=B.filter(x=>x.st!=="free").reduce((s,x)=>s+((x.pkg==="Food"?1800:2500)+750),0);
@@ -4523,7 +4528,7 @@ function pStage(){
     '<h3>this event has no stage schedule yet</h3>'+
     '<p>start the first stage here and add the slots one by one</p>'+
     '<p>or send the Agenda sheet for '+esc(EV.name)+
-      ' and the whole schedule can be imported at once, the same way as Restech x TRC 2026</p>'+
+      ' and the whole schedule can be imported at once, the same way as the other events</p>'+
     '<div class="addbar"><input id="stgname" value="Main Stage" '+
       'placeholder="ชื่อเวที" style="min-width:200px">'+
       '<button id="stgnew" class="act go">Start the first stage</button>'+
