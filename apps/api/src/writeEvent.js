@@ -66,8 +66,15 @@ export async function writeEvent (q, e, ctx) {
        พอลบแถวแล้วสร้างใหม่จึงกลายเป็นค่าว่างทุกครั้งที่บันทึก แก้ห้องไว้ก็หายรอบถัดไป
        และวันที่สร้างงานถูกรีเซ็ตเป็นเวลาที่กดบันทึกล่าสุด อ่านของเดิมเก็บไว้แล้วใส่กลับ */
     const prev = await one(
-      `select rev, hall, move_in_from, move_out_to, created_at, cloned_from
+      `select rev, hall, move_in_from, move_out_to, created_at, cloned_from, logo_url
          from event where code = $1`, [e.id])
+    /* ค่าตั้งหน้าจอเก็บรวมเป็นก้อน jsonb ก้อนเดียว และถูกเขียนทับทั้งก้อนตอนบันทึก
+       หน้าเว็บไม่ส่งโลโก้กับไฟล์ผังมาด้วย เพราะเป็นรูปฝังขนาดใหญ่ ส่งทุกครั้งจะช้ามาก
+       ของเดิมตีความว่า "ไม่ส่งมา" เท่ากับ "ให้ลบ" โลโก้จึงหายทุกครั้งที่มีคนกดบันทึก
+       อ่านของเดิมไว้แล้วเก็บคีย์ที่ไม่ได้ส่งมาไว้ตามเดิม */
+    const prevSet = (await one(
+      `select settings from event_setting where event_id =
+         (select id from event where code = $1)`, [e.id]))?.settings ?? {}
     const keepRev = Number(prev?.rev ?? 1)
     /* ตารางที่ผูกกับงานแต่ writeEvent ไม่ได้เขียนใหม่ ถูกลบตามแถว event ไปด้วยทุกครั้ง
        สิทธิ์เข้าถึงงานรายคน ลิงก์แชร์ และช่องทางการตลาด จึงหายทุกครั้งที่มีคนกดบันทึก
@@ -93,7 +100,7 @@ export async function writeEvent (q, e, ctx) {
       [e.id, e.name, year, e.venue || null,
        day(e.eventDate || e.event_date), day(e.end_date),
        e.status === 'selling' ? 'selling' : 'planning', e.target || null,
-       logoPath ?? e.logo_url ?? null,
+       logoPath ?? (e.logo === undefined ? (prev?.logo_url ?? null) : (e.logo_url ?? null)),
        e.seats ?? null, e.ticketPrice ?? null, e.ticketsSold ?? null, keepRev,
        e.hall ?? prev?.hall ?? null, prev?.move_in_from ?? null, prev?.move_out_to ?? null,
        prev?.cloned_from ?? null, prev?.created_at ?? null])
@@ -301,15 +308,19 @@ export async function writeEvent (q, e, ctx) {
         r.note || null, JSON.stringify(r.x || {}), i]))
 
     // ---- ค่าตั้งหน้าจอที่ยังไม่คุ้มจะแตกเป็นตาราง
+    const nextSet = { ...prevSet,
+      areas: e.areas || [], tlRange: e.tlRange || null, tlCols: e.tlCols || [],
+      buildDays: e.buildDays ?? 1, strikeDays: e.strikeDays ?? 1,
+      onH0: e.onH0 ?? 7, onH1: e.onH1 ?? 23,
+      manual: e.manual || null, targetNote: e.target_note || null,
+      dates: e.dates || null, short: e.short || null }
+    /* โลโก้เปลี่ยนได้ทางเดียวคือหน้าอัปโหลดของมันเอง การบันทึกทั้งงานห้ามแตะ
+       ยกเว้นกรณีที่ส่ง path ของไฟล์มา ซึ่งแปลว่าเลือกโลโก้สำเร็จรูป ไม่ได้อัปโหลดรูปเอง */
+    if (logoPath) nextSet.logo = null
+    else if (e.logo !== undefined) nextSet.logo = e.logo || null
     await q(`insert into event_setting (event_id, settings) values ($1,$2)
              on conflict (event_id) do update set settings = excluded.settings`,
-            [ev.id, JSON.stringify({
-              areas: e.areas || [],
-              logo: logoPath ? null : (e.logo || null), tlRange: e.tlRange || null, tlCols: e.tlCols || [],
-              buildDays: e.buildDays ?? 1, strikeDays: e.strikeDays ?? 1,
-              onH0: e.onH0 ?? 7, onH1: e.onH1 ?? 23,
-              manual: e.manual || null, targetNote: e.target_note || null,
-              dates: e.dates || null, short: e.short || null })])
+            [ev.id, JSON.stringify(nextSet)])
 
   return {
     booth: (e.booths || []).length, deal: (e.deals || []).length,
