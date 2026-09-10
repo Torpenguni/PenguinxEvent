@@ -111,6 +111,9 @@ async function fetchFull (code, perms, user) {
          ก่อนแปลงเป็นวันที่ ถ้าส่ง ISO ไปจะได้สตริงประหลาดแล้วกลายเป็น NaN
          ทั้งหน้าไทม์ไลน์ ทั้งหัวตาราง ทั้งช่องกำหนดส่ง */
       eventDate: ymd(ev.start_date), event_date: ymd(ev.start_date), end_date: ymd(ev.end_date),
+      /* ขนาดฮอลล์ กว้างและลึกเป็นเมตร กับมาตราส่วนว่าหนึ่งช่องบนผังเท่ากับกี่เมตร
+         ตั้งไว้ก่อนเริ่มวางเวทีและบูธ จะได้รู้ว่าของที่วางลงไปยังอยู่ในพื้นที่จริงหรือเลยขอบไปแล้ว */
+      hallW: S.hallW ?? null, hallH: S.hallH ?? null, gridM: S.gridM ?? null,
       /* งานสัมมนาขายบัตร ไม่ได้ขายแต่บูธ ตัวเลขสามตัวนี้เคยไม่มีที่เก็บเลย */
       seats: ev.seats ?? null,
       ticketPrice: ev.ticket_price == null ? null : Number(ev.ticket_price),

@@ -336,12 +336,15 @@ export async function writeEvent (q, e, ctx) {
         r.note || null, JSON.stringify(r.x || {}), i]))
 
     // ---- ค่าตั้งหน้าจอที่ยังไม่คุ้มจะแตกเป็นตาราง
+    // ขนาดฮอลล์ ว่างได้ ถ้าใส่มาต้องเป็นตัวเลขบวก ไม่งั้นเก็บเป็นว่างไว้ดีกว่าเก็บค่าเพี้ยน
+    const num = (v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null }
     const nextSet = { ...prevSet,
       areas: e.areas || [], tlRange: e.tlRange || null, tlCols: e.tlCols || [],
       buildDays: e.buildDays ?? 1, strikeDays: e.strikeDays ?? 1,
       onH0: e.onH0 ?? 7, onH1: e.onH1 ?? 23,
       manual: e.manual || null, targetNote: e.target_note || null,
-      dates: e.dates || null, short: e.short || null }
+      dates: e.dates || null, short: e.short || null,
+      hallW: num(e.hallW), hallH: num(e.hallH), gridM: num(e.gridM) }
     /* โลโก้เปลี่ยนได้ทางเดียวคือหน้าอัปโหลดของมันเอง การบันทึกทั้งงานห้ามแตะ
        ยกเว้นกรณีที่ส่ง path ของไฟล์มา ซึ่งแปลว่าเลือกโลโก้สำเร็จรูป ไม่ได้อัปโหลดรูปเอง */
     if (logoPath) nextSet.logo = null

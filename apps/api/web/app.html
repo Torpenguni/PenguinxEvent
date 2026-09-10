@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<script>window.PXE_API="http://127.0.0.1:3999"</script>
+<script>window.PXE_API="https://penguinx-event.vercel.app"</script>
 </head>
 <body>
 <!doctype html>
@@ -1272,6 +1272,17 @@ tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--g
 .ar .arh{cursor:nwse-resize}
 /* ตอนแก้ผัง ตัวหนังสือในกล่องต้องไม่ขวางการลาก ไม่งั้นลากทีไรได้เลือกข้อความแทน */
 .pw svg#plan .ar.ed text{pointer-events:none}
+
+/* ---------- กรอบพื้นที่ฮอลล์ ----------
+   เป็นเส้นขอบอย่างเดียว ไม่มีพื้น เพราะเป็นแค่ขอบเขตอ้างอิง ไม่ใช่ของที่วางอยู่จริงบนผัง */
+.hall rect{fill:none;stroke:var(--ink3);stroke-width:.12;stroke-dasharray:.6 .35;opacity:.75}
+.hall text{fill:var(--ink3);font-weight:700;letter-spacing:.02em}
+.hallbar input{width:82px;padding:6px 9px;border:1px solid var(--line2);border-radius:7px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:13.5px;text-align:right}
+.hallbar #hg{width:64px}
+.hallsum{font-size:13px;color:var(--ink2);margin-left:8px}
+.hallsum.mut{color:var(--ink3)}
+.hallout{flex:1 0 100%;font-size:12.5px;color:var(--risk);font-weight:600;margin-top:2px}
 </style>
 
 <div id="login">
@@ -2658,9 +2669,11 @@ function pPlan(){
      B.length+' · '+[fZone?(EV.zoneNames||{})[fZone]:"",fPkg].filter(Boolean).map(esc).join(" · ")+
      '</p>':'')+
    planBar(can("floorplan")==="write")+
+   hallBar()+
    '<div class="planhost"><div class="pw"><div id="planbg"></div><svg id="plan"></svg></div>'+
    '<aside class="side2" id="sd" hidden></aside></div>';
   wirePlanBar($("#page"),pPlan);
+  wireHall($("#page"));
   $("#q").addEventListener("input",e=>{q=e.target.value;paint()});
   $("#fz").addEventListener("change",e=>{fZone=e.target.value;pPlan()});
   $("#fp").addEventListener("change",e=>{fPkg=e.target.value;pPlan()});
@@ -2695,6 +2708,10 @@ function pPlan(){
   if(rel)rel.addEventListener("click",()=>{const n=releaseExpired();pPlan();
     alert("Release "+n+" booths released — the next in queue has moved up");});
   const xs=B.concat(AR);
+  const HB=hallBox();
+  /* ถ้าตั้งขนาดฮอลล์ไว้แล้ว กรอบต้องอยู่ในภาพเสมอ ถึงจะยังไม่มีบูธวางถึงขอบก็ตาม
+     และของที่หลุดออกนอกกรอบก็ต้องยังเห็น ไม่งั้นจะไม่รู้ว่าต้องไปลากกลับเข้ามา */
+  if(HB)xs.push({x:0,y:0,w:HB.gw,h:HB.gh});
   const X0=Math.min(...xs.map(o=>o.x))-1,Y0=Math.min(...xs.map(o=>o.y))-1;
   const X1=Math.max(...xs.map(o=>o.x+o.w))+1,Y1=Math.max(...xs.map(o=>o.y+o.h))+1;
   $("#plan").setAttribute("viewBox",X0+" "+Y0+" "+(X1-X0)+" "+(Y1-Y0));
@@ -2794,6 +2811,63 @@ function paintCounts(){
 
    ตอนนี้ลากสร้างกล่องเองได้บนพื้นที่ว่าง พิมพ์ชื่อกับรายละเอียดลงไป เลือกประเภท
    และผูกกับบูธหรือเวทีได้ กดกล่องที่ผูกไว้แล้วระบบพาไปที่นั่นให้เลย */
+/* ---------- ขนาดพื้นที่ฮอลล์ ----------
+   ผังเริ่มจากการวางบูธลงไปเลย โดยไม่เคยมีใครบอกระบบว่าฮอลล์จริงกว้างยาวเท่าไหร่
+   คนวางผังจึงไม่รู้ว่าที่วางไปแล้วเต็มพื้นที่หรือยัง หรือเลยขอบห้องไปแล้ว
+   ตั้งขนาดไว้ก่อนเริ่มวาง ระบบจะตีกรอบให้เห็น และเตือนเมื่อมีของหลุดออกนอกกรอบ
+
+   เก็บเป็นเมตร ส่วนผังทำงานเป็นช่องกริด จึงต้องรู้ด้วยว่าหนึ่งช่องเท่ากับกี่เมตร
+   ค่าตั้งต้นคือ 3 เมตร เพราะบูธมาตรฐานคือ 3×3 เมตร และกินหนึ่งช่องพอดี */
+const GRIDM=()=>+(EV.gridM)>0?+EV.gridM:3;
+function hallBox(){
+  const w=+(EV.hallW)>0?+EV.hallW:0, h=+(EV.hallH)>0?+EV.hallH:0;
+  if(!w||!h)return null;
+  const m=GRIDM();
+  return {w,h,m,gw:w/m,gh:h/m};
+}
+/* ของที่หลุดออกนอกกรอบฮอลล์ ต้องบอกให้รู้ ไม่ใช่ปล่อยให้ไปเจอเอาหน้างาน */
+function hallOut(){
+  const H=hallBox(); if(!H)return [];
+  const out=[];
+  B.forEach(b=>{ if(b.x<0||b.y<0||b.x+b.w>H.gw||b.y+b.h>H.gh)out.push("บูธ "+b.code) });
+  AR.forEach(a=>{ if(a.x<0||a.y<0||a.x+a.w>H.gw||a.y+a.h>H.gh)out.push(a.name||"กล่อง") });
+  return out;
+}
+function hallBar(){
+  if(!canArea())return "";
+  const H=hallBox(), m=GRIDM();
+  const used=B.reduce((s,b)=>s+b.w*b.h,0)*m*m;
+  const out=hallOut();
+  return '<div class="dbar hallbar">'+
+   '<span class="dbl">ขนาดฮอลล์</span>'+
+   '<input type="number" id="hw" min="0" step="1" placeholder="กว้าง" value="'+(H?H.w:"")+'">'+
+   '<span class="dbs">×</span>'+
+   '<input type="number" id="hh" min="0" step="1" placeholder="ลึก" value="'+(H?H.h:"")+'">'+
+   '<span class="dbs">เมตร</span>'+
+   '<span class="dbl" style="margin-left:10px">1 ช่อง =</span>'+
+   '<input type="number" id="hg" min="0.5" step="0.5" value="'+m+'">'+
+   '<span class="dbs">เมตร</span>'+
+   (H?'<span class="hallsum">'+f(Math.round(H.w*H.h))+' ตร.ม. · '+
+      Math.round(H.gw)+'×'+Math.round(H.gh)+' ช่อง · บูธกินพื้นที่ '+f(Math.round(used))+
+      ' ตร.ม. ('+Math.round(used/(H.w*H.h)*100)+'%)</span>'
+     :'<span class="hallsum mut">ยังไม่ได้ตั้งขนาด ใส่กว้างและลึกเพื่อตีกรอบพื้นที่จริง</span>')+
+   (out.length?'<span class="hallout">มี '+out.length+' รายการอยู่นอกกรอบ · '+
+      esc(out.slice(0,4).join(", "))+(out.length>4?" และอื่น ๆ":"")+'</span>':'')+
+   '</div>';
+}
+function wireHall(P){
+  const set=(id,key)=>{
+    const el=P.querySelector("#"+id); if(!el)return;
+    /* เขียนค่าตอนออกจากช่อง ไม่ใช่ทุกตัวอักษรที่พิมพ์
+       ไม่งั้นพิมพ์ 120 แล้วผังจะกระโดดตอนเห็นเลข 1 กับ 12 ระหว่างทาง */
+    el.addEventListener("change",()=>{
+      const v=+el.value;
+      EV[key]=v>0?v:null;
+      snapSoon(); pPlan();
+    });
+  };
+  set("hw","hallW"); set("hh","hallH"); set("hg","gridM");
+}
 let planEdit=false, selAr=null, arDrag=null;
 /* กล่องบนผังคือโครงของงานทั้งงาน ไม่ใช่ของที่เปลี่ยนกันระหว่างวัน
    ทีมขายกับทีมหน้างานมีสิทธิ์แก้ผังบูธอยู่แล้ว แต่ไม่ควรขยับเวทีหรือจุดลงทะเบียนได้
@@ -2945,6 +3019,15 @@ function arFollow(a){
 }
 function paint(){
   const svg=$("#plan"); if(!svg)return; svg.textContent="";
+  const HB=hallBox();
+  if(HB){
+    const g=E("g",{class:"hall"});
+    g.appendChild(E("rect",{x:0,y:0,width:HB.gw,height:HB.gh,rx:.15}));
+    const lab=E("text",{x:HB.gw/2,y:-.35,"text-anchor":"middle","font-size":.55});
+    lab.textContent=HB.w+" × "+HB.h+" ม.";
+    g.appendChild(lab);
+    svg.appendChild(g);
+  }
   AR.forEach(a=>{
     const on=a===selAr, col=arFill(a), tinted=!!a.kind;
     const g=E("g",{class:"ar"+(tinted?" kd":"")+(on?" sel":"")+(planEdit?" ed":"")+
