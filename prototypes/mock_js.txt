@@ -110,7 +110,8 @@ const PAGE={
  "exh:list":()=>{exhView="team";pExh()},
  "exh:portal":()=>{exhView="portal";pExh()},
  "exh:setup":pTaskSetup,
- "tl:pre":()=>pTimeline("pre"), "tl:on":pTimelineOn, "tl:post":()=>pTimeline("post"),
+ "tl:pre":()=>pTimeline("pre"), "tl:on":()=>onView==="sheet"?pRunSheet():pTimelineOn(),
+ "tl:post":()=>pTimeline("post"),
  "set:event":pEventInfo, "set:share":pShare, "set:users":pUsers, "set:modules":pModules,
  "set:export":pExport, "set:help":pHelp,
 };
@@ -5717,6 +5718,126 @@ const hasActT=r=>!!(r.at1&&r.at2);
 function seedActT(r){ if(!hasActT(r)){ r.at1=r.t1; r.at2=r.t2 } }
 const slipMin=r=>hasActT(r)?Math.round((hm(r.at2)-hm(r.t2))*60):null;
 
+/* ---------- ใบรันงานรายวัน ----------
+   หน้าหน้างานเดิมเป็นกราฟแท่งตามชั่วโมง ดีตอนวางแผนเพราะเห็นว่างานไหนทับกัน
+   แต่ตอนอยู่หน้างานจริงไม่มีใครเปิดโน้ตบุ๊กดูกราฟ ทุกคนถือมือถือและอยากรู้แค่
+   "ตอนนี้ถึงคิวใคร ต้องทำอะไร" มุมมองนี้จึงเป็นรายการเรียงตามเวลา จัดกลุ่มตามหมวด
+   กรองเหลือเฉพาะแผนกตัวเองได้ และติ๊กเสร็จได้ทีละรายการ
+   ข้อมูลชุดเดียวกับกราฟทุกช่อง ไม่ได้เก็บแยก แก้ที่ไหนก็เห็นตรงกันทั้งสองมุมมอง */
+let onView="sheet", onTeam="";
+function runNow(day){
+  /* ถ้าวันที่เลือกคือวันนี้ ให้รู้ว่าตอนนี้กี่โมง จะได้ไฮไลต์รายการที่กำลังถึงคิว
+     วันอื่นไม่ต้องไฮไลต์ ไม่งั้นจะเข้าใจผิดว่างานเมื่อวานกำลังเกิดขึ้น */
+  const n=new Date();
+  if(!day||ymd(day)!==ymd(n))return null;
+  return n.getHours()+n.getMinutes()/60;
+}
+function pRunSheet(){
+  tlEnter("on"); tlRedraw=pRunSheet;
+  const wr=can("timeline")==="write", R=onRows(), days=tlDays();
+  if(!days.length){ $("#page").innerHTML='<div class="note"><p>ยังไม่ได้กำหนดวันจัดงาน</p></div>'; return }
+  R.forEach(r=>{ if(r.d<0||r.d>=days.length)r.d=days.length-1 });
+  if(onDay==null||onDay>=days.length)onDay=Math.max(0,days.findIndex(x=>x.kind==="show"));
+  const day=days[onDay];
+  let list=R.filter(r=>r.d===onDay);
+  const teams=[...new Set(list.flatMap(teamsOf))].sort();
+  if(onTeam&&!teams.includes(onTeam))onTeam="";
+  const shown=onTeam?list.filter(r=>teamsOf(r).includes(onTeam)||teamsOf(r).includes("All")):list;
+  const now=runNow(day.d);
+
+  let h=onViewBar()+
+   '<div class="daytabs">'+days.map((d,i)=>
+    '<button class="dtb'+(i===onDay?" on":"")+' k-'+d.kind+'" data-od="'+i+'">'+
+    esc(d.l)+'<small>'+ymdTH(d.d)+'</small>'+
+    '<b>'+R.filter(r=>r.d===i).length+'</b></button>').join("")+'</div>';
+
+  /* แถบกรองแผนก ตัวเลขข้างชื่อคือจำนวนงานของแผนกนั้นในวันนี้
+     งานที่ระบุว่า All ถือว่าเป็นของทุกแผนก จึงติดมาด้วยเสมอตอนกรอง */
+  h+='<div class="rsbar"><span class="rsl">แผนก</span>'+
+   '<button class="rsc'+(onTeam?"":" on")+'" data-rt="">ทั้งหมด <b>'+list.length+'</b></button>'+
+   teams.map(t=>'<button class="rsc'+(onTeam===t?" on":"")+'" data-rt="'+esc(t)+'">'+esc(t)+
+     ' <b>'+list.filter(r=>teamsOf(r).includes(t)).length+'</b></button>').join("")+
+   '<button class="act rsprint" id="rsprint">พิมพ์ใบรันงาน</button></div>';
+
+  const done=shown.filter(r=>r.st==="done").length;
+  h+='<div class="rshead"><b>'+esc(day.l)+'</b><span>'+ymdTH(day.d)+'</span>'+
+    '<span class="rsprog"><i style="width:'+(shown.length?done/shown.length*100:0)+'%"></i></span>'+
+    '<small>เสร็จแล้ว '+done+' จาก '+shown.length+' รายการ</small>'+
+    (onTeam?'<span class="rsonly">เฉพาะ '+esc(onTeam)+'</span>':'')+'</div>';
+
+  if(!shown.length){
+    h+='<div class="note"><p>'+(onTeam?'แผนก '+esc(onTeam)+' ไม่มีงานในวันนี้'
+      :'วันนี้ยังไม่มีรายการ เพิ่มได้จากมุมมองกราฟเวลา')+'</p></div>';
+    $("#page").innerHTML=h; wireRun(); return;
+  }
+
+  const grps=[]; shown.forEach(r=>{ if(!grps.includes(r.grp))grps.push(r.grp) });
+  h+='<div class="rs">';
+  grps.forEach(g=>{
+    const rows=shown.filter(r=>r.grp===g).sort((a,b)=>hm(a.t1)-hm(b.t1));
+    const gd=rows.filter(r=>r.st==="done").length;
+    h+='<div class="rsg"><div class="rsgh">'+esc(g)+
+      '<span class="rsgn">'+gd+'/'+rows.length+'</span></div>';
+    rows.forEach(r=>{
+      const i=R.indexOf(r);
+      const t1=hm(r.t1), t2=Math.max(hm(r.t2),t1+.5);
+      const st=TLST[r.st]||TLST.plan;
+      /* กำลังถึงคิว คือเวลาปัจจุบันอยู่ระหว่างเริ่มกับจบ และยังไม่ติ๊กว่าเสร็จ
+         เลยเวลาแล้วแต่ยังไม่เสร็จ ถือว่าค้าง ต้องเห็นชัดกว่ารายการอื่น */
+      const live=now!=null&&now>=t1&&now<t2&&r.st!=="done";
+      const late=now!=null&&now>=t2&&r.st!=="done";
+      h+='<div class="rsr'+(r.st==="done"?" done":"")+(live?" live":"")+(late?" late":"")+'">'+
+        (wr?'<button class="rschk'+(r.st==="done"?" on":"")+'" data-rk="'+i+'" '+
+           'aria-label="ทำเครื่องหมายว่าเสร็จแล้ว">'+(r.st==="done"?"✓":"")+'</button>'
+          :'<span class="rschk ro">'+(r.st==="done"?"✓":"")+'</span>')+
+        '<span class="rst">'+mh(t1)+'<small>'+mh(t2)+'</small></span>'+
+        '<span class="rsn"><b>'+esc(r.name)+'</b>'+
+          (String(r.note||"").trim()?'<small>'+esc(r.note)+'</small>':'')+
+          (live?'<span class="rstag live">กำลังถึงคิว</span>':'')+
+          (late?'<span class="rstag late">เลยเวลาแล้ว</span>':'')+
+          (r.st==="risk"?'<span class="rstag risk">'+esc(TLST.risk.l)+'</span>':'')+
+        '</span>'+
+        '<span class="rsby">'+teamsOf(r).map(t=>'<span class="tmc">'+esc(t)+'</span>').join("")+
+          (teamsOf(r).length?'':'<span class="tmnone">ยังไม่ระบุ</span>')+'</span>'+
+        '<span class="rsst" style="color:'+st.c+'">'+esc(st.l)+'</span>'+
+        '</div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  $("#page").innerHTML=h; wireRun();
+}
+function onViewBar(){
+  return '<div class="bar2"><div class="seg">'+
+   [["sheet","ใบรันงาน"],["chart","กราฟเวลา"]].map(x=>
+    '<button data-ov="'+x[0]+'" aria-pressed="'+(onView===x[0])+'">'+x[1]+'</button>').join("")+
+   '</div><span style="font-size:13px;color:var(--ink2)">'+
+   (onView==="sheet"?'รายการงานของวันนี้ เรียงตามเวลา ติ๊กได้ทีละรายการ ใช้บนมือถือหน้างานได้'
+     :'ภาพรวมทั้งวันเป็นกราฟ เห็นว่างานไหนทับกันและช้ากว่าแผนแค่ไหน')+'</span></div>';
+}
+function wireRun(){
+  const P=$("#page");
+  P.querySelectorAll("[data-ov]").forEach(b=>b.addEventListener("click",()=>{
+    onView=b.dataset.ov; onView==="sheet"?pRunSheet():pTimelineOn() }));
+  P.querySelectorAll("[data-od]").forEach(b=>b.addEventListener("click",()=>{
+    onDay=+b.dataset.od; pRunSheet() }));
+  P.querySelectorAll("[data-rt]").forEach(b=>b.addEventListener("click",()=>{
+    onTeam=b.dataset.rt; pRunSheet() }));
+  P.querySelectorAll("[data-rk]").forEach(b=>b.addEventListener("click",()=>{
+    const r=onRows()[+b.dataset.rk]; if(!r)return;
+    /* ติ๊กเสร็จแล้วบันทึกเวลาจริงให้ด้วยถ้ายังไม่เคยบันทึก
+       ไม่งั้นหน้ากราฟจะยังขึ้นว่าไม่มีเวลาจริง ทั้งที่คนหน้างานเพิ่งกดว่าเสร็จ */
+    if(r.st==="done"){ r.st="" }
+    else{
+      r.st="done";
+      if(!r.at1){ r.at1=r.t1; r.at2=r.t2 }
+    }
+    snapSoon(); pRunSheet();
+  }));
+  const pb=P.querySelector("#rsprint");
+  if(pb)pb.addEventListener("click",()=>window.print());
+}
+
 function pTimelineOn(){
   tlEnter("on"); tlRedraw=pTimelineOn;
   const wr=can("timeline")==="write", ALL=tlRows(), days=tlDays();
@@ -5739,7 +5860,7 @@ function pTimelineOn(){
   const span=H1-H0;
   const pc=v=>((Math.min(Math.max(v,H0),H1)-H0)/span*100);
 
-  let h=tlDateBar(wr);
+  let h=onViewBar()+tlDateBar(wr);
   h+='<div class="daytabs">'+days.map((d,i)=>
     '<button class="dtb'+(i===onDay?" on":"")+' k-'+d.kind+'" data-od="'+i+'">'+
     esc(d.l)+'<small>'+ymdTH(d.d)+'</small>'+
@@ -5851,6 +5972,8 @@ function pTimelineOn(){
       if(n)pTimelineOn();
       return n;
     }};
+  P.querySelectorAll("[data-ov]").forEach(b=>b.addEventListener("click",()=>{
+    onView=b.dataset.ov; onView==="sheet"?pRunSheet():pTimelineOn() }));
   wireSel(P,list,pTimelineOn);
   wireHint(P,pTimelineOn);
   P.querySelectorAll("[data-od]").forEach(b=>b.addEventListener("click",()=>{

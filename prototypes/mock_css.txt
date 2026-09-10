@@ -1156,4 +1156,75 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
   background:var(--card);color:var(--ink);font:inherit;font-size:13.5px}
 .bf input:focus,.bf select:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .bf i{font-style:normal;font-size:13.5px;color:var(--ink2);padding:7px 0}
+
+/* ---------- ใบรันงานรายวัน ----------
+   ออกแบบให้อ่านบนมือถือหน้างานเป็นหลัก แถวสูงพอให้นิ้วกดติ๊กได้โดยไม่พลาด
+   เวลาอยู่ซ้ายสุดคงที่ ตากวาดลงมาตามคอลัมน์เดียวก็รู้ลำดับทั้งวัน */
+.rsbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:14px 0 10px}
+.rsl{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-right:2px}
+.rsc{padding:6px 12px;border:1px solid var(--line2);border-radius:99px;background:var(--card);
+  color:var(--ink2);font:inherit;font-size:13.5px;cursor:pointer}
+.rsc b{font-weight:700;color:var(--ink3);margin-left:3px}
+.rsc:hover{border-color:var(--accent)}
+.rsc.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.rsc.on b{color:rgba(255,255,255,.75)}
+.rsprint{margin-left:auto;padding:6px 14px;font-size:13.5px}
+.rshead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;
+  padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:11px;
+  box-shadow:var(--sh)}
+.rshead b{font-size:16px}
+.rshead>span{font-size:13.5px;color:var(--ink2)}
+.rsprog{flex:1;min-width:120px;height:7px;border-radius:99px;background:var(--line2);overflow:hidden}
+.rsprog i{display:block;height:100%;background:var(--ok)}
+.rshead small{font-size:12.5px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.rsonly{padding:2px 10px;border-radius:99px;background:var(--soft);border:1px solid var(--line2);
+  font-size:12px;color:var(--ink2)}
+.rs{display:flex;flex-direction:column;gap:16px}
+.rsg{border:1px solid var(--line);border-radius:11px;background:var(--card);
+  box-shadow:var(--sh);overflow:hidden}
+.rsgh{display:flex;align-items:center;gap:9px;padding:10px 14px;background:var(--soft);
+  border-bottom:1px solid var(--line);font-weight:700;font-size:14px}
+.rsgn{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--ink3);
+  font-variant-numeric:tabular-nums}
+.rsr{display:grid;grid-template-columns:34px 62px minmax(0,1fr) auto auto;gap:11px;
+  align-items:center;padding:11px 14px;border-top:1px solid var(--line)}
+.rsr:first-of-type{border-top:0}
+.rschk{width:26px;height:26px;border-radius:7px;border:2px solid var(--line2);background:var(--card);
+  color:#fff;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;padding:0}
+.rschk:hover{border-color:var(--ok)}
+.rschk.on{background:var(--ok);border-color:var(--ok)}
+.rschk.ro{cursor:default}
+.rst{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;line-height:1.2}
+.rst small{display:block;font-weight:400;font-size:11.5px;color:var(--ink3)}
+.rsn{min-width:0}
+.rsn b{display:block;font-size:14.5px;font-weight:600;line-height:1.4}
+.rsn small{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px;line-height:1.5}
+.rsby{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:190px}
+.rsst{font-size:12.5px;font-weight:600;white-space:nowrap;min-width:74px;text-align:right}
+.rstag{display:inline-block;margin-top:4px;padding:1px 9px;border-radius:99px;
+  font-size:11.5px;font-weight:600}
+.rstag.live{background:var(--accent);color:#fff}
+.rstag.late{background:var(--risk);color:#fff}
+.rstag.risk{background:var(--warn);color:#fff}
+.rsr.done .rsn b{text-decoration:line-through;color:var(--ink3)}
+.rsr.done{background:color-mix(in srgb,var(--ok) 6%,transparent)}
+.rsr.live{background:color-mix(in srgb,var(--accent) 9%,transparent);
+  box-shadow:inset 3px 0 0 var(--accent)}
+.rsr.late{box-shadow:inset 3px 0 0 var(--risk)}
+@media(max-width:720px){
+  .rsr{grid-template-columns:30px 56px minmax(0,1fr);gap:9px;padding:12px}
+  .rsby{max-width:none;justify-content:flex-start;grid-column:2/-1}
+  .rsst{grid-column:2/-1;text-align:left;min-width:0}
+  /* บนมือถือปุ่มพิมพ์ไปต่อท้ายแถวชิปแผนก แล้วดูเหมือนเป็นชิปอีกอัน แยกออกมาเป็นบรรทัดของตัวเอง */
+  .rsprint{margin-left:0;flex:1 0 100%;margin-top:4px}
+}
+/* พิมพ์ออกกระดาษแจกทีม เอาเฉพาะตารางงาน ไม่เอาเมนูและปุ่ม */
+@media print{
+  nav.side,.tabs,.bar2,.rsbar,.daytabs,header,.svst{display:none!important}
+  body,#page{background:#fff}
+  .rsg{break-inside:avoid;box-shadow:none;border-color:#999}
+  .rsr{break-inside:avoid}
+  .rschk{border-color:#666}
+}
 </style>
