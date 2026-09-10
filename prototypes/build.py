@@ -45,6 +45,14 @@ for data,out in (('app4.json','platform.html'),('demo.json','demo.html')):
     os.makedirs('dist',exist_ok=True)
     name='index.html' if out=='platform.html' else 'demo.html'
     open(os.path.join('dist',name),'w',encoding='utf-8').write(doc)
+    # โปรเจกต์ penguinx-demo บน Vercel ตั้ง Output Directory ไว้ที่ public ตั้งแต่ตอนสร้าง
+    # ในรีโปไม่มีโฟลเดอร์นั้น ทุกครั้งที่ push จึง build ไม่ผ่านและส่งเมลแจ้งเตือนมา
+    # เขียนฉบับเดโมลงไปให้ตรงตามที่มันหา ได้เว็บเดโมที่เปิดดูได้โดยไม่ต้องมีบัญชีไปด้วยเลย
+    if out=='demo.html':
+        pub=os.path.join('..','public')
+        os.makedirs(pub,exist_ok=True)
+        open(os.path.join(pub,'index.html'),'w',encoding='utf-8').write(doc)
+        print('public/index.html',round(len(doc)/1024),'KB')
     # ฉบับต่อเซิร์ฟเวอร์จริง ไม่ฝังข้อมูล ล็อกอินแล้วดึงจาก API
     # ข้อมูลไม่อยู่ในไฟล์ จึงเอาชุดจริงขึ้นเว็บได้โดยไม่หลุดให้คนที่ยังไม่ล็อกอิน
     if out=='platform.html':
