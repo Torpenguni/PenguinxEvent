@@ -1130,4 +1130,16 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
   display:flex;align-items:center;justify-content:center}
 .hpwarn{border-left:4px solid var(--warn)}
 .hpok{border-left:4px solid var(--ok)}
+
+/* ภาพประกอบในคู่มือ กรอบบาง ๆ ให้แยกจากพื้นหลัง กดเพื่อดูเต็มจอ
+   ภาพถ่ายจากหน้าจอจริงของระบบ ไม่ใช่ภาพจำลอง จะได้ตรงกับที่คนใช้เห็น */
+.hpfig{margin:14px 0 18px}
+.hpfig button{display:block;width:100%;padding:0;border:1px solid var(--line2);border-radius:10px;
+  background:var(--soft);overflow:hidden;cursor:zoom-in;box-shadow:var(--sh)}
+.hpfig img{display:block;width:100%;height:auto}
+.hpfig figcaption{font-size:12.5px;color:var(--ink3);margin-top:7px;line-height:1.55}
+.hpfig figcaption b{color:var(--ink2);font-weight:600}
+.hpzoom{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.78);display:flex;
+  align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.hpzoom img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 18px 60px rgba(0,0,0,.5)}
 </style>
