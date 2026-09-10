@@ -160,6 +160,34 @@ export async function writeEvent (q, e, ctx) {
     ;(await bulk('company', ['name'], fresh.map((n) => [n]), 'id'))
       .forEach((r, i) => { company[fresh[i]] = r.id })
 
+    /* ข้อมูลออกใบกำกับภาษีอยู่ที่บริษัท ไม่ใช่ที่ดีล แต่หน้าเว็บกรอกจากแผงของดีล
+       เขียนทีละช่องด้วย coalesce ช่องที่ไม่ได้กรอกจะคงค่าเดิมไว้ ไม่ถูกล้างเป็นค่าว่าง
+       เลขผู้เสียภาษีตัดอักขระที่ไม่ใช่ตัวเลขออก เพราะคนกรอกมักใส่ขีดคั่น */
+    const digits = (v) => { const t = String(v ?? '').replace(/\D/g, ''); return t || null }
+    const txt = (v) => { const t = String(v ?? '').trim(); return t || null }
+    for (const d of (e.deals || [])) {
+      const b = d.bill
+      if (!b || !company[d.co]) continue
+      await q(
+        `update company set
+           name_th      = coalesce($2, name_th),
+           tax_id       = coalesce($3, tax_id),
+           entity_type  = coalesce($4, entity_type),
+           branch_code  = coalesce($5, branch_code),
+           address      = coalesce($6, address),
+           sub_district = coalesce($7, sub_district),
+           district     = coalesce($8, district),
+           province     = coalesce($9, province),
+           post_code    = coalesce($10, post_code),
+           bill_email   = coalesce($11, bill_email),
+           website      = coalesce($12, website)
+         where id = $1`,
+        [company[d.co], txt(b.nameTh), digits(b.taxNumber),
+         b.type ? Number(b.type) : null, digits(b.branchCode),
+         txt(b.address), txt(b.subDistrict), txt(b.district), txt(b.province),
+         digits(b.postCode), txt(b.email), txt(b.website)])
+    }
+
     const deals = e.deals || []
     ;(await bulk('deal',
       ['event_id', 'company_id', 'agent_id', 'owner_id', 'kind', 'status', 'list_total', 'deal_total',

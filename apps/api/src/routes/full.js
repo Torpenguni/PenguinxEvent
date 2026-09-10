@@ -55,7 +55,10 @@ async function fetchFull (code, perms, user) {
       q(`select b.*, z.code as zone_code, bt.name as pkg from booth b
            left join zone z on z.id=b.zone_id left join booth_type bt on bt.id=b.booth_type_id
           where b.event_id=$1 order by b.id`, [id]),
-      q(`select d.*, c.name as company, sa.name as agent, d.agent_id from deal d
+      q(`select d.*, c.name as company, sa.name as agent, d.agent_id,
+                c.name_th, c.tax_id, c.entity_type, c.branch_code, c.address as bill_address,
+                c.sub_district, c.district, c.province, c.post_code, c.bill_email, c.website
+           from deal d
            join company c on c.id=d.company_id left join sales_agent sa on sa.id=d.agent_id
           where d.event_id=$1 order by d.id`, [id]),
       q(`select di.deal_id, b.code from deal_item di join booth b on b.id=di.booth_id
@@ -155,6 +158,16 @@ async function fetchFull (code, perms, user) {
         .filter((d) => !own || (myAgent != null && String(d.agent_id) === String(myAgent)))
         .map((d) => ({
           id: d.id, co: d.company, booths: boothByDeal[d.id] ?? [],
+          /* ข้อมูลออกใบกำกับภาษี ชื่อคีย์ตรงกับที่ PEAK รับ จะได้ส่งต่อได้ตรง ๆ
+             เห็นได้เฉพาะคนที่มีสิทธิ์ดูดีล เพราะเป็นข้อมูลนิติบุคคลของลูกค้า */
+          bill: {
+            nameTh: d.name_th ?? null, taxNumber: d.tax_id ?? null,
+            type: d.entity_type ?? null, branchCode: d.branch_code ?? null,
+            address: d.bill_address ?? null, subDistrict: d.sub_district ?? null,
+            district: d.district ?? null, province: d.province ?? null,
+            postCode: d.post_code ?? null, email: d.bill_email ?? null,
+            website: d.website ?? null,
+          },
           list: seeMoney || seePrice ? Number(d.list_total ?? 0) : null,
           stage: d.status, st: null, sales: d.agent, product: d.key_product,
           form: d.form_received, board: d.on_directory_board,

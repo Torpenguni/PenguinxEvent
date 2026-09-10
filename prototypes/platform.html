@@ -1142,6 +1142,20 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
 .hpzoom{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.78);display:flex;
   align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
 .hpzoom img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+
+/* ---------- ข้อมูลออกใบกำกับภาษีในแผงดีล ----------
+   วางเป็นสองคอลัมน์ ช่องที่อยู่กับชื่อบริษัทกินเต็มความกว้าง เพราะยาวกว่าช่องอื่นมาก */
+.bill{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}
+.billh{grid-column:1/-1;font-size:14px;display:flex;align-items:center;gap:8px}
+.billnote{grid-column:1/-1;margin:0;font-size:12.5px;color:var(--ink3);line-height:1.55}
+.bf{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bf.wide{grid-column:1/-1}
+.bf span{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}
+.bf input,.bf select{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:7px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:13.5px}
+.bf input:focus,.bf select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.bf i{font-style:normal;font-size:13.5px;color:var(--ink2);padding:7px 0}
 </style>
 
 <div id="login">
@@ -3192,6 +3206,75 @@ function shrinkCard(file,cb){
   fr.onerror=()=>cb(null);
   fr.readAsDataURL(file);
 }
+/* ---------- ข้อมูลออกใบกำกับภาษี ----------
+   ตอนนี้ทีมพิมพ์ใบเสนอราคาเข้า PEAK ทีละใบ ข้อมูลนิติบุคคลของลูกค้าจึงไม่ได้อยู่ในระบบเลย
+   เลขผู้เสียภาษีกับที่อยู่จดทะเบียนไม่มีช่องให้กรอกด้วยซ้ำ ทั้งที่มีคอลัมน์รออยู่แล้ว
+   ชื่อช่องทั้งหมดตั้งให้ตรงกับที่ PEAK รับ จะได้ยิงต่อเข้า API ได้ตรง ๆ ไม่ต้องแปลงอีกชั้น */
+const BROWS=[["nameTh",1],["taxNumber",0],["branchCode",0],["address",1],
+ ["subDistrict",0],["district",0],["province",0],["postCode",0],["email",0],["website",0]];
+const BLABEL={nameTh:["ชื่อตามหนังสือรับรอง","บริษัท ... จำกัด"],
+ taxNumber:["เลขผู้เสียภาษี 13 หลัก","0105557083391"],
+ branchCode:["รหัสสาขา","00000 = สำนักงานใหญ่"],
+ address:["ที่อยู่จดทะเบียน","เลขที่ ถนน อาคาร"],
+ subDistrict:["แขวง / ตำบล",""], district:["เขต / อำเภอ",""],
+ province:["จังหวัด",""], postCode:["รหัสไปรษณีย์","10110"],
+ email:["อีเมลรับเอกสาร","billing@company.com"],
+ website:["เว็บไซต์","company.com"]};
+function billOf(d){
+  if(!d.bill||typeof d.bill!=="object")d.bill={};
+  return d.bill;
+}
+/* ครบพอออกใบกำกับภาษีหรือยัง PEAK บังคับแค่ชื่อกับประเภท
+   แต่ถ้าจะออกใบกำกับภาษีจริงต้องมีเลขผู้เสียภาษีกับที่อยู่ครบ ไม่งั้นสรรพากรตีกลับ */
+function billReady(d){
+  const b=billOf(d);
+  const need=["taxNumber","address","subDistrict","district","province","postCode"];
+  const miss=need.filter(k=>!String(b[k]||"").trim());
+  return {ok:!miss.length, miss};
+}
+function billBox(d){
+  const wr=can("deal")==="write", b=billOf(d);
+  const st=billReady(d);
+  const ETYPE=[["","—"],["2","นิติบุคคล"],["5","บุคคลธรรมดา"]];
+  return '<div class="bill"><b class="billh">ข้อมูลออกใบกำกับภาษี'+
+    (st.ok?'<span class="pill" style="background:'+cv("--ok")+'">ครบ</span>'
+          :'<span class="pill" style="background:'+cv("--warn")+'">ขาด '+st.miss.length+' ช่อง</span>')+
+    '</b>'+
+    '<p class="billnote">ใช้ตอนออกใบเสนอราคาและใบกำกับภาษี กรอกครั้งเดียวใช้ได้ทุกปี'+
+    (st.ok?'':' ยังออกใบกำกับภาษีไม่ได้จนกว่าจะกรอกครบ')+'</p>'+
+    '<label class="bf"><span>ประเภทผู้เสียภาษี</span>'+
+      (wr?'<select data-bf="type">'+ETYPE.map(x=>'<option value="'+x[0]+'"'+
+        (String(b.type||"")===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+'</select>'
+         :'<i>'+esc((ETYPE.find(x=>x[0]===String(b.type||""))||["","—"])[1])+'</i>')+'</label>'+
+    BROWS.map(([k,wide])=>{
+      const L=BLABEL[k];
+      return '<label class="bf'+(wide?" wide":"")+'"><span>'+esc(L[0])+'</span>'+
+        (wr?'<input data-bf="'+k+'" value="'+esc(b[k]||"")+'" placeholder="'+esc(L[1])+'">'
+           :'<i>'+esc(b[k]||"—")+'</i>')+'</label>';
+    }).join("")+
+    '</div>';
+}
+function wireBill(sd,d,redraw){
+  const b=billOf(d);
+  sd.querySelectorAll("[data-bf]").forEach(el=>{
+    const k=el.dataset.bf;
+    const put=()=>{
+      let v=el.value.trim();
+      if(k==="taxNumber"||k==="branchCode"||k==="postCode")v=v.replace(/\D/g,"");
+      b[k]=v||null;
+      /* เดาให้ว่าเป็นนิติบุคคลหรือบุคคลธรรมดาจากเลขผู้เสียภาษี
+         เลข 13 หลักที่ขึ้นต้นด้วย 0 คือนิติบุคคล ที่เหลือคือเลขบัตรประชาชน */
+      if(k==="taxNumber"&&v.length===13&&!b.type)b.type=v[0]==="0"?"2":"5";
+      if(k==="taxNumber"&&v&&!b.branchCode)b.branchCode="00000";
+    };
+    if(el.tagName==="SELECT")el.addEventListener("change",()=>{ b.type=el.value||null; redraw() });
+    else{
+      el.addEventListener("input",put);
+      el.addEventListener("blur",()=>{ put(); redraw() });
+      el.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();el.blur()} });
+    }
+  });
+}
 function wirePeople(sd,d,redraw){
   const P=peopleOf(d);
   sd.querySelectorAll("[data-pf]").forEach(el=>el.addEventListener("change",()=>{
@@ -3265,6 +3348,7 @@ function drawDealPanel(){
    '</select></dd>'+
    '<dt>Next step</dt><dd>'+(d.next?esc(d.next)+' · '+esc(d.nextDate):'<span style="color:var(--warn)">None yet</span>')+'</dd></dl>'+
    peopleBox(d)+
+   billBox(d)+
    '<div class="acts"><b style="font-size:13px">Log a contact</b>'+
    '<select id="atype">'+ACTS.map(a=>'<option value="'+a[0]+'">'+a[1]+'</option>').join("")+'</select>'+
    '<input id="anote" placeholder="what was discussed, what came of it">'+
@@ -3278,6 +3362,7 @@ function drawDealPanel(){
   sd.querySelector(".x").addEventListener("click",()=>{dealOpen=null;sd.remove()});
   sd.querySelector("#dstage").addEventListener("change",e=>{d.stage=e.target.value;dealsRefresh();drawDealPanel()});
   wirePeople(sd,d,()=>{ dealsRefresh(); drawDealPanel() });
+  wireBill(sd,d,()=>{ snapSoon(); drawDealPanel() });
   sd.querySelector("#asave").addEventListener("click",()=>{
     const note=sd.querySelector("#anote").value.trim();
     const nx=sd.querySelector("#anext").value.trim();
@@ -5220,6 +5305,18 @@ function dsList(){
       T(E.deals).map(d=>{const l=(d.acts||[]).slice(-1)[0];
         return [d.co,(d.booths||[]).join(" "),d.list||0,stName(d.stage),d.st||"",
           d.sales||"",d.next||"",d.nextDate||"",l?l.date:"",(d.acts||[]).length]}))},
+   /* ชุดข้อมูลสำหรับงานบัญชี ยกไปคีย์เข้า PEAK ได้ทันทีระหว่างที่ยังไม่ได้ต่อ API
+      หัวคอลัมน์ตั้งตามชื่อช่องของ PEAK จะได้จับคู่ตอน import ไม่ต้องเดา */
+   {k:"billing", m:"deal", t:"ข้อมูลออกใบกำกับภาษี", n:T(E.deals).filter(d=>d.bill&&d.bill.taxNumber).length,
+    d:"ชื่อนิติบุคคล เลขผู้เสียภาษี สาขา ที่อยู่จดทะเบียน สำหรับออกใบเสนอราคาและใบกำกับภาษี",
+    rows:()=>[["name","nameTh","type","taxNumber","branchCode","address","subDistrict","district",
+      "province","postCode","email","website","contactFirstName","contactPhoneNumber","contactEmail",
+      "booths","amount"]].concat(
+      T(E.deals).map(d=>{const b=d.bill||{}, P=(d.people||[])[0]||{};
+        return [d.co||"",b.nameTh||"",b.type||"",b.taxNumber||"",b.branchCode||"",
+          b.address||"",b.subDistrict||"",b.district||"",b.province||"",b.postCode||"",
+          b.email||"",b.website||"",P.n||d.contact||"",P.tel||d.phone||"",P.mail||d.email||"",
+          (d.booths||[]).join(" "),d.list||0]}))},
    {k:"budget", m:"budget", t:"Budget P&L", n:T(E.budget).length,
     d:"Every line of the chart of accounts, with budget and actual",
     rows:()=>[["Main category","Sub-category","Item","Qty","Unit","Qty 2","Unit 2",

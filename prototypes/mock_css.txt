@@ -1142,4 +1142,18 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
 .hpzoom{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.78);display:flex;
   align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
 .hpzoom img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+
+/* ---------- ข้อมูลออกใบกำกับภาษีในแผงดีล ----------
+   วางเป็นสองคอลัมน์ ช่องที่อยู่กับชื่อบริษัทกินเต็มความกว้าง เพราะยาวกว่าช่องอื่นมาก */
+.bill{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:1fr 1fr;gap:9px 10px}
+.billh{grid-column:1/-1;font-size:14px;display:flex;align-items:center;gap:8px}
+.billnote{grid-column:1/-1;margin:0;font-size:12.5px;color:var(--ink3);line-height:1.55}
+.bf{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bf.wide{grid-column:1/-1}
+.bf span{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}
+.bf input,.bf select{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:7px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:13.5px}
+.bf input:focus,.bf select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.bf i{font-style:normal;font-size:13.5px;color:var(--ink2);padding:7px 0}
 </style>

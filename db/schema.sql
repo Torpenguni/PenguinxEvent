@@ -929,3 +929,12 @@ alter table event add column if not exists updated_by bigint references app_user
 alter table event_backup drop constraint if exists event_backup_event_id_fkey;
 alter table event_backup add  constraint event_backup_event_id_fkey
   foreign key (event_id) references event(id) on delete set null;
+
+-- ข้อมูลออกใบกำกับภาษี ชื่อช่องตรงกับที่ PEAK รับ (db/billing.sql)
+alter table company add column if not exists entity_type   smallint;
+alter table company add column if not exists branch_code   text;
+alter table company add column if not exists sub_district  text;
+alter table company add column if not exists district      text;
+alter table company add column if not exists province      text;
+alter table company add column if not exists post_code     text;
+alter table company add column if not exists bill_email    text;
