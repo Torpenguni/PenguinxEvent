@@ -312,7 +312,11 @@ r.put('/:code/full', need('floorplan', 'write'), async (req, res, next) => {
     keep(canWrite('stage'), ['stages', 'sessions'])
     keep(canWrite('exhibitor'), ['tasks'])
     keep(canWrite('timeline'), ['timeline'])
-    keep(canWrite('floorplan'), ['booths', 'areas', 'zoneNames'])
+    keep(canWrite('floorplan'), ['booths', 'zoneNames'])
+    /* กล่องบนผัง เวที จุดลงทะเบียน ทางเข้า โซนอาหาร เป็นโครงของงานทั้งงาน
+       ไม่ใช่ของที่คนขายบูธหรือทีมหน้างานควรขยับได้ระหว่างทำงานประจำวัน
+       จำกัดให้ผู้ดูแลระบบเท่านั้น และบังคับที่นี่ ไม่ใช่แค่ซ่อนปุ่มบนหน้าจอ */
+    keep(req.user.role === 'admin', ['areas'])
 
     /* กันของหายทั้งก้อน การบันทึกที่นี่คือลบทั้งงานแล้วเขียนใหม่จากสิ่งที่ส่งมา
        ถ้าฝั่งหน้าเว็บส่งก้อนที่ขาดบางส่วนมา เช่นอ่านข้อมูลไปตอนที่อีกคนกำลังบันทึกอยู่

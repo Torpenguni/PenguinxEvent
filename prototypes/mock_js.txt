@@ -633,6 +633,7 @@ $("#out").addEventListener("click",()=>{ if(online()){TOKEN=null;
   $("#app").classList.remove("on");$("#login").style.display="grid"});
 $("#rl2").innerHTML=Object.keys(ROLE).map(k=>'<option value="'+k+'">'+ROLE[k].n+'</option>').join("");
 $("#rl2").addEventListener("change",e=>{role=e.target.value;
+  if(!canArea()){ planEdit=false; selAr=null }
   if(page!=="dash"&&can(NAV.find(n=>n.id===page).m)==="none")page="dash";
   draw()});
 function go(p){page=p;sel=null;dealOpen=null;costOpen=null;exhOpen=null;
@@ -1307,8 +1308,9 @@ function pPlan(){
    /* เพิ่มบูธเองไม่ได้มาก่อน ผังถูกวางเป็นกริดตอนสร้างงานแล้วแก้อะไรไม่ได้อีกเลย
       ทั้งที่จำนวนบูธเปลี่ยนตลอดช่วงขาย */
    (can("floorplan")==="write"
-     ?'<button class="act" id="baddb" style="padding:9px 14px">+ Add booth</button>'+
-      '<button class="act'+(planEdit?" go":"")+'" id="baredit" style="padding:9px 14px">'+
+     ?'<button class="act" id="baddb" style="padding:9px 14px">+ Add booth</button>':'')+
+   (canArea()
+     ?'<button class="act'+(planEdit?" go":"")+'" id="baredit" style="padding:9px 14px">'+
       (planEdit?"เสร็จแล้ว":"แก้กล่องบนผัง")+'</button>':'')+
    '<div class="seg">'+["free","booked","deposit","paid"].map(k=>
      '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
@@ -1454,6 +1456,10 @@ function paintCounts(){
    ตอนนี้ลากสร้างกล่องเองได้บนพื้นที่ว่าง พิมพ์ชื่อกับรายละเอียดลงไป เลือกประเภท
    และผูกกับบูธหรือเวทีได้ กดกล่องที่ผูกไว้แล้วระบบพาไปที่นั่นให้เลย */
 let planEdit=false, selAr=null, arDrag=null;
+/* กล่องบนผังคือโครงของงานทั้งงาน ไม่ใช่ของที่เปลี่ยนกันระหว่างวัน
+   ทีมขายกับทีมหน้างานมีสิทธิ์แก้ผังบูธอยู่แล้ว แต่ไม่ควรขยับเวทีหรือจุดลงทะเบียนได้
+   จำกัดไว้ที่ผู้ดูแลระบบอย่างเดียว และเซิร์ฟเวอร์บังคับซ้ำอีกชั้นตอนบันทึก */
+const canArea=()=>role==="admin";
 const AKIND=[
  ["stage","เวที","--accent"],
  ["reg","จุดลงทะเบียน","--s-deposit"],
@@ -1501,7 +1507,7 @@ function arNew(x,y,w,h){
 function wirePlan(){
   const svg=$("#plan"); if(!svg)return;
   svg.addEventListener("pointerdown",e=>{
-    if(!planEdit)return;
+    if(!planEdit||!canArea())return;
     const pt=planPt(e); if(!pt)return;
     const hit=arAt(pt);
     /* มุมขวาล่างของกล่องที่เลือกอยู่คือที่จับย่อขยาย เผื่อระยะไว้ครึ่งช่องให้กดโดนง่าย */
@@ -1539,7 +1545,7 @@ function wirePlan(){
 function arSidebar(){
   const sd=$("#sd"); if(!sd)return;
   if(!selAr){ if(!sel){ sd.hidden=true; sd.innerHTML="" } return }
-  const a=selAr, wr=can("floorplan")==="write";
+  const a=selAr, wr=canArea();
   const booths=B.map(b=>b.code).sort();
   const stages=(EV.stages||[]);
   sd.hidden=false;
