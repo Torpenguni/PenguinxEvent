@@ -1257,6 +1257,20 @@ tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--g
   border-bottom-color:color-mix(in srgb,var(--gc) 25%,var(--line));
   box-shadow:inset 4px 0 0 var(--gc);padding-left:17px}
 .rsg[style*="--gc"] .rsgh{color:color-mix(in srgb,var(--gc) 70%,var(--ink))}
+
+/* ---------- กล่องบนผังพื้นที่ ----------
+   กล่องเป็นฉากหลังของผัง บูธคือของที่คนเข้ามาดู กล่องจึงจางกว่าเสมอ
+   พอตั้งประเภทแล้วถึงมีสี แต่ยังคุมความเข้มไว้ไม่ให้แย่งสายตาไปจากบูธ */
+.ar.kd rect{opacity:.16;stroke-width:.06}
+.ar.kd text{opacity:.95}
+.ar.go{cursor:pointer}
+.ar.go rect{opacity:.24}
+.ar.go:hover rect{opacity:.36}
+.ar.ed{cursor:move}
+.ar.sel rect:first-of-type{stroke:var(--accent);stroke-width:.12;opacity:.32}
+.ar .arh{cursor:nwse-resize}
+/* ตอนแก้ผัง ตัวหนังสือในกล่องต้องไม่ขวางการลาก ไม่งั้นลากทีไรได้เลือกข้อความแทน */
+.pw svg#plan .ar.ed text{pointer-events:none}
 </style>
 
 <div id="login">
@@ -2631,7 +2645,9 @@ function pPlan(){
    /* เพิ่มบูธเองไม่ได้มาก่อน ผังถูกวางเป็นกริดตอนสร้างงานแล้วแก้อะไรไม่ได้อีกเลย
       ทั้งที่จำนวนบูธเปลี่ยนตลอดช่วงขาย */
    (can("floorplan")==="write"
-     ?'<button class="act" id="baddb" style="padding:9px 14px">+ Add booth</button>':'')+
+     ?'<button class="act" id="baddb" style="padding:9px 14px">+ Add booth</button>'+
+      '<button class="act'+(planEdit?" go":"")+'" id="baredit" style="padding:9px 14px">'+
+      (planEdit?"เสร็จแล้ว":"แก้กล่องบนผัง")+'</button>':'')+
    '<div class="seg">'+["free","booked","deposit","paid"].map(k=>
      '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
      cv(ST[k].c)+'"></i>'+ST[k].l+' '+shown().filter(x=>x.st===k).length+'</span>').join("")+'</div></div>'+
@@ -2663,6 +2679,13 @@ function pPlan(){
       list:last.pkg&&EV.packages[last.pkg]?EV.packages[last.pkg].price||0:0});
     sel=code; pPlan(); toastTL("เพิ่มบูธ "+code+" แล้ว");   // วาดหน้าผังใหม่ทั้งหน้า ตัวนับกับตัวกรองจะได้ตรง
   });
+  const be=$("#baredit");
+  if(be)be.addEventListener("click",()=>{
+    planEdit=!planEdit; if(!planEdit)selAr=null;
+    pPlan();
+    toastTL(planEdit?"ลากบนที่ว่างเพื่อสร้างกล่อง ลากกล่องเพื่อย้าย ลากมุมขวาล่างเพื่อย่อขยาย"
+                    :"ออกจากโหมดแก้กล่องแล้ว");
+  });
   const fc=$("#fclear");
   if(fc)fc.addEventListener("click",()=>{fZone="";fPkg="";q="";pPlan()});
   const rel=$("#rel");
@@ -2673,7 +2696,7 @@ function pPlan(){
   const X1=Math.max(...xs.map(o=>o.x+o.w))+1,Y1=Math.max(...xs.map(o=>o.y+o.h))+1;
   $("#plan").setAttribute("viewBox",X0+" "+Y0+" "+(X1-X0)+" "+(Y1-Y0));
   applyPlanBg();
-  paint(); sidebar();
+  paint(); sidebar(); wirePlan(); if(selAr)arSidebar();
 }
 /* ตัดรหัสบูธเป็นบรรทัดให้พอดีความกว้าง แล้วคืนขนาดตัวอักษรที่ใช้ได้ */
 /* จัดป้ายโซนให้อยู่ในกรอบ ตัดตามช่องว่างก่อน ถ้ายังไม่พอค่อยย่อขนาด */
@@ -2761,18 +2784,184 @@ function paintCounts(){
     '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
     cv(ST[k].c)+'"></i>'+ST[k].l+' '+shown().filter(x=>x.st===k).length+'</span>').join("");
 }
+/* ---------- กล่องบนผังพื้นที่ ----------
+   ผังมีแต่บูธที่ขายได้ ส่วนของอื่นบนผัง เวที จุดลงทะเบียน ทางเข้า โซนอาหาร ห้องน้ำ
+   ถูกวางไว้ตั้งแต่ตอนนำเข้าครั้งแรก แล้วหลังจากนั้นแก้อะไรไม่ได้อีกเลย
+   ทั้งที่ของพวกนี้ย้ายกันบ่อยกว่าบูธด้วยซ้ำ ปีนี้เวทีอยู่หัวฮอลล์ ปีหน้าอยู่กลาง
+
+   ตอนนี้ลากสร้างกล่องเองได้บนพื้นที่ว่าง พิมพ์ชื่อกับรายละเอียดลงไป เลือกประเภท
+   และผูกกับบูธหรือเวทีได้ กดกล่องที่ผูกไว้แล้วระบบพาไปที่นั่นให้เลย */
+let planEdit=false, selAr=null, arDrag=null;
+const AKIND=[
+ ["stage","เวที","--accent"],
+ ["reg","จุดลงทะเบียน","--s-deposit"],
+ ["door","ทางเข้า-ออก","--ok"],
+ ["food","อาหารและเครื่องดื่ม","--warn"],
+ ["act","พื้นที่กิจกรรม","--s-booked"],
+ ["office","ออฟฟิศงาน / หลังบ้าน","--ink3"],
+ ["store","คลังของ","--ink3"],
+ ["wc","ห้องน้ำ","--ink3"],
+ ["walk","ทางเดิน","--line2"],
+ ["","อื่น ๆ","--line2"],
+];
+const akOf=(a)=>AKIND.find(k=>k[0]===(a.kind||""))||AKIND[AKIND.length-1];
+/* กรอบและตัวหนังสือใช้สีของประเภท พื้นจางลงมาเยอะ ไม่งั้นแย่งสายตาไปจากบูธ
+   ซึ่งเป็นของที่คนเข้ามาดูจริง ๆ ในหน้านี้ */
+const arFill=(a)=>a.kind?cv(akOf(a)[2]):cv("--line");
+function arLinkText(a){
+  if(!a||!a.link)return "";
+  if(a.link.t==="booth")return "บูธ "+a.link.v;
+  if(a.link.t==="stage")return "เวที "+a.link.v;
+  return "";
+}
+/* หน่วยของผังเป็นช่องกริด ไม่ใช่พิกเซล ต้องแปลงตำแหน่งเมาส์เข้าระบบพิกัดของ SVG เอง
+   ใช้เมทริกซ์ของ SVG แทนการคำนวณจากขนาดกล่อง เพราะผังซูมและเลื่อนแนวนอนได้ */
+function planPt(ev){
+  const svg=$("#plan"); if(!svg)return null;
+  const m=svg.getScreenCTM(); if(!m)return null;
+  const p=new DOMPoint(ev.clientX,ev.clientY).matrixTransform(m.inverse());
+  return {x:p.x,y:p.y};
+}
+const snap=(v)=>Math.round(v*2)/2;          // ล็อกเข้าครึ่งช่อง พอให้วางตรงแนวบูธได้
+function arAt(pt){
+  /* กล่องที่วางทีหลังอยู่บนสุด ไล่จากท้ายรายการมาหน้า จะได้เลือกอันที่เห็นอยู่ข้างบนจริง ๆ */
+  for(let i=AR.length-1;i>=0;i--){
+    const a=AR[i];
+    if(pt.x>=a.x&&pt.x<=a.x+a.w&&pt.y>=a.y&&pt.y<=a.y+a.h)return a;
+  }
+  return null;
+}
+function arNew(x,y,w,h){
+  const a={name:"กล่องใหม่",x:snap(x),y:snap(y),w:Math.max(snap(w),1),h:Math.max(snap(h),1),
+    kind:"",note:"",link:null};
+  AR.push(a); return a;
+}
+function wirePlan(){
+  const svg=$("#plan"); if(!svg)return;
+  svg.addEventListener("pointerdown",e=>{
+    if(!planEdit)return;
+    const pt=planPt(e); if(!pt)return;
+    const hit=arAt(pt);
+    /* มุมขวาล่างของกล่องที่เลือกอยู่คือที่จับย่อขยาย เผื่อระยะไว้ครึ่งช่องให้กดโดนง่าย */
+    if(hit&&hit===selAr&&pt.x>hit.x+hit.w-.6&&pt.y>hit.y+hit.h-.6){
+      arDrag={m:"size",a:hit}; }
+    else if(hit){
+      selAr=hit; sel=null;
+      arDrag={m:"move",a:hit,dx:pt.x-hit.x,dy:pt.y-hit.y}; }
+    else{
+      selAr=arNew(pt.x,pt.y,1,1);
+      arDrag={m:"size",a:selAr,fresh:true};
+    }
+    e.preventDefault(); svg.setPointerCapture(e.pointerId);
+    paint(); arSidebar();
+  });
+  svg.addEventListener("pointermove",e=>{
+    if(!arDrag)return;
+    const pt=planPt(e); if(!pt)return;
+    const a=arDrag.a;
+    if(arDrag.m==="move"){ a.x=snap(pt.x-arDrag.dx); a.y=snap(pt.y-arDrag.dy) }
+    else{ a.w=Math.max(snap(pt.x-a.x),.5); a.h=Math.max(snap(pt.y-a.y),.5) }
+    paint();
+  });
+  const stop=(e)=>{
+    if(!arDrag)return;
+    /* ลากแล้วปล่อยทันทีโดยไม่ได้ขยาย ถือว่าเป็นการกดเปล่า ๆ ไม่ใช่ตั้งใจสร้างกล่อง */
+    if(arDrag.fresh&&arDrag.a.w<=1&&arDrag.a.h<=1){ arDrag.a.w=2; arDrag.a.h=1.5 }
+    arDrag=null; snapSoon(); paint(); arSidebar();
+    try{ $("#plan").releasePointerCapture(e.pointerId) }catch(x){}
+  };
+  svg.addEventListener("pointerup",stop);
+  svg.addEventListener("pointercancel",stop);
+}
+/* แผงข้างของกล่อง ใช้ช่องเดียวกับแผงบูธ เลือกได้ทีละอย่าง */
+function arSidebar(){
+  const sd=$("#sd"); if(!sd)return;
+  if(!selAr){ if(!sel){ sd.hidden=true; sd.innerHTML="" } return }
+  const a=selAr, wr=can("floorplan")==="write";
+  const booths=B.map(b=>b.code).sort();
+  const stages=(EV.stages||[]);
+  sd.hidden=false;
+  sd.innerHTML='<button class="x" aria-label="ปิด">×</button>'+
+   '<h3>กล่องบนผัง</h3>'+
+   '<p class="s">'+esc(akOf(a)[1])+' · '+a.w+'×'+a.h+' ช่อง</p>'+
+   (wr?'<label class="bf wide"><span>ชื่อที่แสดงบนผัง</span>'+
+     '<input id="ar_name" value="'+esc(a.name||"")+'" placeholder="เช่น เวทีหลัก, จุดลงทะเบียน"></label>'+
+   '<label class="bf wide"><span>ประเภท</span><select id="ar_kind">'+
+     AKIND.map(k=>'<option value="'+k[0]+'"'+((a.kind||"")===k[0]?" selected":"")+'>'+k[1]+'</option>').join("")+
+     '</select></label>'+
+   '<label class="bf wide"><span>รายละเอียด</span>'+
+     '<input id="ar_note" value="'+esc(a.note||"")+'" placeholder="เช่น ความจุ 200 ที่นั่ง"></label>'+
+   '<label class="bf wide"><span>ผูกกับ</span><select id="ar_link">'+
+     '<option value="">ไม่ผูก</option>'+
+     (booths.length?'<optgroup label="บูธ">'+booths.map(c=>'<option value="booth:'+esc(c)+'"'+
+       (a.link&&a.link.t==="booth"&&a.link.v===c?" selected":"")+'>บูธ '+esc(c)+'</option>').join("")+'</optgroup>':'')+
+     (stages.length?'<optgroup label="เวที">'+stages.map(s=>'<option value="stage:'+esc(s)+'"'+
+       (a.link&&a.link.t==="stage"&&a.link.v===s?" selected":"")+'>'+esc(s)+'</option>').join("")+'</optgroup>':'')+
+     '</select></label>'+
+   '<p class="simnote" style="margin:8px 0 0">ผูกแล้ว เวลามีคนกดกล่องนี้ตอนไม่ได้แก้ผัง ระบบจะพาไปที่นั่นให้</p>'+
+   '<div class="lgbtns" style="margin-top:12px"><button id="ar_del" class="dg">ลบกล่องนี้</button></div>'
+    :'<p>'+esc(a.note||"ไม่มีรายละเอียด")+'</p>'+
+     (arLinkText(a)?'<p class="s">ผูกกับ '+esc(arLinkText(a))+'</p>':''));
+
+  sd.querySelector(".x").addEventListener("click",()=>{ selAr=null; paint(); arSidebar() });
+  if(!wr)return;
+  const nm=sd.querySelector("#ar_name");
+  nm.addEventListener("input",()=>{ a.name=nm.value; paint() });
+  nm.addEventListener("blur",()=>{ snapSoon() });
+  const kd=sd.querySelector("#ar_kind");
+  kd.addEventListener("change",()=>{ a.kind=kd.value; snapSoon(); paint(); arSidebar() });
+  const nt=sd.querySelector("#ar_note");
+  nt.addEventListener("input",()=>{ a.note=nt.value });
+  nt.addEventListener("blur",()=>{ snapSoon() });
+  const lk=sd.querySelector("#ar_link");
+  lk.addEventListener("change",()=>{
+    const v=lk.value;
+    a.link=v?{t:v.slice(0,v.indexOf(":")),v:v.slice(v.indexOf(":")+1)}:null;
+    snapSoon(); paint();
+  });
+  sd.querySelector("#ar_del").addEventListener("click",()=>{
+    if(!confirm("ลบกล่อง "+(a.name||"นี้")+" ออกจากผัง"))return;
+    const i=AR.indexOf(a); if(i>=0)AR.splice(i,1);
+    selAr=null; snapSoon(); paint(); arSidebar(); toastTL("ลบกล่องแล้ว");
+  });
+}
+/* กดกล่องตอนไม่ได้แก้ผัง ถ้าผูกไว้ก็พาไปที่นั่น ไม่ได้ผูกก็ไม่ต้องทำอะไร */
+function arFollow(a){
+  if(!a.link)return;
+  if(a.link.t==="booth"){
+    const b=B.find(x=>x.code===a.link.v);
+    if(b){ sel=b.code; selAr=null; paint(); sidebar();
+      toastTL("ไปที่บูธ "+b.code) }
+    else toastTL("บูธ "+a.link.v+" ไม่อยู่ในผังแล้ว");
+  }
+  else if(a.link.t==="stage"){ go("stage") }
+}
 function paint(){
   const svg=$("#plan"); if(!svg)return; svg.textContent="";
   AR.forEach(a=>{
-    const g=E("g",{class:"ar"}),cx=a.x+a.w/2,cy=a.y+a.h/2;
-    g.appendChild(E("rect",{x:a.x,y:a.y,width:a.w,height:a.h,rx:.2}));
+    const on=a===selAr, col=arFill(a), tinted=!!a.kind;
+    const g=E("g",{class:"ar"+(tinted?" kd":"")+(on?" sel":"")+(planEdit?" ed":"")+
+      (!planEdit&&a.link?" go":"")}),cx=a.x+a.w/2,cy=a.y+a.h/2;
+    const r=E("rect",{x:a.x,y:a.y,width:a.w,height:a.h,rx:.2});
+    if(tinted){ r.setAttribute("fill",col); r.setAttribute("stroke",col) }
+    g.appendChild(r);
     /* ป้ายโซนแนวนอนเสมอ ตัดคำลงบรรทัดใหม่แทนการตะแคง */
     const L=wrapLabel(a.name,a.w-.3,a.h-.3);
     let y=cy-(L.n*L.fs*1.12)/2+L.fs*.86;
     L.lines.forEach(t=>{
       const e=E("text",{x:cx,y:y,"text-anchor":"middle","font-size":L.fs});
+      if(tinted)e.setAttribute("fill",col);
       e.textContent=t; g.appendChild(e); y+=L.fs*1.12;
     });
+    /* กล่องที่ผูกกับบูธหรือเวที ติดจุดเล็ก ๆ ไว้มุมบนซ้าย ให้รู้ว่ากดแล้วไปต่อได้ */
+    if(a.link){
+      g.appendChild(E("circle",{cx:a.x+.28,cy:a.y+.28,r:.16,fill:tinted?col:cv("--ink3")}));
+    }
+    if(on&&planEdit){
+      g.appendChild(E("rect",{x:a.x+a.w-.45,y:a.y+a.h-.45,width:.45,height:.45,rx:.08,
+        class:"arh",fill:cv("--accent")}));
+    }
+    g.addEventListener("click",()=>{ if(!planEdit)arFollow(a) });
     svg.appendChild(g);
   });
   const s=q.trim().toLowerCase();
@@ -2811,7 +3000,7 @@ function paint(){
     const okZ=!fZone||b.zone===fZone;
     const okP=!fPkg||b.pkg===fPkg;
     if(!(okQ&&okZ&&okP))g.classList.add("dim");
-    g.addEventListener("click",()=>{sel=b.code;paint();sidebar()});
+    g.addEventListener("click",()=>{sel=b.code;selAr=null;paint();sidebar()});
     g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();sel=b.code;paint();sidebar()}});
     svg.appendChild(g);
   });

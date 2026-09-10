@@ -1249,4 +1249,18 @@ tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--g
   border-bottom-color:color-mix(in srgb,var(--gc) 25%,var(--line));
   box-shadow:inset 4px 0 0 var(--gc);padding-left:17px}
 .rsg[style*="--gc"] .rsgh{color:color-mix(in srgb,var(--gc) 70%,var(--ink))}
+
+/* ---------- กล่องบนผังพื้นที่ ----------
+   กล่องเป็นฉากหลังของผัง บูธคือของที่คนเข้ามาดู กล่องจึงจางกว่าเสมอ
+   พอตั้งประเภทแล้วถึงมีสี แต่ยังคุมความเข้มไว้ไม่ให้แย่งสายตาไปจากบูธ */
+.ar.kd rect{opacity:.16;stroke-width:.06}
+.ar.kd text{opacity:.95}
+.ar.go{cursor:pointer}
+.ar.go rect{opacity:.24}
+.ar.go:hover rect{opacity:.36}
+.ar.ed{cursor:move}
+.ar.sel rect:first-of-type{stroke:var(--accent);stroke-width:.12;opacity:.32}
+.ar .arh{cursor:nwse-resize}
+/* ตอนแก้ผัง ตัวหนังสือในกล่องต้องไม่ขวางการลาก ไม่งั้นลากทีไรได้เลือกข้อความแทน */
+.pw svg#plan .ar.ed text{pointer-events:none}
 </style>
