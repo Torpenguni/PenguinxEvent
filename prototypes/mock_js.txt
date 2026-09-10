@@ -5484,7 +5484,7 @@ function pTimeline(ph){
     const ga=Math.min(...idx.map(([r])=>pA(r))),
           gb=Math.max(...idx.map(([r])=>pB(r)));
     const pct=Math.round(gd/idx.length*100);
-    h+='<tr class="gtg" data-dgrp="'+esc(g)+'">'+grpNo(g)+'<td class="gtn gtgh" colspan="4">'+
+    h+='<tr class="gtg" data-dgrp="'+esc(g)+'"'+grpVar(g)+'>'+grpNo(g)+'<td class="gtn gtgh" colspan="4">'+
       '<button class="gtx" data-gt="'+esc(g)+'">'+(op?"▾":"▸")+'</button>'+
       (wr?'<span class="gtgn" contenteditable="plaintext-only" data-gn="'+esc(g)+'">'+esc(g)+'</span>'
          :'<span class="gtgn">'+esc(g)+'</span>')+
@@ -5500,7 +5500,8 @@ function pTimeline(ph){
     idx.forEach(([r,i])=>{
       const a=pA(r), b=pB(r), ha=hasAct(r), xa=ha?aA(r):0, xb=ha?aB(r):-1;
       const st=TLST[r.st]||TLST.plan, isLate=r.st!=="done"&&b<now, sl=slip(r);
-      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'">'+selNo(rowNo++)+'<td class="gtn">'+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'"'+grpVar(r.grp)+'>'+
+        selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-tn="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-tx="'+i+'" title="Delete this task">×</button>':'')+
         noteLine(r,"tnote",i,wr)+'</td>'+
@@ -5776,7 +5777,7 @@ function pRunSheet(){
   grps.forEach(g=>{
     const rows=shown.filter(r=>r.grp===g).sort((a,b)=>hm(a.t1)-hm(b.t1));
     const gd=rows.filter(r=>r.st==="done").length;
-    h+='<div class="rsg"><div class="rsgh">'+esc(g)+
+    h+='<div class="rsg"'+grpVar(g)+'><div class="rsgh">'+esc(g)+
       '<span class="rsgn">'+gd+'/'+rows.length+'</span></div>';
     rows.forEach(r=>{
       const i=R.indexOf(r);
@@ -5838,6 +5839,35 @@ function wireRun(){
   if(pb)pb.addEventListener("click",()=>window.print());
 }
 
+/* ---------- สีประจำหมวดของไทม์ไลน์ ----------
+   ทุกหมวดเคยเป็นสีเทาเหมือนกันหมด ต้องอ่านชื่อถึงจะรู้ว่าแถวไหนเป็นงานหมวดไหน
+   ให้แต่ละหมวดมีสีของตัวเอง ตากวาดครั้งเดียวก็แยกออกว่างานติดตั้งจบตรงไหน งานเวทีเริ่มตรงไหน
+
+   สีมาจากชื่อหมวดโดยตรง ไม่ได้ให้คนเลือกและไม่ได้เก็บลงฐานข้อมูล
+   หมวดเดิมจึงได้สีเดิมทุกครั้งที่เปิด และงานใหม่ที่ตั้งชื่อหมวดเองก็ได้สีทันทีโดยไม่ต้องตั้งค่า
+   เลี่ยงช่วงสีแดง เพราะแดงใช้บอกสถานะว่าติดปัญหาอยู่แล้ว จะได้ไม่อ่านผิดกัน */
+const GHUE=[205,262,152,32,300,178,240,88,20,330,115,55];
+/* เคยเลือกสีจากค่า hash ของชื่อหมวด ผลคือหมวดคนละอันได้สีเดียวกันบ่อยมาก
+   ในงานจริง 8 หมวดได้แค่ 6 สี และสองหมวดที่อยู่ติดกันบนจอดันได้สีเดียวกัน ซึ่งเสียจุดประสงค์ทั้งหมด
+   เปลี่ยนมาแจกตามลำดับที่หมวดปรากฏในงานนั้น ไล่จากช่วงก่อนงาน หน้างาน แล้วหลังงาน
+   หมวดที่มีอยู่แล้วจึงได้สีเดิมเสมอ และหมวดที่เพิ่มใหม่ไปต่อท้ายโดยไม่ไปสลับสีของใคร */
+function grpOrder(){
+  const rows=tlRows(), out=[];
+  for(const ph of ["pre","on","post"])
+    for(const r of rows)
+      if(r.ph===ph&&r.grp&&!out.includes(r.grp))out.push(r.grp);
+  return out;
+}
+function grpColor(name){
+  const t=String(name||"");
+  if(!t)return "hsl(210 8% 55%)";
+  let i=grpOrder().indexOf(t);
+  if(i<0){ let n=0; for(let k=0;k<t.length;k++)n=(n*31+t.charCodeAt(k))>>>0; i=n; }
+  return "hsl("+GHUE[i%GHUE.length]+" 62% 45%)";
+}
+/* ใส่สีของหมวดเป็นตัวแปร CSS ที่แถว แล้วให้ CSS หยิบไปใช้เอง
+   วิธีนี้ทำให้กฎ CSS เขียนครั้งเดียวใช้ได้ทุกหมวด ไม่ต้องมีคลาสต่อหมวด */
+const grpVar=(name)=>' style="--gc:'+grpColor(name)+'"';
 function pTimelineOn(){
   tlEnter("on"); tlRedraw=pTimelineOn;
   const wr=can("timeline")==="write", ALL=tlRows(), days=tlDays();
@@ -5895,7 +5925,7 @@ function pTimelineOn(){
     const idx=R.map((r,i)=>[r,i]).filter(([r])=>r.d===onDay&&r.grp===g);
     const gd=idx.filter(([r])=>r.st==="done").length;
     const pct=Math.round(gd/idx.length*100);
-    h+='<tr class="gtg" data-dgrp="'+esc(g)+'">'+grpNo(g)+'<td class="gtn gtgh" colspan="4">'+
+    h+='<tr class="gtg" data-dgrp="'+esc(g)+'"'+grpVar(g)+'>'+grpNo(g)+'<td class="gtn gtgh" colspan="4">'+
       '<span class="gtgn">'+esc(g)+'</span>'+
       '<span class="gtpb"><i style="width:'+pct+'%"></i></span><small>'+gd+'/'+idx.length+'</small>'+
       (wr?'<button class="gtx2" data-oa="'+esc(g)+'">+ Add run-sheet item</button>':'')+'</td>'+
@@ -5909,7 +5939,8 @@ function pTimelineOn(){
       const t1=hm(r.t1), t2=Math.max(hm(r.t2),t1+.5), st=TLST[r.st]||TLST.plan;
       const ha=hasActT(r), y1=ha?hm(r.at1):0, y2=ha?Math.max(hm(r.at2),y1+.5):0;
       const sm=slipMin(r);
-      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'">'+selNo(rowNo++)+'<td class="gtn">'+
+      h+='<tr class="gtr'+(tlSel.has(r)?" sel":"")+'" data-drow="'+i+'"'+grpVar(r.grp)+'>'+
+        selNo(rowNo++)+'<td class="gtn">'+
         (wr?'<span contenteditable="plaintext-only" data-on="'+i+'">'+esc(r.name)+'</span>':esc(r.name))+
         (wr?' <button class="gtdel" data-ox="'+i+'" title="Delete this run-sheet item">×</button>':'')+
         noteLine(r,"onote",i,wr)+'</td>'+

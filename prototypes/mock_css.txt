@@ -1227,4 +1227,26 @@ table.gt th.gtm>span{position:sticky;left:640px;display:inline-block}
   .rsr{break-inside:avoid}
   .rschk{border-color:#666}
 }
+
+/* ---------- สีประจำหมวดของไทม์ไลน์ ----------
+   สีมาจากชื่อหมวด ส่งมาเป็นตัวแปร --gc ที่แถว กฎด้านล่างจึงเขียนครั้งเดียวใช้ได้ทุกหมวด
+   ระบายเฉพาะหัวหมวดกับแถบแผน ส่วนแถบที่เกิดขึ้นจริงยังใช้สีสถานะเหมือนเดิม
+   เพราะสองอย่างนี้บอกคนละเรื่อง หมวดบอกว่างานประเภทไหน สถานะบอกว่าไปถึงไหนแล้ว */
+tr.gtg[style*="--gc"] td{background:color-mix(in srgb,var(--gc) 10%,var(--soft))}
+tr.gtg[style*="--gc"] td.gtn,tr.gtg[style*="--gc"] td.gtby{
+  background:color-mix(in srgb,var(--gc) 10%,var(--soft))}
+tr.gtg[style*="--gc"] td.gtno{box-shadow:inset 4px 0 0 var(--gc)}
+tr.gtg[style*="--gc"] .gtgn{color:color-mix(in srgb,var(--gc) 72%,var(--ink))}
+tr.gtg[style*="--gc"] .gsum,tr.gtg[style*="--gc"] .onsum{background:var(--gc);opacity:.55}
+table.gt tbody tr.gtg[style*="--gc"]:hover>td{background:color-mix(in srgb,var(--gc) 17%,var(--soft))}
+/* แถบแผนของแต่ละงานรับสีหมวดมาด้วย จะได้ไล่สายตาจากหัวหมวดลงมาได้ว่าเป็นพวกเดียวกัน */
+tr.gtr[style*="--gc"] .onplan{border-color:var(--gc);opacity:1}
+tr.gtr[style*="--gc"] td.gtc .gplan{border-color:var(--gc);opacity:1}
+tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--gc) 45%,transparent)}
+/* ใบรันงาน หัวการ์ดของแต่ละหมวดใช้สีเดียวกับในกราฟ สลับมุมมองแล้วยังจำได้ว่าอันไหนคืออันไหน */
+.rsg[style*="--gc"]{border-color:color-mix(in srgb,var(--gc) 30%,var(--line))}
+.rsg[style*="--gc"] .rsgh{background:color-mix(in srgb,var(--gc) 12%,var(--soft));
+  border-bottom-color:color-mix(in srgb,var(--gc) 25%,var(--line));
+  box-shadow:inset 4px 0 0 var(--gc);padding-left:17px}
+.rsg[style*="--gc"] .rsgh{color:color-mix(in srgb,var(--gc) 70%,var(--ink))}
 </style>
