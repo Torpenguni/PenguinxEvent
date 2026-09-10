@@ -105,9 +105,12 @@ if (process.env.NODE_ENV === 'production') {
   /* หน้าตาชุดเต็มต่อฐานข้อมูลจริง คือตัวหลักที่ใช้พัฒนากันอยู่ตอนนี้
      เปิดโดเมนแล้วเจอตัวนี้เลย ไม่ต้องจำว่าต้องต่อ /app
      แอปรุ่นถัดไปที่ยังทำไม่เสร็จ ย้ายไปอยู่ที่ /next เข้าดูได้แต่ยังไม่ใช่ตัวหลัก */
+  /* หน้าแรกของสองโดเมนคนละไฟล์กัน ฝั่งทีมงานคือ app.html ฝั่งผู้ออกบูธมีหน้าเดียวคือ index.html
+     ของเดิมส่ง app.html ทั้งคู่ พอร์ทัลผู้ออกบูธจึงตอบ ENOENT ทุกครั้งที่มีคนเปิดโดเมน */
+  const home = isPortal ? 'index.html' : 'app.html'
   app.get(['/', '/app'], (_req, res) => {
     res.setHeader('cache-control', 'no-store')
-    res.sendFile(path.join(dist, 'app.html'))
+    res.sendFile(path.join(dist, home))
   })
   /* หน้าที่มาจากลิงก์ในอีเมล ต้องอยู่กับแอปรุ่นถัดไปเพราะมันเป็นคนทำหน้าพวกนี้ */
   app.get(['/next', '/set-password', '/invite'], (_req, res) => {
