@@ -88,6 +88,23 @@ await check('เข้าสู่ระบบได้', async () => {
   return `เห็น ${n} การ์ด`
 })
 
+/* โลโก้งานหายมาแล้วหลายรอบ จากหลายสาเหตุคนละเรื่องกัน
+   ทุกครั้งรู้ตัวเพราะคนใช้ทักมา ไม่ใช่เพราะระบบบอก ด่านนี้จึงเทียบสองฝั่งให้ตรงกัน
+   เซิร์ฟเวอร์บอกว่างานไหนมีโลโก้ การ์ดของงานนั้นต้องขึ้นรูปและรูปต้องโหลดขึ้นจริง */
+await check('โลโก้ของงานยังอยู่และขึ้นจริง', async () => {
+  const r = await ev(`(async()=>{
+    const list=await api("/api/events");
+    const evs=Array.isArray(list)?list:(list.events||[]);
+    const ควรมี=evs.filter(e=>e.logo_url).map(e=>e.code);
+    const cards=[...document.querySelectorAll("#evgrid .evcard")];
+    const ขึ้นจริง=cards.filter(c=>{const i=c.querySelector(".evmark img"); return i&&i.naturalWidth>0}).length;
+    return {ควรมี, ขึ้นจริง, การ์ด:cards.length}})()`)
+  must(r.ขึ้นจริง >= r.ควรมี.length,
+    `เซิร์ฟเวอร์บอกว่ามีโลโก้ ${r.ควรมี.length} งาน (${r.ควรมี.join(', ')}) แต่ขึ้นจริง ${r.ขึ้นจริง}`)
+  return r.ควรมี.length ? `${r.ขึ้นจริง}/${r.ควรมี.length} งานที่มีโลโก้ ขึ้นครบ`
+    : 'ยังไม่มีงานไหนตั้งโลโก้ไว้'
+})
+
 await check('เปิดงานแล้วข้อมูลมาครบ', async () => {
   /* เลือกงานที่มีข้อมูลจริงมาตรวจ ไม่ใช่งานเปล่าที่ผ่านทุกด่านโดยไม่ได้ตรวจอะไรเลย */
   await ev(`(()=>{const cards=[...document.querySelectorAll("#evgrid .evcard")]
