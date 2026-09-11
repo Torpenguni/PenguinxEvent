@@ -1333,6 +1333,30 @@ tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--g
   .fnlv{width:84px;font-size:13px}
   .fnlgap{padding-left:98px}
 }
+
+/* ---------- กราฟผลงานรายคน ---------- */
+.pfb,.pfleg{display:flex;flex-direction:column}
+.pfbr,.pfmr{display:flex;align-items:center;gap:12px;padding:5px 0}
+.pfbn{width:150px;flex:0 0 auto;display:flex;align-items:center;gap:8px;font-size:13.5px;
+  font-weight:600;min-width:0}
+.pfbn small{font-weight:400;color:var(--ink3);font-size:12px}
+.pfbb{flex:1;position:relative;height:24px;background:var(--line);border-radius:6px;overflow:hidden}
+.pfbb i{position:absolute;top:0;left:0;height:100%;border-radius:6px}
+.pfbb i.tot{background:color-mix(in srgb,var(--accent) 32%,transparent)}
+.pfbb i.got{background:var(--ok)}
+.pfbv{width:126px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+.pfbv small{display:block;font-weight:400;font-size:11.5px;color:var(--ink3)}
+.pfleg{flex-direction:row;flex-wrap:wrap;gap:8px 16px;margin-bottom:12px}
+.pfmb{flex:1;display:flex;height:20px;border-radius:6px;overflow:hidden;background:var(--line)}
+.pfmb i{height:100%}
+@media(max-width:760px){
+  .pfbn{width:104px;font-size:12.5px}
+  .pfbv{width:92px;font-size:13px}
+}
+
+/* ค้างอยู่ขั้นนี้มากี่วัน */
+.sage{font-size:12.5px;color:var(--ink2)}
+.sage.slow{color:var(--warn);font-weight:700}
 </style>
 
 <div id="login">
@@ -3782,7 +3806,8 @@ function drawDealPanel(){
    '<dl class="kv"><dt>Stage</dt><dd><select id="dstage">'+STAGES.map(x=>
      '<option value="'+x[0]+'"'+(d.stage===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
    '</select></dd>'+
-   '<dt>Next step</dt><dd>'+(d.next?esc(d.next)+' · '+esc(d.nextDate):'<span style="color:var(--warn)">None yet</span>')+'</dd></dl>'+
+   '<dt>Next step</dt><dd>'+(d.next?esc(d.next)+' · '+esc(d.nextDate):'<span style="color:var(--warn)">None yet</span>')+'</dd>'+
+   (stageDays(d)!=null?'<dt>อยู่ขั้นนี้มา</dt><dd>'+stageAge(d)+'</dd>':'')+'</dl>'+
    peopleBox(d)+
    billBox(d)+
    '<div class="acts"><b style="font-size:13px">Log a contact</b>'+
@@ -4358,10 +4383,48 @@ function todayBuckets(){
    {k:"none", l:"ยังไม่มีนัดถัดไป", c:"--ink3", why:"ไม่รู้ว่าขั้นต่อไปคืออะไร ต้องตั้งก่อน", rows:none.sort(byVal)},
   ];
 }
+/* ดีลที่ค้างขั้นเดิมนานกว่าเพื่อนในขั้นเดียวกันมาก เป็นสัญญาณที่ตรงกว่า "เงียบ 14 วัน"
+   เพราะบางขั้นใช้เวลานานโดยธรรมชาติอยู่แล้ว เทียบกับค่ากลางของขั้นนั้นจึงยุติธรรมกว่า */
+function stuckDeals(){
+  return DEALS.filter(mine)
+    .filter(d=>!["paid","lost"].includes(d.stage))
+    .filter(d=>{ const n=stageDays(d); if(n==null)return false;
+      const m=stageMedian(d.stage); return m!=null&&n>Math.max(m*2,m+7) })
+    .sort((a,b)=>(stageDays(b)||0)-(stageDays(a)||0));
+}
 /* กลุ่มที่เร่งด่วนกางไว้ให้เลย ส่วน "ยังไม่มีนัดถัดไป" มักมีเยอะที่สุดและไม่เร่ง จึงพับไว้ก่อน */
-let todayOpen={late:1,due:1,quiet:1,none:0};
+let todayOpen={late:1,due:1,stuck:1,quiet:1,none:0};
+/* ---------- ค้างอยู่ขั้นนี้มากี่วัน ----------
+   เซิร์ฟเวอร์ส่งเวลาที่ดีลเข้าขั้นปัจจุบันมาให้ นับเป็นจำนวนวันตรงนี้
+   ดีลที่ออกใบแจ้งหนี้ไปเมื่อวานกับเมื่อสองเดือนก่อน หน้าจอเคยเหมือนกันทุกอย่าง
+   ตัวเลขนี้คือสิ่งที่บอกว่าควรไปตามใครก่อน */
+function stageDays(d){
+  if(!d||!d.stageSince)return null;
+  const t=Date.parse(d.stageSince);
+  if(!isFinite(t))return null;
+  return Math.max(0,Math.floor((Date.now()-t)/86400000));
+}
+/* ค้างนานแค่ไหนถึงเรียกว่านาน เทียบกับค่ากลางของดีลอื่นที่อยู่ขั้นเดียวกัน
+   ไม่ใช้ตัวเลขตายตัว เพราะแต่ละขั้นใช้เวลาต่างกันโดยธรรมชาติ */
+function stageMedian(stage){
+  const v=DEALS.filter(d=>d.stage===stage).map(stageDays).filter(x=>x!=null).sort((a,b)=>a-b);
+  if(v.length<4)return null;
+  return v[Math.floor(v.length/2)];
+}
+function stageAge(d){
+  const n=stageDays(d); if(n==null)return "";
+  const med=stageMedian(d.stage);
+  const slow=med!=null&&n>Math.max(med*2,med+7);
+  return '<span class="sage'+(slow?" slow":"")+'" title="'+
+    (med!=null?"ค่ากลางของขั้นนี้คือ "+med+" วัน":"ยังเทียบไม่ได้ ดีลในขั้นนี้ยังน้อย")+
+    '">ค้างมา '+n+' วัน'+(slow?" · นานกว่าปกติ":"")+'</span>';
+}
 function pToday(){
-  const B4=todayBuckets(), total=B4.reduce((s,b)=>s+b.rows.length,0);
+  const B4=todayBuckets();
+  const stuck=stuckDeals();
+  if(stuck.length)B4.splice(2,0,{k:"stuck",l:"ค้างขั้นเดิมนานกว่าปกติ",c:"--warn",
+    why:"อยู่ขั้นนี้นานกว่าดีลอื่นในขั้นเดียวกันมาก",rows:stuck});
+  const total=B4.reduce((s,b)=>s+b.rows.length,0);
   /* ถ้ากลุ่มที่กางไว้ไม่มีของเลย หน้าจะดูเหมือนว่างทั้งที่มีงานค้างอยู่
      กางกลุ่มแรกที่มีของให้เสมอ จะได้เห็นอะไรสักอย่างตั้งแต่เปิดหน้ามา */
   if(total&&!B4.some(b=>b.rows.length&&todayOpen[b.k])){
@@ -4401,7 +4464,8 @@ function pToday(){
                :'นัดวันนี้ '+esc(d.nextDate))
             : (l?'คุยล่าสุด '+esc(l.date)+' · '+daysAgo(l.date)+' วันก่อน':'ยังไม่เคยบันทึกการคุย'))+
           '</small></span>'+
-        '<span class="tdv">'+f(d.list)+'<small>'+esc(stName(d.stage))+'</small></span>'+
+        '<span class="tdv">'+f(d.list)+'<small>'+esc(stName(d.stage))+
+          (stageDays(d)!=null?' · '+stageDays(d)+' วัน':'')+'</small></span>'+
         '<span class="tdb">'+
           (tel?'<a class="pgo" href="tel:'+esc(String(tel).replace(/[^0-9+]/g,""))+'">โทร</a>':'')+
           (ln?'<a class="pgo" href="https://line.me/ti/p/~'+encodeURIComponent(ln)+
@@ -4797,7 +4861,13 @@ function repStat(name){
   const g=DEALS.filter(d=>(d.sales||"—")===name);
   const open=g.filter(d=>!["paid","lost"].includes(d.stage));
   const con=g.reduce((s,d)=>s+d.list,0);
-  const got=g.reduce((s,d)=>s+d.list*(d.st==="paid"?1:d.st==="deposit"?dep:0),0);
+  /* เงินที่เก็บได้จริงต้องอ่านจากสถานะของบูธ ไม่ใช่ช่อง st ของดีล
+     ช่องนั้นว่างเสมอเมื่อโหลดจากฐานข้อมูล ผลคือ "เก็บเงินได้" ของทุกคนเป็นศูนย์ตลอด
+     ทั้งที่หน้ากำไรขาดทุนแสดงตัวเลขถูกอยู่แล้ว เพราะมันอ่านจากบูธ */
+  const got=g.reduce((s,d)=>s+(d.booths||[]).reduce((t,code)=>{
+    const b=B.find(x=>x.code===code); if(!b)return t;
+    return t+(b.list||0)*(b.st==="paid"?1:b.st==="deposit"?dep:0);
+  },0),0);
   const booths=g.reduce((s,d)=>s+d.booths.length,0);
   const rep=REPS.find(r=>r.name===name);
   return {name,rep,deals:g,open,con,got,booths,
@@ -4805,6 +4875,50 @@ function repStat(name){
     cover:open.length?Math.round(open.filter(d=>!noNext(d)).length/open.length*100):null,
     stale:g.filter(isStale).length,
     comm:con*((rep?rep.rate:0)/100)};
+}
+/* ---------- กราฟผลงานรายคน ----------
+   หน้านี้เคยมีแต่ตารางตัวเลข 9 คอลัมน์ ต้องไล่อ่านทีละช่องถึงจะรู้ว่าใครทำได้ดี
+   กราฟตอบคำถามที่หัวหน้าถามจริง ๆ ได้ในครั้งเดียว ใครถือของเยอะ ใครปิดได้จริง
+   และของที่แต่ละคนถืออยู่กระจุกที่ขั้นไหน */
+function perfBars(rows){
+  const R=rows.filter(r=>(r.rep||{}).kind!=="house").sort((a,b)=>b.con-a.con);
+  if(R.length<2)return "";
+  const mx=Math.max(...R.map(r=>r.con))||1;
+  return '<h2 class="sec">เทียบกันรายคน — มูลค่าที่ถืออยู่ กับที่เก็บเงินได้แล้ว</h2>'+
+   '<div class="w"><div class="body"><div class="pfb">'+
+   R.map(r=>{
+     const got=Math.min(r.got,r.con);
+     return '<div class="pfbr">'+
+       '<span class="pfbn">'+logoTile(r.name,22)+esc(r.name)+'</span>'+
+       '<span class="pfbb">'+
+         '<i class="tot" style="width:'+(r.con/mx*100)+'%"></i>'+
+         '<i class="got" style="width:'+(got/mx*100)+'%"></i>'+
+       '</span>'+
+       '<span class="pfbv">'+f(r.con)+'<small>เก็บแล้ว '+f(got)+'</small></span>'+
+     '</div>';
+   }).join("")+
+   '</div><p class="fnlnote">แท่งจางคือมูลค่าที่ถืออยู่ทั้งหมด แท่งเข้มคือเงินที่เก็บได้แล้วจริง '+
+   'ช่องว่างระหว่างสองแท่งคือเงินที่ยังไม่เข้า</p></div></div>';
+}
+/* สัดส่วนขั้นตอนของแต่ละคน บอกว่าใครมีของกองอยู่ต้นท่อ ใครใกล้ปิดแล้ว */
+function perfMix(rows){
+  const R=rows.filter(r=>(r.rep||{}).kind!=="house"&&r.deals.length).sort((a,b)=>b.deals.length-a.deals.length);
+  if(!R.length)return "";
+  return '<h2 class="sec">ของที่แต่ละคนถืออยู่ กระจุกที่ขั้นไหน</h2>'+
+   '<div class="w"><div class="body">'+
+   '<div class="pfleg">'+STAGES.map(x=>
+     '<span class="slg"><i style="background:'+cv(x[2])+'"></i>'+esc(x[1])+'</span>').join("")+'</div>'+
+   R.map(r=>{
+     const n=r.deals.length;
+     return '<div class="pfmr">'+
+       '<span class="pfbn">'+esc(r.name)+'<small>'+n+' ดีล</small></span>'+
+       '<span class="pfmb">'+STAGES.map(x=>{
+         const c=r.deals.filter(d=>d.stage===x[0]).length;
+         return c?'<i style="width:'+(c/n*100)+'%;background:'+cv(x[2])+
+           '" title="'+esc(x[1])+' '+c+' ดีล"></i>':"";
+       }).join("")+'</span></div>';
+   }).join("")+
+   '</div></div>';
 }
 function pPerf(){
   const seeMoney=ROLE[role].scope==="all";
@@ -4834,6 +4948,8 @@ function pPerf(){
    card(f(rows.length?T.con/T.deals:0),"Average per deal","--ink2")+
    (seeMoney?card(f(T.comm),"Estimated commission","--s-booked"):"")+
    '</div>';
+
+  if(pick==="all")h+=perfBars(rows)+perfMix(rows);
 
   if(pick==="all"){
     const real=rows.filter(r=>(r.rep||{}).kind!=="house");

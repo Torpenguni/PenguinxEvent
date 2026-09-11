@@ -136,3 +136,37 @@ export function dealMessage ({ subject, body, sender, company }) {
       <span style="color:#6b7280;font-size:13px">${esc(sender.email)}</span></p>`),
   }
 }
+
+// ---------------------------------------------------- สรุปงานค้างรายสัปดาห์ของเซลล์
+/* เซลล์เห็นของค้างเฉพาะตอนเปิดหน้าเว็บ ถ้าสัปดาห์นั้นยุ่งจนไม่ได้เปิด ก็ไม่มีอะไรมาสะกิด
+   เมลฉบับนี้ส่งเช้าวันจันทร์ บอกเฉพาะดีลของคนนั้น เรียงตามความเร่งด่วน
+   ไม่มีอะไรค้างก็ไม่ส่ง ไม่งั้นคนจะเลิกอ่านภายในสองสัปดาห์ */
+export function repDigest ({ rep, event, groups, url }) {
+  const total = groups.reduce((n, g) => n + g.rows.length, 0)
+  const block = (g) => {
+    if (!g.rows.length) return ''
+    return `<p style="margin:20px 0 6px"><b>${esc(g.label)}</b>
+      <span style="background:${g.urgent ? '#fdecec' : '#f3f4f6'};color:${g.urgent ? '#b42318' : '#4b5563'};
+      font-size:12px;padding:1px 8px;border-radius:99px;margin-left:5px">${g.rows.length}</span></p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+      ${g.rows.slice(0, 8).map((d) => `<tr>
+        <td style="padding:7px 0;border-top:1px solid #e5e7eb">${esc(d.company)}
+          ${d.note ? `<br><span style="color:#6b7280;font-size:12.5px">${esc(d.note)}</span>` : ''}</td>
+        <td style="padding:7px 0;border-top:1px solid #e5e7eb;text-align:right;
+            white-space:nowrap;font-variant-numeric:tabular-nums">${
+              Number(d.value || 0).toLocaleString('th-TH')}</td></tr>`).join('')}
+      </table>
+      ${g.rows.length > 8 ? `<p style="color:#6b7280;font-size:12.5px;margin:6px 0 0">
+        และอีก ${g.rows.length - 8} ราย</p>` : ''}`
+  }
+  return {
+    subject: `งานค้างของคุณ ${total} รายการ · ${event.name}`,
+    html: layout(`สรุปเช้าวันจันทร์ · ${esc(event.name)}`, `
+      <p>เรียนคุณ ${esc(rep)}</p>
+      <p>ดีลที่ยังเปิดอยู่ของคุณมี <b>${total} รายการ</b> ที่ควรขยับสัปดาห์นี้</p>
+      ${groups.map(block).join('')}
+      ${url ? button(url, 'เปิดหน้างานวันนี้') : ''}
+      <p style="color:#6b7280;font-size:13px">เมลนี้ส่งอัตโนมัติทุกเช้าวันจันทร์
+      เฉพาะเมื่อมีงานค้าง ถ้าไม่มีอะไรค้างจะไม่ส่ง</p>`),
+  }
+}

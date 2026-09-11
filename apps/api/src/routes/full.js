@@ -43,7 +43,7 @@ async function fetchFull (code, perms, user) {
     const own = perms?.deal?.scope === 'own'
     const myAgent = user.agent_id ?? null
 
-    const [set, brands, zones, types, benefits, addons, booths, deals, items,
+    const [set, brands, zones, types, benefits, addons, booths, stageLog, deals, items,
            budget, stages, sessions, people, tasks, etasks, tl, agents] = await Promise.all([
       q(`select settings from event_setting where event_id=$1`, [id]),
       q(`select name from event_brand where event_id=$1 order by id`, [id]),
@@ -55,6 +55,8 @@ async function fetchFull (code, perms, user) {
       q(`select b.*, z.code as zone_code, bt.name as pkg from booth b
            left join zone z on z.id=b.zone_id left join booth_type bt on bt.id=b.booth_type_id
           where b.event_id=$1 order by b.id`, [id]),
+      q(`select distinct on (company_id) company_id, stage, at
+           from deal_stage_log where event_id = $1 order by company_id, at desc`, [id]),
       q(`select d.*, c.name as company, sa.name as agent, d.agent_id,
                 c.name_th, c.tax_id, c.entity_type, c.branch_code, c.address as bill_address,
                 c.sub_district, c.district, c.province, c.post_code, c.bill_email, c.website
@@ -161,6 +163,10 @@ async function fetchFull (code, perms, user) {
         .filter((d) => !own || (myAgent != null && String(d.agent_id) === String(myAgent)))
         .map((d) => ({
           id: d.id, co: d.company, booths: boothByDeal[d.id] ?? [],
+          /* เข้าขั้นนี้มาตั้งแต่เมื่อไหร่ หน้าเว็บเอาไปคิดเป็นจำนวนวันที่ค้างอยู่
+             นับเฉพาะตอนที่ขั้นตอนเปลี่ยนจริง ไม่ใช่ทุกครั้งที่กดบันทึก */
+          stageSince: (stageLog.rows.find((x) => String(x.company_id) === String(d.company_id)
+            && x.stage === d.status)?.at ?? null),
           /* ข้อมูลออกใบกำกับภาษี ชื่อคีย์ตรงกับที่ PEAK รับ จะได้ส่งต่อได้ตรง ๆ
              เห็นได้เฉพาะคนที่มีสิทธิ์ดูดีล เพราะเป็นข้อมูลนิติบุคคลของลูกค้า */
           bill: {

@@ -112,10 +112,7 @@ export async function runReminders ({
       booths: d.booth_codes, tasks: d.tasks.length, overdue: late,
     }
 
-    if (await alreadySent('exhibitor_reminder', 'deal', d.deal_id)) {
-      out.push({ ...row, status: 'duplicate', error: 'ส่งให้ดีลนี้ไปแล้วภายใน 20 ชั่วโมง' })
-      continue
-    }
+
     /* ยังไม่ได้กรอกอีเมลผู้ติดต่อ ไม่ใช่ความผิดพลาดของระบบ เป็นข้อมูลที่ยังขาด
        ของเดิมปล่อยให้ไปตายที่ sendMail แล้วถูกบันทึกเป็น "ไม่สำเร็จ" ทุกคืน
        ทั้งที่ไม่มีอะไรให้แก้ในฝั่งโปรแกรม กลายเป็นเสียงรบกวนที่กลบของที่พังจริง
@@ -134,6 +131,11 @@ export async function runReminders ({
     })
     if (dryRun) {
       out.push({ ...row, status: 'preview', subject: mail.subject, html: mail.html })
+      continue
+    }
+    /* ด่านกันส่งซ้ำอยู่หลังการดูตัวอย่าง เพราะการดูตัวอย่างไม่ได้ส่งอะไรออกไป */
+    if (await alreadySent('exhibitor_reminder', 'deal', d.deal_id)) {
+      out.push({ ...row, status: 'duplicate', error: 'ส่งให้ดีลนี้ไปแล้วภายใน 20 ชั่วโมง' })
       continue
     }
     const res = await sendMail({

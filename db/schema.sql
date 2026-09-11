@@ -938,3 +938,15 @@ alter table company add column if not exists district      text;
 alter table company add column if not exists province      text;
 alter table company add column if not exists post_code     text;
 alter table company add column if not exists bill_email    text;
+
+-- ประวัติการเปลี่ยนขั้นตอนของดีล ผูกกับงาน+บริษัท ไม่ใช่ deal_id (db/stagelog.sql)
+create table if not exists deal_stage_log (
+  id bigserial primary key,
+  event_id bigint references event(id) on delete set null,
+  company_id bigint references company(id) on delete set null,
+  code text not null, company text not null, stage text not null,
+  at timestamptz not null default now());
+create index if not exists deal_stage_log_idx on deal_stage_log (event_id, company_id, at desc);
+
+-- ผูกเซลล์กับบัญชีผู้ใช้ ใช้ส่งเมลสรุปงานค้าง (db/repuser.sql)
+alter table sales_agent add column if not exists user_id bigint references app_user(id) on delete set null;

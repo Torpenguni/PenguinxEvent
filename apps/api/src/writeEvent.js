@@ -80,6 +80,13 @@ export async function writeEvent (q, e, ctx) {
        สิทธิ์เข้าถึงงานรายคน ลิงก์แชร์ และช่องทางการตลาด จึงหายทุกครั้งที่มีคนกดบันทึก
        ให้คนเข้าถึงงานไว้ตอนเช้า พอบ่ายมีคนบันทึกงาน สิทธิ์นั้นก็หายไปโดยไม่มีใครรู้
        จดไว้ก่อนลบ แล้วใส่กลับให้ผูกกับแถวใหม่ */
+    /* ขั้นตอนเดิมของแต่ละบริษัทในงานนี้ ใช้เทียบว่ามีดีลไหนเปลี่ยนขั้นในการบันทึกรอบนี้บ้าง
+       ต้องอ่านก่อนลบ เพราะแถวดีลกำลังจะถูกเขียนใหม่ทั้งชุด */
+    const wasStage = {}
+    for (const r of (await q(
+      `select d.company_id, d.status from deal d join event e on e.id = d.event_id
+        where e.code = $1`, [e.id])).rows) wasStage[r.company_id] = r.status
+
     const carry = {}
     for (const t of ['user_event', 'event_share', 'marketing_channel']) {
       carry[t] = (await q(
@@ -104,6 +111,12 @@ export async function writeEvent (q, e, ctx) {
        e.seats ?? null, e.ticketPrice ?? null, e.ticketsSold ?? null, keepRev,
        e.hall ?? prev?.hall ?? null, prev?.move_in_from ?? null, prev?.move_out_to ?? null,
        prev?.cloned_from ?? null, prev?.created_at ?? null])
+
+    /* ประวัติการเปลี่ยนขั้นชี้ไปที่แถว event เดิมซึ่งเพิ่งถูกลบ FK เป็น set null
+       ทุกแถวจึงกลายเป็นกำพร้าทันทีที่มีคนกดบันทึก และ "ค้างมากี่วัน" หายไปทั้งงาน
+       ต่อสายกลับด้วยรหัสงาน ซึ่งเป็นค่าที่ไม่เปลี่ยนตามการเขียนใหม่ */
+    await q(`update deal_stage_log set event_id = $2
+              where code = $1 and event_id is distinct from $2`, [e.id, ev.id])
 
     /* ใส่ของที่จดไว้กลับเข้าไป ชี้ไปที่แถวใหม่ ยกคอลัมน์ id เดิมทิ้งให้ฐานข้อมูลแจกใหม่ */
     for (const [t, rows] of Object.entries(carry)) {
@@ -203,6 +216,20 @@ export async function writeEvent (q, e, ctx) {
     for (const d of deals)
       for (const a of d.acts || [])
         acts.push(['deal', dealId[d.id], admin.id, `[${a.kind}] ${a.note || ''}`, a.date])
+    /* จดเฉพาะรายที่ขั้นตอนเปลี่ยนจริง ไม่ใช่ทุกครั้งที่กดบันทึก
+       ไม่งั้นตารางจะโตวันละหลายพันแถวจากการบันทึกอัตโนมัติ และ "ค้างมากี่วัน" จะเป็นศูนย์ตลอด */
+    const logs = []
+    for (const d of deals) {
+      const cid = company[d.co]
+      if (!cid) continue
+      const now = d.stage || 'lead'
+      if (wasStage[cid] === now) continue
+      logs.push([ev.id, cid, e.id, d.co, now])
+    }
+    if (logs.length) {
+      await bulk('deal_stage_log', ['event_id', 'company_id', 'code', 'company', 'stage'], logs)
+    }
+
     await bulk('comment', ['entity', 'entity_id', 'author_id', 'body', 'created_at'], acts)
 
     // ---- บูธ

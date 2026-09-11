@@ -15,7 +15,7 @@ import accessRoutes from './routes/access.js'
 import shareRoutes from './routes/shares.js'
 import userRoutes, { setPassword } from './routes/users.js'
 import dealMailRoutes from './routes/dealMail.js'
-import mailRoutes, { cronReminders } from './routes/mail.js'
+import mailRoutes, { cronReminders, cronDigest } from './routes/mail.js'
 import backupRoutes, { takeBackup } from './routes/backup.js'
 import { fetchFull } from './routes/full.js'
 import timelineRoutes from './routes/timeline.js'
@@ -57,6 +57,8 @@ if (isPortal) {
   app.post('/api/auth/set-password', setPassword)
   // cron เรียกเข้ามาวันละครั้ง ยืนยันตัวด้วย CRON_SECRET ไม่ใช่ session
   app.get('/api/cron/reminders', cronReminders)
+  // สรุปงานค้างของเซลล์ เช้าวันจันทร์
+  app.get('/api/cron/digest', cronDigest)
   app.use('/api/backups', backupRoutes)
   /* สำรองข้อมูลรายวัน ยืนยันตัวด้วย CRON_SECRET เหมือนกัน */
   app.get('/api/cron/backup', async (req, res, next) => {

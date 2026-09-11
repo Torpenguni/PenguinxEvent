@@ -7,6 +7,7 @@ import { q } from '../db.js'
 import { require as need } from '../auth.js'
 import { mailStatus } from '../lib/mail.js'
 import { runReminders } from '../lib/reminders.js'
+import { runDigest } from '../lib/digest.js'
 
 const r = Router()
 
@@ -97,3 +98,20 @@ export const cronReminders = async (req, res, next) => {
 }
 
 export default r
+
+/* สรุปงานค้างรายสัปดาห์ของเซลล์ ยิงเช้าวันจันทร์
+   ยืนยันตัวด้วย CRON_SECRET เหมือนงานอื่น ไม่ได้ตั้งก็ปฏิเสธทุกคำขอ */
+export const cronDigest = async (req, res, next) => {
+  try {
+    const secret = process.env.CRON_SECRET
+    if (!secret) return res.status(503).json({ error: 'ยังไม่ได้ตั้ง CRON_SECRET' })
+    if ((req.headers.authorization || '').replace(/^Bearer /, '') !== secret) {
+      return res.status(401).json({ error: 'ไม่มีสิทธิ์' })
+    }
+    const rows = await runDigest({ dryRun: false })
+    console.log(`cron สรุปงานค้าง: ${rows.filter((x) => x.status === 'sent').length} ส่ง, `
+      + `${rows.filter((x) => x.status === 'skipped').length} ข้าม, `
+      + `${rows.filter((x) => x.status === 'failed').length} ไม่สำเร็จ`)
+    res.json({ ran: rows.length, rows: rows.map(({ html, ...x }) => x) })
+  } catch (e) { next(e) }
+}
