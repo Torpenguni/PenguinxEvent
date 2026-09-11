@@ -740,7 +740,7 @@ tr.dropbe td{box-shadow:inset 0 -2px 0 var(--accent)}
 .nfsum ul{margin:8px 0 0;padding-left:20px;line-height:1.8;color:var(--ink2)}
 .nfsum b{color:var(--ink)}
 /* การ์ดสิ่งที่ต้องทำต่อ บนหน้าภาพรวม */
-.actw{padding:0;overflow:hidden;margin-bottom:18px}
+.actw{padding:0;overflow:hidden;margin:18px 0 0}   /* ย้ายลงมาอยู่ใต้กราฟแล้ว ระยะห่างจึงต้องอยู่ด้านบนแทน */
 .acth{padding:15px 20px 13px;border-bottom:1px solid var(--line)}
 .acth b{font-size:15.5px}
 .acth span{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
@@ -2358,7 +2358,7 @@ function pDash(){
              ["booked","Booked","--s-booked"],["free","Free","--s-free"]];
   const segs=SEG.map(([k,l,c])=>({l,c:cv(c),n:B.filter(b=>b.st===k).length}));
 
-  let h=ACT+'<div class="wg">';
+  let h='<div class="wg">';
 
   // โดนัทสถานะบูธ
   h+=w('Booths by status','w4',
@@ -2433,6 +2433,9 @@ function pDash(){
     '</tbody></table></div>');
 
   h+='</div>';
+  /* รายการที่ต้องจัดการเคยอยู่บนสุด ดันกราฟทั้งหมดลงไปจนต้องเลื่อนถึงจะเห็นภาพรวม
+     ทั้งที่คนเปิดหน้าแรกมาเพื่อดูภาพรวมก่อนเป็นอันดับแรก ย้ายลงมาไว้ใต้กราฟ */
+  h+=ACT;
   if(!seeMoney)h+='<div class="note" style="margin-top:16px"><p>Role '+ROLE[role].n+
     ' cannot see money figures, so the revenue widget is replaced by a booth count</p></div>';
   $("#page").innerHTML=h;

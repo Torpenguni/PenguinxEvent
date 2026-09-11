@@ -1009,7 +1009,7 @@ function pDash(){
              ["booked","Booked","--s-booked"],["free","Free","--s-free"]];
   const segs=SEG.map(([k,l,c])=>({l,c:cv(c),n:B.filter(b=>b.st===k).length}));
 
-  let h=ACT+'<div class="wg">';
+  let h='<div class="wg">';
 
   // โดนัทสถานะบูธ
   h+=w('Booths by status','w4',
@@ -1084,6 +1084,9 @@ function pDash(){
     '</tbody></table></div>');
 
   h+='</div>';
+  /* รายการที่ต้องจัดการเคยอยู่บนสุด ดันกราฟทั้งหมดลงไปจนต้องเลื่อนถึงจะเห็นภาพรวม
+     ทั้งที่คนเปิดหน้าแรกมาเพื่อดูภาพรวมก่อนเป็นอันดับแรก ย้ายลงมาไว้ใต้กราฟ */
+  h+=ACT;
   if(!seeMoney)h+='<div class="note" style="margin-top:16px"><p>Role '+ROLE[role].n+
     ' cannot see money figures, so the revenue widget is replaced by a booth count</p></div>';
   $("#page").innerHTML=h;
