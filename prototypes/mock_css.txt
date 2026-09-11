@@ -1274,4 +1274,55 @@ tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--g
 .hallsum{font-size:13px;color:var(--ink2);margin-left:8px}
 .hallsum.mut{color:var(--ink3)}
 .hallout{flex:1 0 100%;font-size:12.5px;color:var(--risk);font-weight:600;margin-top:2px}
+
+/* ---------- กรวยการขาย ---------- */
+.fnl{display:flex;flex-direction:column}
+.fnlr{display:flex;align-items:center;gap:12px;padding:3px 0}
+.fnln{width:120px;flex:0 0 auto;font-size:13.5px;font-weight:600}
+.fnlb{flex:1;height:26px;background:var(--line);border-radius:6px;overflow:hidden}
+.fnlb i{display:block;height:100%;border-radius:6px}
+.fnlc{width:62px;text-align:right;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.fnlv{width:112px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+/* ช่องว่างระหว่างขั้น คือที่ที่ดีลหล่นหาย ต้องอ่านได้เท่า ๆ กับตัวแท่งเอง */
+.fnlgap{display:flex;align-items:center;gap:9px;padding:5px 0 5px 132px;font-size:12.5px;
+  color:var(--ink3)}
+.fnlgap b{font-size:13.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.fnlar{color:var(--ink3)}
+.fnlgap.bad b,.fnlgap.bad small{color:var(--risk);font-weight:700}
+.fnlnote{margin:14px 0 0;font-size:12.5px;color:var(--ink3);line-height:1.6}
+
+/* ---------- งานวันนี้ ---------- */
+.tdl{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+.tdg{border:1px solid var(--line);border-radius:12px;background:var(--card);
+  box-shadow:var(--sh);overflow:hidden;border-left:4px solid var(--t)}
+.tdh{display:flex;align-items:center;gap:10px;width:100%;padding:12px 15px;border:0;
+  background:var(--soft);font:inherit;color:var(--ink);cursor:pointer;text-align:left}
+.tdh b{font-size:14.5px}
+.tda{color:var(--ink3);width:12px}
+.tdn{min-width:24px;padding:1px 9px;border-radius:99px;background:var(--t);color:#fff;
+  font-size:12px;font-weight:700;text-align:center}
+.tdh small{color:var(--ink3);font-size:12.5px;margin-left:4px}
+.tdr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) 118px auto;gap:12px;
+  align-items:center;padding:11px 15px;border-top:1px solid var(--line)}
+.tdco{display:flex;align-items:center;gap:9px;border:0;background:none;padding:0;font:inherit;
+  color:var(--ink);cursor:pointer;text-align:left;min-width:0}
+.tdco b{display:block;font-size:14px;font-weight:600}
+.tdco small{display:block;font-size:12px;color:var(--ink2)}
+.tdco:hover b{text-decoration:underline}
+.tdm{min-width:0}
+.tdm b{display:block;font-size:13.5px;font-weight:600}
+.tdm small{display:block;font-size:12px;color:var(--ink3);margin-top:1px}
+.tdv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+.tdv small{display:block;font-weight:400;font-size:11.5px;color:var(--ink3)}
+.tdb{display:flex;gap:6px;justify-content:flex-end}
+.mut{color:var(--ink3);font-weight:400}
+@media(max-width:760px){
+  .tdr{grid-template-columns:1fr auto;gap:8px}
+  .tdm{grid-column:1/-1}
+  .tdv{text-align:left;grid-column:1}
+  .tdb{grid-column:2;justify-content:flex-end}
+  .fnln{width:86px;font-size:12.5px}
+  .fnlv{width:84px;font-size:13px}
+  .fnlgap{padding-left:98px}
+}
 </style>

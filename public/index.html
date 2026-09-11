@@ -1282,6 +1282,57 @@ tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--g
 .hallsum{font-size:13px;color:var(--ink2);margin-left:8px}
 .hallsum.mut{color:var(--ink3)}
 .hallout{flex:1 0 100%;font-size:12.5px;color:var(--risk);font-weight:600;margin-top:2px}
+
+/* ---------- กรวยการขาย ---------- */
+.fnl{display:flex;flex-direction:column}
+.fnlr{display:flex;align-items:center;gap:12px;padding:3px 0}
+.fnln{width:120px;flex:0 0 auto;font-size:13.5px;font-weight:600}
+.fnlb{flex:1;height:26px;background:var(--line);border-radius:6px;overflow:hidden}
+.fnlb i{display:block;height:100%;border-radius:6px}
+.fnlc{width:62px;text-align:right;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.fnlv{width:112px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+/* ช่องว่างระหว่างขั้น คือที่ที่ดีลหล่นหาย ต้องอ่านได้เท่า ๆ กับตัวแท่งเอง */
+.fnlgap{display:flex;align-items:center;gap:9px;padding:5px 0 5px 132px;font-size:12.5px;
+  color:var(--ink3)}
+.fnlgap b{font-size:13.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.fnlar{color:var(--ink3)}
+.fnlgap.bad b,.fnlgap.bad small{color:var(--risk);font-weight:700}
+.fnlnote{margin:14px 0 0;font-size:12.5px;color:var(--ink3);line-height:1.6}
+
+/* ---------- งานวันนี้ ---------- */
+.tdl{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+.tdg{border:1px solid var(--line);border-radius:12px;background:var(--card);
+  box-shadow:var(--sh);overflow:hidden;border-left:4px solid var(--t)}
+.tdh{display:flex;align-items:center;gap:10px;width:100%;padding:12px 15px;border:0;
+  background:var(--soft);font:inherit;color:var(--ink);cursor:pointer;text-align:left}
+.tdh b{font-size:14.5px}
+.tda{color:var(--ink3);width:12px}
+.tdn{min-width:24px;padding:1px 9px;border-radius:99px;background:var(--t);color:#fff;
+  font-size:12px;font-weight:700;text-align:center}
+.tdh small{color:var(--ink3);font-size:12.5px;margin-left:4px}
+.tdr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) 118px auto;gap:12px;
+  align-items:center;padding:11px 15px;border-top:1px solid var(--line)}
+.tdco{display:flex;align-items:center;gap:9px;border:0;background:none;padding:0;font:inherit;
+  color:var(--ink);cursor:pointer;text-align:left;min-width:0}
+.tdco b{display:block;font-size:14px;font-weight:600}
+.tdco small{display:block;font-size:12px;color:var(--ink2)}
+.tdco:hover b{text-decoration:underline}
+.tdm{min-width:0}
+.tdm b{display:block;font-size:13.5px;font-weight:600}
+.tdm small{display:block;font-size:12px;color:var(--ink3);margin-top:1px}
+.tdv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+.tdv small{display:block;font-weight:400;font-size:11.5px;color:var(--ink3)}
+.tdb{display:flex;gap:6px;justify-content:flex-end}
+.mut{color:var(--ink3);font-weight:400}
+@media(max-width:760px){
+  .tdr{grid-template-columns:1fr auto;gap:8px}
+  .tdm{grid-column:1/-1}
+  .tdv{text-align:left;grid-column:1}
+  .tdb{grid-column:2;justify-content:flex-end}
+  .fnln{width:86px;font-size:12.5px}
+  .fnlv{width:84px;font-size:13px}
+  .fnlgap{padding-left:98px}
+}
 </style>
 
 <div id="login">
@@ -1405,6 +1456,7 @@ const NAV=[
  {id:"plan",  t:"Floor plan",     tabs:[
     ["map","Plan","floorplan"],["pkg","Packages & pricing","price"]]},
  {id:"sales", t:"Sales",     tabs:[
+    ["today","งานวันนี้","deal"],
     ["mon","Sales overview","deal"],["deals","Deals","deal"],
     ["perf","Rep performance","deal"]]},
  {id:"money", t:"Finance",       tabs:[
@@ -1450,7 +1502,7 @@ function curTab(n){
 }
 const PAGE={
  "dash":pDash,
- "sales:mon":pSalesMon,
+ "sales:today":pToday, "sales:mon":pSalesMon,
  "sales:deals":pDeals,
  "sales:perf":pPerf,
  "plan:map":pPlan, "plan:pkg":pPkg,
@@ -3709,6 +3761,7 @@ function dealsRefresh(){
   if(page==="sales"){
     const t=curTab(NAV.find(x=>x.id==="sales"));
     if(t==="deals"){ pDeals(); return }
+    if(t==="today"){ pToday(); return }
     if(t==="mon"){ pSalesMon(); return }
     if(t==="perf"){ pPerf(); return }
     pSales(); return;
@@ -4220,6 +4273,152 @@ function drawCostPanel(){
 /* ---------- ภาพรวมการขาย ---------- */
 /* น้ำหนักตามขั้น ใช้ประมาณยอดที่น่าจะปิดได้จริง ไม่ใช่ยอดท่อดิบ */
 const PROB={lead:.1,booking:.3,quoted:.5,confirmed:.8,billed:.9,paid:1,lost:0};
+/* ---------- กรวยการขายรายขั้น ----------
+   บอร์ดบอกได้แค่ว่าตอนนี้มีกี่ดีลอยู่ขั้นไหน แต่ไม่บอกว่าหล่นหายตรงไหนมากที่สุด
+   ซึ่งเป็นคำถามที่หัวหน้าทีมอยากรู้จริง ๆ
+
+   ขั้นตอนเรียงจากต้นไปท้าย ดีลที่อยู่ขั้นหลังแปลว่าผ่านขั้นก่อนหน้ามาแล้วทั้งหมด
+   จำนวน "ผ่านถึงขั้นนี้" จึงนับจากดีลที่อยู่ขั้นนั้นหรือไกลกว่า
+   ดีลที่แพ้แยกออกมาต่างหาก เพราะไม่รู้ว่าแพ้ตอนอยู่ขั้นไหน ระบบไม่ได้เก็บไว้ */
+const FUNNEL=STAGES.filter(x=>x[0]!=="lost");
+function funnelRows(list){
+  const idx=(s)=>FUNNEL.findIndex(x=>x[0]===s);
+  return FUNNEL.map((st,i)=>{
+    const reach=list.filter(d=>d.stage!=="lost"&&idx(d.stage)>=i);
+    return {k:st[0],l:st[1],c:cv(st[2]),n:reach.length,
+      v:reach.reduce((s,d)=>s+(d.list||0),0)};
+  });
+}
+function pFunnel(list){
+  const rows=funnelRows(list);
+  const lost=list.filter(d=>d.stage==="lost");
+  const top=rows[0].n||1;
+  /* ช่วงที่หล่นแรงที่สุด เอาไว้ไฮไลต์ ไม่ต้องให้คนไล่คำนวณเอง */
+  let worst=-1, worstDrop=0;
+  rows.forEach((r,i)=>{ if(i===0)return;
+    const prev=rows[i-1].n; if(!prev)return;
+    const drop=prev-r.n; if(drop>worstDrop){ worstDrop=drop; worst=i } });
+
+  return '<h2 class="sec">กรวยการขาย — หล่นหายตรงไหนมากที่สุด</h2>'+
+   '<div class="w"><div class="body"><div class="fnl">'+
+   rows.map((r,i)=>{
+     const prev=i?rows[i-1].n:0;
+     const pct=i&&prev?Math.round(r.n/prev*100):null;
+     return (i?'<div class="fnlgap'+(i===worst?" bad":"")+'">'+
+        '<span class="fnlar">↓</span>'+
+        '<b>'+(pct==null?"—":pct+"%")+'</b>'+
+        '<small>'+(prev-r.n>0?"หล่น "+(prev-r.n)+" ดีล":"ไม่หล่น")+
+        (i===worst&&worstDrop>0?" · จุดที่หล่นมากที่สุด":"")+'</small></div>':'')+
+      '<div class="fnlr">'+
+        '<span class="fnln">'+esc(r.l)+'</span>'+
+        '<span class="fnlb"><i style="width:'+(top?r.n/top*100:0)+'%;background:'+r.c+'"></i></span>'+
+        '<span class="fnlc">'+r.n+' ดีล</span>'+
+        '<span class="fnlv">'+f(r.v)+'</span>'+
+      '</div>';
+   }).join("")+
+   '</div>'+
+   '<p class="fnlnote">นับแบบสะสม ดีลที่อยู่ขั้นหลังถือว่าผ่านขั้นก่อนหน้ามาแล้ว '+
+   'เปอร์เซ็นต์คือสัดส่วนที่ไปต่อได้จากขั้นบน'+
+   (lost.length?' · แพ้ไปแล้ว '+lost.length+' ดีล ('+f(lost.reduce((s,d)=>s+(d.list||0),0))+
+     ') ไม่ได้รวมในกรวย เพราะระบบยังไม่ได้เก็บว่าแพ้ตอนอยู่ขั้นไหน':'')+
+   '</p></div></div>';
+}
+/* ---------- งานวันนี้ ----------
+   เซลล์เปิดหน้าการขายมาเจอดีล 95 รายการเรียงกันอยู่ แล้วไม่รู้ว่าจะเริ่มตรงไหน
+   หน้านี้ตอบคำถามเดียว วันนี้ต้องตามใคร เรียงตามความเร่งด่วนให้แล้ว
+   กดโทรหรือเปิด LINE ได้จากตรงนี้เลย เพราะเบอร์กับไลน์อยู่ในระบบอยู่แล้ว */
+function dealPhone(d){
+  const p=(d.people||[]).find(x=>x.tel)||{};
+  return p.tel||d.phone||null;
+}
+function dealLine(d){
+  const p=(d.people||[]).find(x=>x.line)||{};
+  return p.line||null;
+}
+function dealWho(d){
+  const p=(d.people||[]).find(x=>x.main)||(d.people||[])[0]||{};
+  return p.n||d.contact||null;
+}
+function todayBuckets(){
+  const list=DEALS.filter(mine).filter(d=>!["paid","lost"].includes(d.stage));
+  const t=ymd(new Date());
+  const late=[], due=[], quiet=[], none=[];
+  list.forEach(d=>{
+    if(d.nextDate&&d.nextDate<t)late.push(d);
+    else if(d.nextDate&&d.nextDate===t)due.push(d);
+    else if(noNext(d))none.push(d);
+    else if(isStale(d))quiet.push(d);
+  });
+  const byVal=(a,b)=>(b.list||0)-(a.list||0);
+  return [
+   {k:"late", l:"เลยนัดแล้ว", c:"--risk", why:"นัดไว้แล้วแต่ยังไม่ได้ติดต่อ", rows:late.sort((a,b)=>
+      (a.nextDate<b.nextDate?-1:a.nextDate>b.nextDate?1:0)||byVal(a,b))},
+   {k:"due",  l:"ครบกำหนดวันนี้", c:"--warn", why:"นัดไว้ว่าจะติดต่อวันนี้", rows:due.sort(byVal)},
+   {k:"quiet",l:"เงียบเกิน 14 วัน", c:"--s-booked", why:"ไม่ได้คุยกันมานาน แต่ยังไม่ปิด", rows:quiet.sort(byVal)},
+   {k:"none", l:"ยังไม่มีนัดถัดไป", c:"--ink3", why:"ไม่รู้ว่าขั้นต่อไปคืออะไร ต้องตั้งก่อน", rows:none.sort(byVal)},
+  ];
+}
+/* กลุ่มที่เร่งด่วนกางไว้ให้เลย ส่วน "ยังไม่มีนัดถัดไป" มักมีเยอะที่สุดและไม่เร่ง จึงพับไว้ก่อน */
+let todayOpen={late:1,due:1,quiet:1,none:0};
+function pToday(){
+  const B4=todayBuckets(), total=B4.reduce((s,b)=>s+b.rows.length,0);
+  /* ถ้ากลุ่มที่กางไว้ไม่มีของเลย หน้าจะดูเหมือนว่างทั้งที่มีงานค้างอยู่
+     กางกลุ่มแรกที่มีของให้เสมอ จะได้เห็นอะไรสักอย่างตั้งแต่เปิดหน้ามา */
+  if(total&&!B4.some(b=>b.rows.length&&todayOpen[b.k])){
+    const first=B4.find(b=>b.rows.length); if(first)todayOpen[first.k]=1;
+  }
+  const t=ymd(new Date());
+  let h='<div class="cards">'+B4.map(b=>
+    '<div class="c" style="--t:'+cv(b.c)+'"><b>'+b.rows.length+'</b><span>'+b.l+'</span>'+
+    '<small>'+esc(b.why)+'</small></div>').join("")+'</div>';
+
+  if(!total){
+    h+='<div class="note hpok"><p><b>ไม่มีอะไรค้างวันนี้</b> ทุกดีลที่เปิดอยู่มีนัดถัดไปแล้ว '+
+      'และไม่มีรายไหนเงียบเกินสองสัปดาห์</p></div>';
+    $("#page").innerHTML=h; return;
+  }
+  h+='<div class="tdl">';
+  B4.forEach(b=>{
+    if(!b.rows.length)return;
+    const op=todayOpen[b.k];
+    h+='<div class="tdg" style="--t:'+cv(b.c)+'">'+
+      '<button class="tdh" data-tg="'+b.k+'">'+
+        '<span class="tda">'+(op?"▾":"▸")+'</span>'+
+        '<b>'+esc(b.l)+'</b><span class="tdn">'+b.rows.length+'</span>'+
+        '<small>'+esc(b.why)+'</small></button>';
+    if(op)h+=b.rows.map(d=>{
+      const tel=dealPhone(d), ln=dealLine(d), who=dealWho(d);
+      const l=lastAct(d);
+      return '<div class="tdr">'+
+        '<button class="tdco" data-tdo="'+d.id+'">'+logoTile(d.co,26)+
+          '<span><b>'+esc(d.co)+'</b>'+
+          (who?'<small>'+esc(who)+'</small>':'<small class="mut">ยังไม่มีผู้ติดต่อ</small>')+
+          '</span></button>'+
+        '<span class="tdm">'+
+          (d.next?'<b>'+esc(d.next)+'</b>':'<b class="mut">ยังไม่ได้ตั้งขั้นต่อไป</b>')+
+          '<small>'+(d.nextDate
+            ? (d.nextDate<t?'นัดไว้ '+esc(d.nextDate)+' · เลยมา '+daysAgo(d.nextDate)+' วัน'
+               :'นัดวันนี้ '+esc(d.nextDate))
+            : (l?'คุยล่าสุด '+esc(l.date)+' · '+daysAgo(l.date)+' วันก่อน':'ยังไม่เคยบันทึกการคุย'))+
+          '</small></span>'+
+        '<span class="tdv">'+f(d.list)+'<small>'+esc(stName(d.stage))+'</small></span>'+
+        '<span class="tdb">'+
+          (tel?'<a class="pgo" href="tel:'+esc(String(tel).replace(/[^0-9+]/g,""))+'">โทร</a>':'')+
+          (ln?'<a class="pgo" href="https://line.me/ti/p/~'+encodeURIComponent(ln)+
+             '" target="_blank" rel="noopener">LINE</a>':'')+
+          (!tel&&!ln?'<span class="mut" style="font-size:12px">ไม่มีเบอร์</span>':'')+
+        '</span></div>';
+    }).join("");
+    h+='</div>';
+  });
+  h+='</div>';
+  $("#page").innerHTML=h;
+  const P=$("#page");
+  P.querySelectorAll("[data-tg]").forEach(b=>b.addEventListener("click",()=>{
+    const k=b.dataset.tg; todayOpen[k]=todayOpen[k]?0:1; pToday() }));
+  P.querySelectorAll("[data-tdo]").forEach(b=>b.addEventListener("click",()=>
+    openDeal(b.dataset.tdo)));
+}
 function pSalesMon(){
   const list=DEALS.filter(mine);
   const open=list.filter(d=>!["paid","lost"].includes(d.stage));
@@ -4259,6 +4458,8 @@ function pSalesMon(){
      '<span style="width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">'+
        f(x.v)+'</span></div>').join("")+
    '</div></div>';
+
+  h+=pFunnel(list);
 
   // เซลล์แต่ละคนถืออะไรอยู่
   if(ROLE[role].scope==="all"){
