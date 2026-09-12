@@ -1369,11 +1369,23 @@ tr.brow:hover>td{background:var(--soft)}
   color:var(--ink2);border-top:1px solid var(--line)}
 .bsp:first-of-type{border-top:0}
 .bsp b{color:var(--ink);font-variant-numeric:tabular-nums}
-.bchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.bchip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--line2);
-  border-radius:99px;font-size:12.5px;cursor:pointer;background:var(--card)}
+/* หมวดที่สนใจ ของเดิมเป็นชิปกลมกว้างไม่เท่ากัน ชื่อยาวขึ้นบรรทัดใหม่ในตัวชิป ดูรุงรังมาก
+   ลองจัดสองคอลัมน์แล้วยังไม่ได้ แผงข้างกว้างราว 310px ชื่ออย่าง Service & Logistics
+   ถูกตัดหายไปครึ่งหนึ่ง เรียงคอลัมน์เดียวเต็มความกว้างจึงอ่านครบทุกชื่อ
+   และเป็นรายการที่กวาดตาลงมาได้เร็วกว่าการไล่สองทาง */
+.bchips{display:flex;flex-direction:column;gap:5px;margin-top:5px}
+.bchip{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--line2);
+  border-radius:8px;font-size:13px;cursor:pointer;background:var(--card);line-height:1.3}
 .bchip input{margin:0}
-.bchip:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.bchip:has(input:checked){border-color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 10%,transparent);font-weight:600}
+/* กฎของ .bf ทำให้ input ทุกตัวในแผงกว้างเต็มบรรทัดและมีกรอบ
+   ช่องติ๊กจึงถูกยืดจนเต็มกล่อง ดันชื่อหมวดหลุดออกไปนอกกรอบ
+   ต้องคืนค่าให้ช่องติ๊กเป็นช่องติ๊กตามปกติ */
+.bchip input[type=checkbox]{width:auto;flex:0 0 auto;padding:0;border:0;background:none;
+  margin:0;accent-color:var(--accent)}
+/* ช่องพิมพ์เองของตัวเลือก "อื่น ๆ" */
+.bother{margin-top:6px}
 .bimpbox{background:var(--card);border-radius:12px;padding:20px;max-width:620px;width:100%;
   box-shadow:0 18px 60px rgba(0,0,0,.35);cursor:auto;max-height:88vh;overflow:auto}
 .bimpbox h3{margin:0 0 6px}
@@ -5848,6 +5860,42 @@ function dealTasks(d){ return EV.tasks.filter(t=>t.by==="exhibitor") }
    คะแนนคำนวณสดทุกครั้ง ไม่ได้เก็บลงฐานข้อมูล
    เพราะเกณฑ์ยังต้องปรับอีกหลายรอบกว่าจะแม่น ถ้าเก็บไว้ พอแก้เกณฑ์แล้วคะแนนเก่าจะค้าง
    และทุกคะแนนต้องอธิบายได้ว่ามาจากอะไร ไม่ใช่เลขลอย ๆ ที่ไม่มีใครเถียงได้ */
+/* ตัวเลือกตำแหน่งและจุดประสงค์ เรียงจากคนที่ตัดสินใจซื้อได้มากลงไปหาน้อย
+   ลำดับนี้คือเกณฑ์ให้คะแนนด้วย ไม่ใช่แค่การจัดเรียงให้สวย
+   ปลายรายการมี "อื่น ๆ" ให้พิมพ์เอง ตามที่ควรทำกับฟอร์มลงทะเบียนทุกฟอร์ม
+   ไม่งั้นคนที่ไม่ตรงกับตัวเลือกจะเลือกอันที่ใกล้ที่สุดแบบผิด ๆ แล้วข้อมูลเพี้ยนทั้งชุด */
+const BPOS=[
+ ["เจ้าของ / ผู้ก่อตั้ง",40],
+ ["กรรมการ / ผู้บริหารระดับสูง",40],
+ ["ผู้จัดการทั่วไป / ผู้จัดการสาขา",30],
+ ["ฝ่ายจัดซื้อ",30],
+ ["เชฟ / หัวหน้าครัว",24],
+ ["ผู้จัดการฝ่ายปฏิบัติการ",24],
+ ["การตลาด / พัฒนาธุรกิจ",18],
+ ["พนักงาน / เจ้าหน้าที่",8],
+ ["นักเรียน / นักศึกษา",3],
+];
+const BPURP=[
+ ["หาซัพพลายเออร์รายใหม่",30],
+ ["สั่งซื้อสินค้าในงาน",30],
+ ["เปรียบเทียบราคา / ขอใบเสนอราคา",22],
+ ["หาแฟรนไชส์ / ลงทุนธุรกิจใหม่",22],
+ ["หาเทคโนโลยีมาใช้ในร้าน",20],
+ ["เตรียมเปิดร้านใหม่",16],
+ ["หาพาร์ตเนอร์ / ตัวแทนจำหน่าย",14],
+ ["หาไอเดียและดูเทรนด์",8],
+ ["เข้าฟังสัมมนา",5],
+];
+const BOTHER="อื่น ๆ";
+/* จำนวนสาขาแทนคำถาม "เปิดร้านแล้วหรือยัง" ที่ตัดออกไป
+   สาขาตั้งแต่หนึ่งแห่งก็แปลว่าเปิดแล้ว และยังบอกขนาดธุรกิจได้ละเอียดกว่าคำถามใช่ไม่ใช่ */
+function bBranchPt(n){
+  const b=+n||0;
+  if(b>=4)return {pt:25,why:"มี "+b+" สาขา"};
+  if(b>=2)return {pt:18,why:"มี "+b+" สาขา"};
+  if(b===1)return {pt:10,why:"มี 1 สาขา"};
+  return {pt:0,why:"ไม่ได้ระบุจำนวนสาขา"};
+}
 const BSTATUS=[
  ["applied","สมัครเข้ามา","--ink3"],
  ["qualified","ผ่านเกณฑ์","--s-booked"],
@@ -5861,41 +5909,50 @@ const bsColor=(k)=>cv((BSTATUS.find(x=>x[0]===k)||["","","--ink3"])[2]);
 
 /* เกณฑ์ให้คะแนน อิงจากสิ่งที่ระบบลงทะเบียนเก็บอยู่แล้ว
    สี่ด้านตามมาตรฐานของ hosted buyer อำนาจตัดสินใจ ความตั้งใจซื้อ สถานะธุรกิจ ขนาดงบ */
-const BSCORE={
-  position:[[/เจ้าของ|owner|กรรมการ|ceo|ผู้บริหาร|md\b/i,40,"เจ้าของหรือผู้บริหาร"],
-            [/จัดซื้อ|purchas|ผู้จัดการ|manager|หัวหน้า/i,28,"ระดับผู้จัดการหรือจัดซื้อ"],
-            [/./,8,"ระดับปฏิบัติการ"]],
-  purpose:[[/ซัพพลาย|supplier|สั่งซื้อ|จัดซื้อ|หาสินค้า|source/i,30,"มาหาซัพพลายเออร์"],
-           [/ราคา|เปรียบเทียบ|compare|quote/i,20,"มาเปรียบเทียบราคา"],
-           [/ไอเดีย|idea|เทรนด์|trend|เปิดร้าน/i,12,"มาหาไอเดีย"],
-           [/./,4,"มาดูงานทั่วไป"]],
-  budget:[[/^>|มากกว่า 5|5 ?ล้านขึ้น|over/i,20,"งบมากกว่า 5 ล้าน"],
-          [/1-5|1 ?ถึง ?5|ล้าน/i,12,"งบ 1-5 ล้าน"],
-          [/./,5,"งบต่ำกว่า 1 ล้าน"]],
+/* คะแนนสี่ด้านเดิม เอา "เปิดร้านแล้วหรือยัง" ออกแล้วให้จำนวนสาขาทำหน้าที่นั้นแทน
+   ค่าที่มาจาก dropdown จับคู่ได้ตรงตัว ส่วนค่าที่นำเข้ามาเป็นข้อความอิสระค่อยเดาจากคำ */
+const BGUESS={
+  position:[[/เจ้าของ|owner|ผู้ก่อตั้ง|founder|กรรมการ|ceo|managing|md\b|ผู้บริหาร/i,40],
+            [/จัดซื้อ|purchas|procure|ผู้จัดการ|manager|หัวหน้า|เชฟ|chef/i,28],
+            [/ตลาด|market|พัฒนาธุรกิจ|business dev/i,18],
+            [/นักศึกษา|นักเรียน|student/i,3],
+            [/./,8]],
+  purpose:[[/ซัพพลาย|supplier|สั่งซื้อ|จัดซื้อ|หาสินค้า|source|order/i,30],
+           [/ราคา|เปรียบเทียบ|compare|quote|ใบเสนอ/i,22],
+           [/แฟรนไชส|franchise|ลงทุน|invest/i,22],
+           [/เทคโนโลย|technolog|ระบบ|software|pos/i,20],
+           [/เปิดร้าน|เปิดกิจการ|open/i,16],
+           [/พาร์ตเนอร|partner|ตัวแทน|dealer|distribut/i,14],
+           [/ไอเดีย|idea|เทรนด|trend/i,8],
+           [/สัมมนา|seminar|ฟัง|talk/i,5],
+           [/./,4]],
+  budget:[[/มากกว่า 5|^>|5 ?ล้านขึ้น|over/i,20],[/1-5|1 ?ถึง ?5/i,12],[/./,5]],
 };
+function bPt(kind,val,table){
+  const v=String(val||"").trim();
+  if(!v)return null;
+  const exact=(table||[]).find(x=>x[0]===v);
+  if(exact)return {pt:exact[1],why:v};
+  for(const [re,pt] of BGUESS[kind]) if(re.test(v))return {pt,why:v};
+  return {pt:0,why:v};
+}
 function bscore(b){
   const parts=[];
-  const hit=(rules,val)=>{
-    const v=String(val||"");
-    if(!v)return null;
-    for(const [re,pt,why] of rules) if(re.test(v))return {pt,why};
-    return null;
-  };
-  const p=hit(BSCORE.position,b.position);
-  if(p)parts.push(p); else parts.push({pt:0,why:"ไม่ได้ระบุตำแหน่ง"});
-  const u=hit(BSCORE.purpose,b.purpose);
-  if(u)parts.push(u); else parts.push({pt:0,why:"ไม่ได้ระบุจุดประสงค์"});
-  /* เปิดร้านแล้วซื้อได้เลย ยังไม่เปิดคือยังหาข้อมูล สาขาเยอะแปลว่าสั่งทีละมาก */
-  if(b.hasShop===true){
-    const br=+b.branches||1;
-    const extra=Math.min(15,Math.max(0,br-1)*5);
-    parts.push({pt:25+extra,why:"เปิดร้านแล้ว"+(br>1?" "+br+" สาขา":"")});
-  } else if(b.hasShop===false)parts.push({pt:8,why:"ยังไม่เปิดร้าน"});
-  else parts.push({pt:0,why:"ไม่ได้ระบุว่าเปิดร้านหรือยัง"});
-  const g=hit(BSCORE.budget,b.budgetBand);
-  if(g)parts.push(g); else parts.push({pt:0,why:"ไม่ได้ระบุงบ"});
+  parts.push(bPt("position",b.position,BPOS)||{pt:0,why:"ไม่ได้ระบุตำแหน่ง"});
+  parts.push(bPt("purpose",b.purpose,BPURP)||{pt:0,why:"ไม่ได้ระบุจุดประสงค์"});
+  parts.push(bBranchPt(b.branches));
+  parts.push(bPt("budget",b.budgetBand,null)||{pt:0,why:"ไม่ได้ระบุงบ"});
   const sum=parts.reduce((s,x)=>s+x.pt,0);
-  return {score:Math.min(100,Math.round(sum/130*100)),parts,raw:sum};
+  return {score:Math.min(100,Math.round(sum/115*100)),parts,raw:sum};
+}
+/* หมวดสินค้าที่ผู้ซื้อเลือกได้ ต้องมาจากโซนของงานเท่านั้น
+   ชื่อแพ็กเกจเป็นชั้นราคา ไม่ใช่หมวดสินค้า ผู้ซื้อไม่มีใครบอกว่า "สนใจ Gold Sponsor"
+   และในโซนเองก็มีชื่อชั้นสปอนเซอร์ปนมาด้วย ต้องกรองออกทั้งสองทาง */
+const BTIER=/sponsor|title|platinum|gold|silver|bronze|standard|^food$|^cafe$/i;
+function buyerCats(){
+  return [...new Set(Object.values(EV.zoneNames||{}))]
+    .filter(x=>x&&!BTIER.test(String(x).trim()))
+    .sort((a,b)=>String(a).localeCompare(String(b),"th"));
 }
 let BUYERS=[], bFilter="", bQ="", bOpen=null, bLoaded=null;
 async function loadBuyers(force){
@@ -5940,14 +5997,14 @@ function drawBuyer(wr){
   if(!all.length){
     h+='<div class="note" style="border-left-color:var(--warn)"><p><b>ยังไม่มีรายชื่อผู้ซื้อ</b> '+
      'เริ่มได้สองทาง กดเพิ่มทีละคน หรือนำเข้าจากไฟล์ที่ยกมาจากระบบลงทะเบียน '+
-     'ไฟล์ต้องมีหัวคอลัมน์ name, company, position, province, purpose, hasShop, branches, '+
+     'ไฟล์ต้องมีหัวคอลัมน์ name, company, position, province, purpose, branches, '+
      'budgetBand, email, phone</p></div>';
   } else if(!rows.length){
     h+='<div class="note"><p>ไม่มีรายชื่อที่ตรงกับตัวกรองนี้</p></div>';
   } else {
     h+='<div class="tw"><table><thead><tr>'+
      '<th style="width:62px">คะแนน</th><th>ผู้ซื้อ</th><th>ตำแหน่ง</th>'+
-     '<th>จุดประสงค์</th><th>ร้าน</th><th>จังหวัด</th><th style="width:132px">สถานะ</th>'+
+     '<th>จุดประสงค์</th><th class="num">สาขา</th><th>จังหวัด</th><th style="width:132px">สถานะ</th>'+
      (wr?'<th style="width:44px"></th>':'')+'</tr></thead><tbody>'+
      rows.map(b=>{
        const s=b._s;
@@ -5958,8 +6015,7 @@ function drawBuyer(wr){
           esc(b.company)+'</small>':'')+'</td>'+
         '<td style="font-size:13px">'+esc(b.position||"—")+'</td>'+
         '<td style="font-size:13px">'+esc(b.purpose||"—")+'</td>'+
-        '<td style="font-size:13px">'+(b.hasShop===true?"เปิดแล้ว"+(b.branches>1?" "+b.branches+" สาขา":"")
-          :b.hasShop===false?"ยังไม่เปิด":"—")+'</td>'+
+        '<td class="num" style="font-size:13px">'+(b.branches==null?"—":b.branches)+'</td>'+
         '<td style="font-size:13px">'+esc(b.province||"—")+'</td>'+
         '<td>'+(wr?'<select class="cell" data-bs="'+b.id+'">'+BSTATUS.map(x=>
           '<option value="'+x[0]+'"'+(b.status===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
@@ -6002,24 +6058,37 @@ function bindBuyer(wr,all){
   const im=P.querySelector("#bimp"); if(im)im.addEventListener("click",()=>buyerImport(wr));
   const dl=P.querySelector("#bdl");
   if(dl)dl.addEventListener("click",e=>{
-    const head=["score","name","company","position","province","purpose","hasShop","branches",
+    const head=["score","name","company","position","province","purpose","branches",
       "budgetBand","email","phone","status"];
     saveCSV("buyers-"+EV.id+".csv",[head].concat(all.map(b=>[b._s.score,b.name,b.company||"",
-      b.position||"",b.province||"",b.purpose||"",b.hasShop===true?"yes":b.hasShop===false?"no":"",
-      b.branches||"",b.budgetBand||"",b.email||"",b.phone||"",b.status])),e.currentTarget);
+      b.position||"",b.province||"",b.purpose||"",b.branches??"",
+      b.budgetBand||"",b.email||"",b.phone||"",b.status])),e.currentTarget);
   });
 }
 /* แผงกรอกและแก้ผู้ซื้อ ใช้ช่องเดียวกับแผงอื่น เปิดทีละราย */
 const BFLD=[
  ["name","ชื่อ-นามสกุล","เช่น สมชาย ใจดี",1],
  ["company","บริษัท / ร้าน","",1],
- ["position","ตำแหน่ง","เจ้าของ / ผู้จัดการจัดซื้อ",0],
  ["province","จังหวัด","",0],
- ["purpose","จุดประสงค์ของการมา","หาซัพพลายเออร์ / เปรียบเทียบราคา",1],
- ["branches","จำนวนสาขา","",0],
+ ["branches","จำนวนสาขา","0 = ยังไม่เปิดร้าน",0],
  ["email","อีเมล","",0],
  ["phone","เบอร์โทร","",0],
 ];
+/* ช่องที่เป็นตัวเลือกตายตัว พร้อมทางออกให้พิมพ์เองถ้าไม่ตรงกับอะไรเลย
+   เก็บลงช่องเดิมเป็นข้อความ ค่าที่นำเข้ามาแต่ก่อนจึงยังอ่านได้ ไม่ต้องแปลงข้อมูลเก่า */
+function bSelect(id,label,opts,cur){
+  const known=opts.some(o=>o[0]===cur);
+  const other=!!cur&&!known;
+  return '<label class="bf wide"><span>'+esc(label)+'</span>'+
+    '<select id="bf_'+id+'" data-bsel="'+id+'">'+
+      '<option value=""'+(!cur?" selected":"")+'>ไม่ระบุ</option>'+
+      opts.map(o=>'<option value="'+esc(o[0])+'"'+(cur===o[0]?" selected":"")+'>'+esc(o[0])+
+        '</option>').join("")+
+      '<option value="'+BOTHER+'"'+(other?" selected":"")+'>'+BOTHER+' (พิมพ์เอง)</option>'+
+    '</select>'+
+    '<input id="bo_'+id+'" class="bother" placeholder="พิมพ์'+esc(label)+'"'+
+      ' value="'+esc(other?cur:"")+'"'+(other?"":" hidden")+'></label>';
+}
 const BUDGETS=["","ต่ำกว่า 1 ล้าน","1-5 ล้าน","มากกว่า 5 ล้าน"];
 function buyerPanel(wr){
   let sd=document.getElementById("bpanel");
@@ -6030,8 +6099,7 @@ function buyerPanel(wr){
   const b=isNew?{name:"",interests:[],status:"applied"}:BUYERS.find(x=>x.id===bOpen);
   if(!b){ sd.remove(); bOpen=null; return }
   const sc=bscore(b);
-  const zones=Object.values(EV.zoneNames||{});
-  const cats=[...new Set(zones.concat(Object.keys(EV.packages||{})))].filter(Boolean);
+  const cats=buyerCats();
 
   sd.innerHTML='<button class="x" aria-label="ปิด">×</button>'+
    '<h3>'+(isNew?"เพิ่มผู้ซื้อ":esc(b.name))+'</h3>'+
@@ -6041,13 +6109,13 @@ function buyerPanel(wr){
      '<span>จาก '+sc.raw+' คะแนนดิบ เต็ม 130</span></div>'+
      sc.parts.map(p=>'<div class="bsp"><span>'+esc(p.why)+'</span><b>+'+p.pt+'</b></div>').join("")+
      '</div>':'')+
-   (wr?BFLD.map(f=>'<label class="bf'+(f[3]?" wide":"")+'"><span>'+esc(f[1])+'</span>'+
+   (wr?BFLD.slice(0,2).map(f=>'<label class="bf'+(f[3]?" wide":"")+'"><span>'+esc(f[1])+'</span>'+
+       '<input id="bf_'+f[0]+'" value="'+esc(b[f[0]]??"")+'" placeholder="'+esc(f[2])+'"></label>').join("")+
+     bSelect("position","ตำแหน่ง",BPOS,b.position||"")+
+     bSelect("purpose","จุดประสงค์ของการมา",BPURP,b.purpose||"")+
+     BFLD.slice(2).map(f=>'<label class="bf'+(f[3]?" wide":"")+'"><span>'+esc(f[1])+'</span>'+
        '<input id="bf_'+f[0]+'" value="'+esc(b[f[0]]??"")+'" placeholder="'+esc(f[2])+'"'+
        (f[0]==="branches"?' type="number" min="0"':'')+'></label>').join("")+
-     '<label class="bf wide"><span>เปิดร้านแล้วหรือยัง</span><select id="bf_hasShop">'+
-       [["","ไม่ระบุ"],["true","เปิดแล้ว"],["false","ยังไม่เปิด"]].map(x=>
-         '<option value="'+x[0]+'"'+(String(b.hasShop??"")===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
-       '</select></label>'+
      '<label class="bf wide"><span>งบต่อปี</span><select id="bf_budgetBand">'+
        BUDGETS.map(x=>'<option value="'+esc(x)+'"'+((b.budgetBand||"")===x?" selected":"")+'>'+
          (x||"ไม่ระบุ")+'</option>').join("")+'</select></label>'+
@@ -6068,13 +6136,27 @@ function buyerPanel(wr){
 
   sd.querySelector(".x").addEventListener("click",()=>{ bOpen=null; sd.remove() });
   if(!wr)return;
+  /* ช่องพิมพ์เองโผล่เฉพาะตอนเลือก "อื่น ๆ" เวลาอื่นซ่อนไว้ ไม่ให้แผงยาวเกินจำเป็น */
+  sd.querySelectorAll("[data-bsel]").forEach(sel=>sel.addEventListener("change",()=>{
+    const box=sd.querySelector("#bo_"+sel.dataset.bsel);
+    if(!box)return;
+    box.hidden=sel.value!==BOTHER;
+    if(!box.hidden)box.focus();
+  }));
   sd.querySelector("#bsave").addEventListener("click",async()=>{
     const v=(k)=>{const el=sd.querySelector("#bf_"+k); return el?el.value:""};
-    const body={ name:v("name"), company:v("company"), position:v("position"),
-      province:v("province"), purpose:v("purpose"),
+    /* เลือก "อื่น ๆ" แล้วเก็บสิ่งที่พิมพ์เอง ไม่ใช่เก็บคำว่า "อื่น ๆ" ลงไปเฉย ๆ */
+    const pick=(k)=>{
+      const sel=v(k);
+      if(sel!==BOTHER)return sel;
+      const el=sd.querySelector("#bo_"+k);
+      return el?el.value.trim():"";
+    };
+    const body={ name:v("name"), company:v("company"), position:pick("position"),
+      province:v("province"), purpose:pick("purpose"),
       branches:v("branches")===""?null:+v("branches"),
       email:v("email"), phone:v("phone"), note:v("note"),
-      hasShop:v("hasShop")===""?null:v("hasShop")==="true",
+
       budgetBand:v("budgetBand")||null, status:v("status"),
       interests:[...sd.querySelectorAll(".bchip input:checked")].map(x=>x.value) };
     if(!body.name.trim()){ sd.querySelector("#bmsg").textContent="ใส่ชื่อก่อน"; return }
@@ -6102,10 +6184,10 @@ function buyerImport(wr){
    '<h3>นำเข้ารายชื่อผู้ซื้อ</h3>'+
    '<p>วางข้อมูลที่คัดลอกจากสเปรดชีต หรือเนื้อไฟล์ CSV บรรทัดแรกต้องเป็นหัวคอลัมน์</p>'+
    '<p class="simnote">ชื่อคอลัมน์ที่รับ: <code>name, company, position, province, purpose, '+
-   'hasShop, branches, budgetBand, email, phone</code> · ต้องมีอย่างน้อย <code>name</code> · '+
+   'branches, budgetBand, email, phone</code> · ต้องมีอย่างน้อย <code>name</code> · '+
    'ถ้าอีเมลซ้ำกับที่มีอยู่ ระบบจะอัปเดตทับแทนการเพิ่มซ้ำ</p>'+
-   '<textarea id="bimptxt" rows="9" placeholder="name,company,position,purpose,hasShop&#10;'+
-   'สมชาย ใจดี,ร้านกาแฟบ้านสวน,เจ้าของ,หาซัพพลายเออร์,true"></textarea>'+
+   '<textarea id="bimptxt" rows="9" placeholder="name,company,position,purpose,branches&#10;'+
+   'สมชาย ใจดี,ร้านกาแฟบ้านสวน,เจ้าของ / ผู้ก่อตั้ง,หาซัพพลายเออร์รายใหม่,3"></textarea>'+
    '<div class="lgbtns"><button class="go" id="bimpgo">นำเข้า</button>'+
    '<button id="bimpx">ยกเลิก</button><span id="bimpmsg" class="evfmsg"></span></div></div>';
   m.addEventListener("click",e=>{ if(e.target===m)m.remove() });
@@ -6122,7 +6204,6 @@ function buyerImport(wr){
     const rows=lines.slice(1).map(l=>{
       const c=l.split(sep).map(x=>x.trim().replace(/^"|"$/g,""));
       const o={}; head.forEach((k,i)=>{ if(c[i]!==undefined&&c[i]!=="")o[k]=c[i] });
-      if(o.hasShop!==undefined)o.hasShop=/^(true|yes|ใช่|เปิดแล้ว|1)$/i.test(o.hasShop);
       return o;
     }).filter(o=>o.name);
     if(!rows.length){ msg.textContent="ไม่มีแถวที่มีชื่อ"; return }

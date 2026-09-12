@@ -11,17 +11,19 @@ const r = Router()
 const STATUS = ['applied', 'qualified', 'invited', 'confirmed', 'attended', 'declined']
 const txt = (v) => { const t = String(v ?? '').trim(); return t || null }
 const num = (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? Math.round(n) : null }
-const bool = (v) => (v === true || v === 'true' ? true : v === false || v === 'false' ? false : null)
 const list = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : [])
 
-const FIELDS = ['name', 'company', 'position', 'province', 'purpose', 'has_shop', 'branches',
+/* has_shop ถูกตัดออกจากฟอร์ม จำนวนสาขาบอกเรื่องเดียวกันได้ละเอียดกว่า
+   สาขาตั้งแต่หนึ่งแห่งก็คือเปิดแล้ว ศูนย์คือยังไม่เปิด ไม่ต้องถามสองคำถาม
+   คอลัมน์ยังอยู่ในฐานข้อมูลเผื่อข้อมูลเก่า แต่ไม่มีใครเขียนเข้าไปอีก */
+const FIELDS = ['name', 'company', 'position', 'province', 'purpose', 'branches',
   'budget_band', 'interests', 'email', 'phone', 'status', 'note', 'source']
 
 function clean (b) {
   return {
     name: txt(b.name), company: txt(b.company), position: txt(b.position),
     province: txt(b.province), purpose: txt(b.purpose),
-    has_shop: bool(b.hasShop ?? b.has_shop), branches: num(b.branches),
+    branches: num(b.branches),
     budget_band: txt(b.budgetBand ?? b.budget_band), interests: list(b.interests),
     email: txt(b.email), phone: txt(b.phone),
     status: STATUS.includes(b.status) ? b.status : 'applied',
@@ -30,7 +32,7 @@ function clean (b) {
 }
 const out = (x) => ({
   id: String(x.id), name: x.name, company: x.company, position: x.position,
-  province: x.province, purpose: x.purpose, hasShop: x.has_shop, branches: x.branches,
+  province: x.province, purpose: x.purpose, branches: x.branches,
   budgetBand: x.budget_band, interests: x.interests ?? [], email: x.email, phone: x.phone,
   status: x.status, note: x.note, source: x.source, createdAt: x.created_at,
 })
