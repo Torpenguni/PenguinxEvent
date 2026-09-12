@@ -950,3 +950,28 @@ create index if not exists deal_stage_log_idx on deal_stage_log (event_id, compa
 
 -- ผูกเซลล์กับบัญชีผู้ใช้ ใช้ส่งเมลสรุปงานค้าง (db/repuser.sql)
 alter table sales_agent add column if not exists user_id bigint references app_user(id) on delete set null;
+
+
+create table if not exists buyer (
+  id          bigserial primary key,
+  event_id    bigint references event(id) on delete set null,
+  code        text not null,                  -- รหัสงาน ใช้ต่อสายกลับหลังบันทึกทั้งงาน
+  name        text not null,
+  company     text,
+  position    text,                           -- ตำแหน่ง ใช้ประเมินอำนาจตัดสินใจ
+  province    text,
+  purpose     text,                           -- จุดประสงค์ของการมา ใช้ประเมินความตั้งใจซื้อ
+  has_shop    boolean,                        -- เปิดร้านแล้วหรือยัง
+  branches    integer,                        -- จำนวนสาขา ใช้ประเมินขนาด
+  budget_band text,                           -- ช่วงงบต่อปี
+  interests   text[] default '{}',            -- หมวดสินค้าที่สนใจ ใช้จับคู่กับบูธทีหลัง
+  email       text,
+  phone       text,
+  status      text not null default 'applied',-- applied qualified invited confirmed attended declined
+  note        text,
+  source      text,                           -- มาจากไหน odoo / กรอกเอง / นำเข้าไฟล์
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists buyer_event_idx on buyer (event_id, status);
+create index if not exists buyer_code_idx  on buyer (code);

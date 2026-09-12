@@ -17,6 +17,7 @@ import userRoutes, { setPassword } from './routes/users.js'
 import dealMailRoutes from './routes/dealMail.js'
 import mailRoutes, { cronReminders, cronDigest } from './routes/mail.js'
 import backupRoutes, { takeBackup } from './routes/backup.js'
+import buyerRoutes from './routes/buyers.js'
 import { fetchFull } from './routes/full.js'
 import timelineRoutes from './routes/timeline.js'
 import exhibitorRoutes from './routes/exhibitors.js'
@@ -60,6 +61,9 @@ if (isPortal) {
   // สรุปงานค้างของเซลล์ เช้าวันจันทร์
   app.get('/api/cron/digest', cronDigest)
   app.use('/api/backups', backupRoutes)
+  // ทะเบียนผู้ซื้อ แยก endpoint ของตัวเอง ไม่ผ่านการบันทึกทั้งงาน
+  app.use('/api/events', buyerRoutes)
+  app.use('/api', buyerRoutes)
   /* สำรองข้อมูลรายวัน ยืนยันตัวด้วย CRON_SECRET เหมือนกัน */
   app.get('/api/cron/backup', async (req, res, next) => {
     try {

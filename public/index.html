@@ -1357,6 +1357,39 @@ tr.gtr[style*="--gc"] td.gtno{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--g
 /* ค้างอยู่ขั้นนี้มากี่วัน */
 .sage{font-size:12.5px;color:var(--ink2)}
 .sage.slow{color:var(--warn);font-weight:700}
+
+/* ---------- Hosted buyer program ---------- */
+.c.bst{cursor:pointer;border:1px solid var(--line);text-align:left;font:inherit;color:var(--ink)}
+.c.bst:hover{border-color:var(--t)}
+.c.bst.on{border-color:var(--t);box-shadow:inset 0 0 0 1px var(--t)}
+.bsc{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:3px 8px;
+  border-radius:8px;background:color-mix(in srgb,var(--t) 16%,transparent);color:var(--t);
+  font-weight:700;font-variant-numeric:tabular-nums;font-size:14px}
+tr.brow{cursor:pointer}
+tr.brow:hover>td{background:var(--soft)}
+/* กล่องกางคะแนน ต้องเห็นว่าแต่ละส่วนมาจากอะไร ไม่ใช่เลขลอย ๆ */
+.bsbox{margin:12px 0 4px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.bsh{display:flex;align-items:baseline;gap:8px;padding:9px 12px;background:var(--soft);
+  border-bottom:1px solid var(--line)}
+.bsh b{font-size:15px}
+.bsh span{font-size:12px;color:var(--ink3)}
+.bsp{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;font-size:13px;
+  color:var(--ink2);border-top:1px solid var(--line)}
+.bsp:first-of-type{border-top:0}
+.bsp b{color:var(--ink);font-variant-numeric:tabular-nums}
+.bchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.bchip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--line2);
+  border-radius:99px;font-size:12.5px;cursor:pointer;background:var(--card)}
+.bchip input{margin:0}
+.bchip:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.bimpbox{background:var(--card);border-radius:12px;padding:20px;max-width:620px;width:100%;
+  box-shadow:0 18px 60px rgba(0,0,0,.35);cursor:auto;max-height:88vh;overflow:auto}
+.bimpbox h3{margin:0 0 6px}
+.bimpbox p{font-size:13.5px;color:var(--ink2);margin:0 0 8px;line-height:1.6}
+.bimpbox textarea{width:100%;padding:10px;border:1px solid var(--line2);border-radius:8px;
+  background:var(--paper);color:var(--ink);font:inherit;font-size:13px;
+  font-family:ui-monospace,Menlo,monospace;resize:vertical}
+.bimpbox code{background:var(--soft);border-radius:4px;padding:1px 5px;font-size:12px}
 </style>
 
 <div id="login">
@@ -1464,6 +1497,8 @@ const ICON={
       '<path d="M6 9.5v5M18 9.5v5"/>',
  stage:'<path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/>'+
       '<path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21M8.5 21h7"/>',
+ buyer:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/>'+
+      '<path d="M16.5 11.5 18 13l3-3"/>',
  exh:'<path d="M8 4h8a1 1 0 0 1 1 1v1H7V5a1 1 0 0 1 1-1z"/>'+
       '<path d="M17 6h1.5A1.5 1.5 0 0 1 20 7.5v12A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-12A1.5 1.5 0 0 1 5.5 6H7"/>'+
       '<path d="m8.5 13 2.2 2.2L15.5 10.5"/>',
@@ -1487,6 +1522,7 @@ const NAV=[
     ["pnl","P&L","budget"],["target","Target & run rate","target"],
     ["income","Revenue by package","budget"],["cost","Expense budget","budget"]]},
  {id:"stage", t:"Stage",       m:"stage"},
+ {id:"buyer", t:"Buyer",     m:"deal"},
  {id:"exh",   t:"Exhibitor",  tabs:[
     ["list","Follow up","exhibitor"],["portal","Exhibitor view","exhibitor"],
     ["setup","Checklist setup","exhibitor"]]},
@@ -1532,6 +1568,7 @@ const PAGE={
  "plan:map":pPlan, "plan:pkg":pPkg,
  "money:pnl":pPnl, "money:target":pTarget, "money:income":pBudget, "money:cost":pCost,
  "stage":pStage,
+ "buyer":pBuyer,
  "exh:list":()=>{exhView="team";pExh()},
  "exh:portal":()=>{exhView="portal";pExh()},
  "exh:setup":pTaskSetup,
@@ -5812,6 +5849,301 @@ function taskState(e,d,t){
   return {k:"open",l:"more "+left+" day",c:"--ink2"};
 }
 function dealTasks(d){ return EV.tasks.filter(t=>t.by==="exhibitor") }
+/* ---------- Hosted buyer program ----------
+   เชิญผู้ซื้อที่คัดมาแล้วมางาน แลกกับที่เขาตกลงเข้าประชุมกับผู้ออกบูธตามจำนวนที่นัดไว้
+   ผู้เข้าชมทั้งงานเป็นหมื่นคนอยู่ที่ระบบลงทะเบียนตามเดิม ที่นี่เก็บเฉพาะหลักร้อยที่คัดแล้ว
+
+   คะแนนคำนวณสดทุกครั้ง ไม่ได้เก็บลงฐานข้อมูล
+   เพราะเกณฑ์ยังต้องปรับอีกหลายรอบกว่าจะแม่น ถ้าเก็บไว้ พอแก้เกณฑ์แล้วคะแนนเก่าจะค้าง
+   และทุกคะแนนต้องอธิบายได้ว่ามาจากอะไร ไม่ใช่เลขลอย ๆ ที่ไม่มีใครเถียงได้ */
+const BSTATUS=[
+ ["applied","สมัครเข้ามา","--ink3"],
+ ["qualified","ผ่านเกณฑ์","--s-booked"],
+ ["invited","ส่งคำเชิญแล้ว","--s-deposit"],
+ ["confirmed","ยืนยันมา","--accent"],
+ ["attended","มาจริง","--s-paid"],
+ ["declined","ไม่มา","--risk"],
+];
+const bsName=(k)=>(BSTATUS.find(x=>x[0]===k)||["","?"])[1];
+const bsColor=(k)=>cv((BSTATUS.find(x=>x[0]===k)||["","","--ink3"])[2]);
+
+/* เกณฑ์ให้คะแนน อิงจากสิ่งที่ระบบลงทะเบียนเก็บอยู่แล้ว
+   สี่ด้านตามมาตรฐานของ hosted buyer อำนาจตัดสินใจ ความตั้งใจซื้อ สถานะธุรกิจ ขนาดงบ */
+const BSCORE={
+  position:[[/เจ้าของ|owner|กรรมการ|ceo|ผู้บริหาร|md\b/i,40,"เจ้าของหรือผู้บริหาร"],
+            [/จัดซื้อ|purchas|ผู้จัดการ|manager|หัวหน้า/i,28,"ระดับผู้จัดการหรือจัดซื้อ"],
+            [/./,8,"ระดับปฏิบัติการ"]],
+  purpose:[[/ซัพพลาย|supplier|สั่งซื้อ|จัดซื้อ|หาสินค้า|source/i,30,"มาหาซัพพลายเออร์"],
+           [/ราคา|เปรียบเทียบ|compare|quote/i,20,"มาเปรียบเทียบราคา"],
+           [/ไอเดีย|idea|เทรนด์|trend|เปิดร้าน/i,12,"มาหาไอเดีย"],
+           [/./,4,"มาดูงานทั่วไป"]],
+  budget:[[/^>|มากกว่า 5|5 ?ล้านขึ้น|over/i,20,"งบมากกว่า 5 ล้าน"],
+          [/1-5|1 ?ถึง ?5|ล้าน/i,12,"งบ 1-5 ล้าน"],
+          [/./,5,"งบต่ำกว่า 1 ล้าน"]],
+};
+function bscore(b){
+  const parts=[];
+  const hit=(rules,val)=>{
+    const v=String(val||"");
+    if(!v)return null;
+    for(const [re,pt,why] of rules) if(re.test(v))return {pt,why};
+    return null;
+  };
+  const p=hit(BSCORE.position,b.position);
+  if(p)parts.push(p); else parts.push({pt:0,why:"ไม่ได้ระบุตำแหน่ง"});
+  const u=hit(BSCORE.purpose,b.purpose);
+  if(u)parts.push(u); else parts.push({pt:0,why:"ไม่ได้ระบุจุดประสงค์"});
+  /* เปิดร้านแล้วซื้อได้เลย ยังไม่เปิดคือยังหาข้อมูล สาขาเยอะแปลว่าสั่งทีละมาก */
+  if(b.hasShop===true){
+    const br=+b.branches||1;
+    const extra=Math.min(15,Math.max(0,br-1)*5);
+    parts.push({pt:25+extra,why:"เปิดร้านแล้ว"+(br>1?" "+br+" สาขา":"")});
+  } else if(b.hasShop===false)parts.push({pt:8,why:"ยังไม่เปิดร้าน"});
+  else parts.push({pt:0,why:"ไม่ได้ระบุว่าเปิดร้านหรือยัง"});
+  const g=hit(BSCORE.budget,b.budgetBand);
+  if(g)parts.push(g); else parts.push({pt:0,why:"ไม่ได้ระบุงบ"});
+  const sum=parts.reduce((s,x)=>s+x.pt,0);
+  return {score:Math.min(100,Math.round(sum/130*100)),parts,raw:sum};
+}
+let BUYERS=[], bFilter="", bQ="", bOpen=null, bLoaded=null;
+async function loadBuyers(force){
+  if(!online()){ BUYERS=[]; bLoaded=EV.id; return }
+  if(bLoaded===EV.id&&!force)return;
+  BUYERS=await api("/api/events/"+encodeURIComponent(EV.id)+"/buyers");
+  bLoaded=EV.id;
+}
+function pBuyer(){
+  const wr=can("deal")==="write";
+  $("#page").innerHTML='<p class="rdonly">กำลังโหลดรายชื่อ…</p>';
+  loadBuyers().then(()=>drawBuyer(wr)).catch(err=>{
+    $("#page").innerHTML='<div class="note" style="border-left-color:var(--risk)"><p>'+
+      '<b>โหลดรายชื่อผู้ซื้อไม่สำเร็จ</b> '+esc(err.message||"")+'</p></div>';
+  });
+}
+function drawBuyer(wr){
+  const all=BUYERS.map(b=>({...b,_s:bscore(b)}));
+  const q2=bQ.trim().toLowerCase();
+  const rows=all
+    .filter(b=>!bFilter||b.status===bFilter)
+    .filter(b=>!q2||[b.name,b.company,b.province,b.position].some(x=>String(x||"").toLowerCase().includes(q2)))
+    .sort((a,b)=>b._s.score-a._s.score);
+  const n=(k)=>all.filter(b=>b.status===k).length;
+
+  let h='<div class="note"><p><b>Hosted buyer program</b> เชิญผู้ซื้อที่คัดมาแล้วมางาน '+
+   'แลกกับที่เขาตกลงเข้าประชุมกับผู้ออกบูธตามจำนวนที่นัดไว้ '+
+   'ที่นี่เก็บเฉพาะคนที่จะเชิญ ไม่ใช่ผู้เข้าชมทั้งงาน</p></div>';
+
+  h+='<div class="cards">'+BSTATUS.map(s=>
+    '<button class="c bst'+(bFilter===s[0]?" on":"")+'" data-bf="'+s[0]+'" style="--t:'+cv(s[2])+'">'+
+    '<b>'+n(s[0])+'</b><span>'+s[1]+'</span></button>').join("")+'</div>';
+
+  h+='<div class="bar2" style="margin-top:14px">'+
+   '<input type="search" id="bq" placeholder="ค้นหาชื่อ บริษัท จังหวัด" value="'+esc(bQ)+'">'+
+   (bFilter?'<button class="act" id="bclr" style="padding:9px 14px">ล้างตัวกรอง</button>':'')+
+   '<span style="font-size:13px;color:var(--ink2)">แสดง '+rows.length+' จาก '+all.length+' ราย</span>'+
+   (wr?'<button class="act go" id="badd" style="padding:9px 16px;margin-left:auto">+ เพิ่มผู้ซื้อ</button>'+
+       '<button class="act" id="bimp" style="padding:9px 14px">นำเข้าจากไฟล์</button>':'')+
+   dlBtn("bdl","ดาวน์โหลด CSV")+'</div>';
+
+  if(!all.length){
+    h+='<div class="note" style="border-left-color:var(--warn)"><p><b>ยังไม่มีรายชื่อผู้ซื้อ</b> '+
+     'เริ่มได้สองทาง กดเพิ่มทีละคน หรือนำเข้าจากไฟล์ที่ยกมาจากระบบลงทะเบียน '+
+     'ไฟล์ต้องมีหัวคอลัมน์ name, company, position, province, purpose, hasShop, branches, '+
+     'budgetBand, email, phone</p></div>';
+  } else if(!rows.length){
+    h+='<div class="note"><p>ไม่มีรายชื่อที่ตรงกับตัวกรองนี้</p></div>';
+  } else {
+    h+='<div class="tw"><table><thead><tr>'+
+     '<th style="width:62px">คะแนน</th><th>ผู้ซื้อ</th><th>ตำแหน่ง</th>'+
+     '<th>จุดประสงค์</th><th>ร้าน</th><th>จังหวัด</th><th style="width:132px">สถานะ</th>'+
+     (wr?'<th style="width:44px"></th>':'')+'</tr></thead><tbody>'+
+     rows.map(b=>{
+       const s=b._s;
+       const tone=s.score>=70?"--ok":s.score>=45?"--warn":"--ink3";
+       return '<tr class="brow" data-bo="'+b.id+'">'+
+        '<td><span class="bsc" style="--t:'+cv(tone)+'">'+s.score+'</span></td>'+
+        '<td><b>'+esc(b.name)+'</b>'+(b.company?'<br><small style="color:var(--ink2)">'+
+          esc(b.company)+'</small>':'')+'</td>'+
+        '<td style="font-size:13px">'+esc(b.position||"—")+'</td>'+
+        '<td style="font-size:13px">'+esc(b.purpose||"—")+'</td>'+
+        '<td style="font-size:13px">'+(b.hasShop===true?"เปิดแล้ว"+(b.branches>1?" "+b.branches+" สาขา":"")
+          :b.hasShop===false?"ยังไม่เปิด":"—")+'</td>'+
+        '<td style="font-size:13px">'+esc(b.province||"—")+'</td>'+
+        '<td>'+(wr?'<select class="cell" data-bs="'+b.id+'">'+BSTATUS.map(x=>
+          '<option value="'+x[0]+'"'+(b.status===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
+          '</select>':'<span class="pill" style="background:'+bsColor(b.status)+'">'+
+          esc(bsName(b.status))+'</span>')+'</td>'+
+        (wr?'<td><button class="rowdel" data-bx="'+b.id+'">×</button></td>':'')+
+       '</tr>';
+     }).join("")+'</tbody></table></div>';
+  }
+  $("#page").innerHTML=h; bindBuyer(wr,all);
+}
+function bindBuyer(wr,all){
+  const P=$("#page");
+  P.querySelectorAll("[data-bf]").forEach(b=>b.addEventListener("click",()=>{
+    bFilter=bFilter===b.dataset.bf?"":b.dataset.bf; drawBuyer(wr) }));
+  const c=P.querySelector("#bclr"); if(c)c.addEventListener("click",()=>{bFilter="";drawBuyer(wr)});
+  const s=P.querySelector("#bq");
+  if(s)s.addEventListener("input",e=>{ bQ=e.target.value; drawBuyer(wr);
+    const el=$("#bq"); if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)} });
+  P.querySelectorAll("[data-bo]").forEach(tr=>tr.addEventListener("click",e=>{
+    if(e.target.closest("select,button"))return;
+    bOpen=tr.dataset.bo; buyerPanel(wr) }));
+  P.querySelectorAll("[data-bs]").forEach(sel=>sel.addEventListener("change",async()=>{
+    const id=sel.dataset.bs;
+    try{
+      const up=await api("/api/buyers/"+id,{method:"PATCH",body:JSON.stringify({status:sel.value})});
+      const i=BUYERS.findIndex(x=>x.id===id); if(i>=0)BUYERS[i]=up;
+      drawBuyer(wr); toastTL("เปลี่ยนสถานะเป็น "+bsName(up.status)+" แล้ว");
+    }catch(err){ toastTL("เปลี่ยนสถานะไม่สำเร็จ · "+(err.message||"")) }
+  }));
+  P.querySelectorAll("[data-bx]").forEach(b=>b.addEventListener("click",async()=>{
+    const row=BUYERS.find(x=>x.id===b.dataset.bx);
+    if(!confirm("ลบ "+(row?row.name:"รายนี้")+" ออกจากรายชื่อ"))return;
+    try{
+      await api("/api/buyers/"+b.dataset.bx,{method:"DELETE"});
+      BUYERS=BUYERS.filter(x=>x.id!==b.dataset.bx); drawBuyer(wr); toastTL("ลบแล้ว");
+    }catch(err){ toastTL("ลบไม่สำเร็จ · "+(err.message||"")) }
+  }));
+  const ad=P.querySelector("#badd"); if(ad)ad.addEventListener("click",()=>{ bOpen="new"; buyerPanel(wr) });
+  const im=P.querySelector("#bimp"); if(im)im.addEventListener("click",()=>buyerImport(wr));
+  const dl=P.querySelector("#bdl");
+  if(dl)dl.addEventListener("click",e=>{
+    const head=["score","name","company","position","province","purpose","hasShop","branches",
+      "budgetBand","email","phone","status"];
+    saveCSV("buyers-"+EV.id+".csv",[head].concat(all.map(b=>[b._s.score,b.name,b.company||"",
+      b.position||"",b.province||"",b.purpose||"",b.hasShop===true?"yes":b.hasShop===false?"no":"",
+      b.branches||"",b.budgetBand||"",b.email||"",b.phone||"",b.status])),e.currentTarget);
+  });
+}
+/* แผงกรอกและแก้ผู้ซื้อ ใช้ช่องเดียวกับแผงอื่น เปิดทีละราย */
+const BFLD=[
+ ["name","ชื่อ-นามสกุล","เช่น สมชาย ใจดี",1],
+ ["company","บริษัท / ร้าน","",1],
+ ["position","ตำแหน่ง","เจ้าของ / ผู้จัดการจัดซื้อ",0],
+ ["province","จังหวัด","",0],
+ ["purpose","จุดประสงค์ของการมา","หาซัพพลายเออร์ / เปรียบเทียบราคา",1],
+ ["branches","จำนวนสาขา","",0],
+ ["email","อีเมล","",0],
+ ["phone","เบอร์โทร","",0],
+];
+const BUDGETS=["","ต่ำกว่า 1 ล้าน","1-5 ล้าน","มากกว่า 5 ล้าน"];
+function buyerPanel(wr){
+  let sd=document.getElementById("bpanel");
+  if(!sd){ sd=document.createElement("aside"); sd.id="bpanel"; sd.className="side2";
+    document.body.appendChild(sd) }
+  if(!bOpen){ sd.remove(); return }
+  const isNew=bOpen==="new";
+  const b=isNew?{name:"",interests:[],status:"applied"}:BUYERS.find(x=>x.id===bOpen);
+  if(!b){ sd.remove(); bOpen=null; return }
+  const sc=bscore(b);
+  const zones=Object.values(EV.zoneNames||{});
+  const cats=[...new Set(zones.concat(Object.keys(EV.packages||{})))].filter(Boolean);
+
+  sd.innerHTML='<button class="x" aria-label="ปิด">×</button>'+
+   '<h3>'+(isNew?"เพิ่มผู้ซื้อ":esc(b.name))+'</h3>'+
+   (!isNew?'<p class="s">'+esc(b.company||"—")+'</p>':'')+
+   /* คะแนนต้องกางให้เห็นว่ามาจากอะไร ไม่งั้นไม่มีใครเชื่อและไม่มีใครเถียงได้ */
+   (!isNew?'<div class="bsbox"><div class="bsh"><b>คะแนน '+sc.score+'</b>'+
+     '<span>จาก '+sc.raw+' คะแนนดิบ เต็ม 130</span></div>'+
+     sc.parts.map(p=>'<div class="bsp"><span>'+esc(p.why)+'</span><b>+'+p.pt+'</b></div>').join("")+
+     '</div>':'')+
+   (wr?BFLD.map(f=>'<label class="bf'+(f[3]?" wide":"")+'"><span>'+esc(f[1])+'</span>'+
+       '<input id="bf_'+f[0]+'" value="'+esc(b[f[0]]??"")+'" placeholder="'+esc(f[2])+'"'+
+       (f[0]==="branches"?' type="number" min="0"':'')+'></label>').join("")+
+     '<label class="bf wide"><span>เปิดร้านแล้วหรือยัง</span><select id="bf_hasShop">'+
+       [["","ไม่ระบุ"],["true","เปิดแล้ว"],["false","ยังไม่เปิด"]].map(x=>
+         '<option value="'+x[0]+'"'+(String(b.hasShop??"")===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
+       '</select></label>'+
+     '<label class="bf wide"><span>งบต่อปี</span><select id="bf_budgetBand">'+
+       BUDGETS.map(x=>'<option value="'+esc(x)+'"'+((b.budgetBand||"")===x?" selected":"")+'>'+
+         (x||"ไม่ระบุ")+'</option>').join("")+'</select></label>'+
+     '<label class="bf wide"><span>สถานะ</span><select id="bf_status">'+BSTATUS.map(x=>
+       '<option value="'+x[0]+'"'+((b.status||"applied")===x[0]?" selected":"")+'>'+x[1]+'</option>').join("")+
+       '</select></label>'+
+     (cats.length?'<div class="bf wide"><span>หมวดที่สนใจ · ใช้จับคู่กับบูธ</span>'+
+       '<div class="bchips">'+cats.map(c=>'<label class="bchip"><input type="checkbox" '+
+         'value="'+esc(c)+'"'+((b.interests||[]).includes(c)?" checked":"")+'>'+esc(c)+
+         '</label>').join("")+'</div></div>':'')+
+     '<label class="bf wide"><span>บันทึกเพิ่มเติม</span>'+
+       '<input id="bf_note" value="'+esc(b.note||"")+'"></label>'+
+     '<div class="lgbtns" style="margin-top:14px">'+
+       '<button class="go" id="bsave">'+(isNew?"เพิ่มรายชื่อ":"บันทึก")+'</button>'+
+       '<span id="bmsg" class="evfmsg"></span></div>'
+    :'<p>'+esc(b.position||"—")+' · '+esc(b.province||"—")+'</p>'+
+     '<p class="s">'+esc(b.purpose||"")+'</p>');
+
+  sd.querySelector(".x").addEventListener("click",()=>{ bOpen=null; sd.remove() });
+  if(!wr)return;
+  sd.querySelector("#bsave").addEventListener("click",async()=>{
+    const v=(k)=>{const el=sd.querySelector("#bf_"+k); return el?el.value:""};
+    const body={ name:v("name"), company:v("company"), position:v("position"),
+      province:v("province"), purpose:v("purpose"),
+      branches:v("branches")===""?null:+v("branches"),
+      email:v("email"), phone:v("phone"), note:v("note"),
+      hasShop:v("hasShop")===""?null:v("hasShop")==="true",
+      budgetBand:v("budgetBand")||null, status:v("status"),
+      interests:[...sd.querySelectorAll(".bchip input:checked")].map(x=>x.value) };
+    if(!body.name.trim()){ sd.querySelector("#bmsg").textContent="ใส่ชื่อก่อน"; return }
+    const btn=sd.querySelector("#bsave"); btn.disabled=true;
+    sd.querySelector("#bmsg").textContent="กำลังบันทึก…";
+    try{
+      if(isNew){
+        const made=await api("/api/events/"+encodeURIComponent(EV.id)+"/buyers",
+          {method:"POST",body:JSON.stringify(body)});
+        BUYERS.unshift(made); bOpen=made.id;
+      } else {
+        const up=await api("/api/buyers/"+b.id,{method:"PATCH",body:JSON.stringify(body)});
+        const i=BUYERS.findIndex(x=>x.id===b.id); if(i>=0)BUYERS[i]=up;
+      }
+      drawBuyer(wr); buyerPanel(wr); toastTL(isNew?"เพิ่มรายชื่อแล้ว":"บันทึกแล้ว");
+    }catch(err){ sd.querySelector("#bmsg").textContent="ไม่สำเร็จ · "+(err.message||"");
+      btn.disabled=false }
+  });
+}
+/* นำเข้าจากไฟล์ รับ CSV หรือวางข้อความที่คัดลอกจากสเปรดชีต
+   หัวคอลัมน์ต้องตรงกับชื่อช่อง จะได้ไม่ต้องเดาว่าคอลัมน์ไหนคืออะไร */
+function buyerImport(wr){
+  const m=document.createElement("div"); m.className="cardview bimp";
+  m.innerHTML='<div class="bimpbox" role="dialog" aria-label="นำเข้ารายชื่อผู้ซื้อ">'+
+   '<h3>นำเข้ารายชื่อผู้ซื้อ</h3>'+
+   '<p>วางข้อมูลที่คัดลอกจากสเปรดชีต หรือเนื้อไฟล์ CSV บรรทัดแรกต้องเป็นหัวคอลัมน์</p>'+
+   '<p class="simnote">ชื่อคอลัมน์ที่รับ: <code>name, company, position, province, purpose, '+
+   'hasShop, branches, budgetBand, email, phone</code> · ต้องมีอย่างน้อย <code>name</code> · '+
+   'ถ้าอีเมลซ้ำกับที่มีอยู่ ระบบจะอัปเดตทับแทนการเพิ่มซ้ำ</p>'+
+   '<textarea id="bimptxt" rows="9" placeholder="name,company,position,purpose,hasShop&#10;'+
+   'สมชาย ใจดี,ร้านกาแฟบ้านสวน,เจ้าของ,หาซัพพลายเออร์,true"></textarea>'+
+   '<div class="lgbtns"><button class="go" id="bimpgo">นำเข้า</button>'+
+   '<button id="bimpx">ยกเลิก</button><span id="bimpmsg" class="evfmsg"></span></div></div>';
+  m.addEventListener("click",e=>{ if(e.target===m)m.remove() });
+  document.body.appendChild(m);
+  m.querySelector("#bimpx").addEventListener("click",()=>m.remove());
+  m.querySelector("#bimpgo").addEventListener("click",async()=>{
+    const raw=m.querySelector("#bimptxt").value.trim();
+    const msg=m.querySelector("#bimpmsg");
+    if(!raw){ msg.textContent="ยังไม่ได้วางข้อมูล"; return }
+    const sep=raw.includes("\t")?"\t":",";
+    const lines=raw.split(/\r?\n/).filter(x=>x.trim());
+    const head=lines[0].split(sep).map(x=>x.trim().replace(/^"|"$/g,""));
+    if(!head.some(x=>/^name$/i.test(x))){ msg.textContent="บรรทัดแรกต้องมีคอลัมน์ name"; return }
+    const rows=lines.slice(1).map(l=>{
+      const c=l.split(sep).map(x=>x.trim().replace(/^"|"$/g,""));
+      const o={}; head.forEach((k,i)=>{ if(c[i]!==undefined&&c[i]!=="")o[k]=c[i] });
+      if(o.hasShop!==undefined)o.hasShop=/^(true|yes|ใช่|เปิดแล้ว|1)$/i.test(o.hasShop);
+      return o;
+    }).filter(o=>o.name);
+    if(!rows.length){ msg.textContent="ไม่มีแถวที่มีชื่อ"; return }
+    msg.textContent="กำลังนำเข้า "+rows.length+" แถว…";
+    try{
+      const res=await api("/api/events/"+encodeURIComponent(EV.id)+"/buyers/import",
+        {method:"POST",body:JSON.stringify({rows})});
+      await loadBuyers(true); m.remove(); drawBuyer(wr);
+      toastTL("นำเข้าแล้ว เพิ่ม "+res.added+" แก้ "+res.updated+
+        (res.skipped?" ข้าม "+res.skipped:""));
+    }catch(err){ msg.textContent="นำเข้าไม่สำเร็จ · "+(err.message||"") }
+  });
+}
 function pExh(){
   const list=DEALS.filter(mine), T=EV.tasks;
   const own=T.filter(t=>t.by==="exhibitor");
