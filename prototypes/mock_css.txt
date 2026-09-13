@@ -1420,4 +1420,14 @@ tr.brow:hover>td{background:var(--soft)}
   .chr{grid-template-columns:24px 1fr;gap:7px 11px;padding:14px 0}
   .chr>.chv,.chr>.chp{grid-column:2}
 }
+
+/* ---------- แก้บูธบนผัง ----------
+   ตอนอยู่โหมดแก้ผัง บูธต้องดูจับได้ และใบที่เลือกไว้หลายใบ (ไว้รวมกัน)
+   ต้องแยกออกจากใบที่กำลังดูรายละเอียดอยู่ */
+.bt.ed{cursor:move}
+.bt.msel rect:first-of-type{stroke:var(--accent);stroke-width:.26}
+.bt.sel.msel rect:first-of-type{stroke:var(--ink);stroke-width:.3}
+.bt .bth{cursor:nwse-resize}
+/* ลากอยู่ไม่ต้องหรี่ตามตัวกรอง ไม่งั้นลากบูธที่ถูกกรองออกแล้วจะมองไม่เห็นว่าไปอยู่ไหน */
+.bt.msel.dim{opacity:1}
 </style>

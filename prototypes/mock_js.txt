@@ -1376,9 +1376,20 @@ function pPlan(){
       ทั้งที่จำนวนบูธเปลี่ยนตลอดช่วงขาย */
    (can("floorplan")==="write"
      ?'<button class="act" id="baddb" style="padding:9px 14px">+ Add booth</button>':'')+
-   (canArea()
+   /* ปุ่มเดียวเปิดโหมดแก้ทั้งบูธและกล่อง แยกสองปุ่มแล้วคนต้องจำว่าตอนนี้อยู่โหมดไหน
+      ข้างในค่อยแยกสิทธิ์กัน บูธใช้ floorplan:write กล่องใช้ admin */
+   ((canArea()||canBooth())
      ?'<button class="act'+(planEdit?" go":"")+'" id="baredit" style="padding:9px 14px">'+
-      (planEdit?"เสร็จแล้ว":"แก้กล่องบนผัง")+'</button>':'')+
+      (planEdit?"เสร็จแล้ว":"แก้ผัง")+'</button>':'')+
+   (planEdit&&canBooth()
+     ?'<button class="act" id="bmerge" style="padding:9px 14px"'+
+        (selSet.size>1?'':' disabled')+'>รวมบูธ'+(selSet.size>1?" ("+selSet.size+")":"")+'</button>'+
+      '<button class="act" id="bsplit" style="padding:9px 14px"'+
+        (splitTarget()?'':' disabled')+'>แบ่งบูธ</button>'+
+      '<button class="act" id="bdelb" style="padding:9px 14px"'+
+        (selSet.size?'':' disabled')+'>ลบบูธ'+(selSet.size>1?" ("+selSet.size+")":"")+'</button>':'')+
+   ((canArea()||canBooth())
+     ?'<button class="act" id="baudit" style="padding:9px 14px">ตรวจผัง</button>':'')+
    '<div class="seg">'+["free","booked","deposit","paid"].map(k=>
      '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
      cv(ST[k].c)+'"></i>'+ST[k].l+' '+shown().filter(x=>x.st===k).length+'</span>').join("")+'</div></div>'+
@@ -1414,11 +1425,27 @@ function pPlan(){
   });
   const be=$("#baredit");
   if(be)be.addEventListener("click",()=>{
-    planEdit=!planEdit; if(!planEdit)selAr=null;
+    planEdit=!planEdit; if(!planEdit){ selAr=null; selSet=new Set() }
     pPlan();
-    toastTL(planEdit?"ลากบนที่ว่างเพื่อสร้างกล่อง ลากกล่องเพื่อย้าย ลากมุมขวาล่างเพื่อย่อขยาย"
-                    :"ออกจากโหมดแก้กล่องแล้ว");
+    toastTL(planEdit
+      ?(canBooth()?"ลากบูธเพื่อย้าย · ลากมุมขวาล่างเพื่อย่อขยาย · Shift+คลิกเลือกหลายใบเพื่อรวม"
+                  :"ลากบนที่ว่างเพื่อสร้างกล่อง ลากกล่องเพื่อย้าย")
+      :"ออกจากโหมดแก้ผังแล้ว");
   });
+  const bm=$("#bmerge"); if(bm)bm.addEventListener("click",mergeSel);
+  const bs=$("#bsplit"); if(bs)bs.addEventListener("click",()=>{
+    const t=splitTarget(); if(!t)return;
+    /* ถามขนาดช่องแทนการหั่นเป็น 1x1 เสมอ เพราะ 20x30 ที่ขายไม่ออกมักอยากได้ 10x10
+       ไม่ใช่ช่องเล็กสุดเท่าที่กริดจะแบ่งได้ */
+    const v=prompt("แบ่งบูธ "+t.code+" ("+t.w+"×"+t.h+" ช่อง) เป็นช่องละกี่ช่อง\n"+
+      "ใส่เป็น กว้าง×ยาว เช่น 1x1 หรือ 2x3","1x1");
+    if(!v)return;
+    const m=String(v).toLowerCase().replace(/\s/g,"").match(/^(\d+)[x×](\d+)$/);
+    if(!m){ alert("รูปแบบไม่ถูกต้อง ใส่เป็น กว้าง×ยาว เช่น 2x3"); return }
+    splitBooth(t,+m[1],+m[2]);
+  });
+  const bd=$("#bdelb"); if(bd)bd.addEventListener("click",delSelBooths);
+  const ba=$("#baudit"); if(ba)ba.addEventListener("click",showAudit);
   const fc=$("#fclear");
   if(fc)fc.addEventListener("click",()=>{fZone="";fPkg="";q="";pPlan()});
   const rel=$("#rel");
@@ -1629,6 +1656,175 @@ function arAt(pt){
   }
   return null;
 }
+/* ---------- แก้บูธบนผัง ----------
+   เดิมผังแก้ได้แต่ "กล่อง" (เวที ทางเข้า โซนอาหาร) ส่วนบูธวางได้อย่างเดียวตอน
+   + Add booth แล้วอยู่ตรงนั้นตลอดไป ทั้งที่ผังบูธคือของที่เปลี่ยนตลอดช่วงขาย
+   ลูกค้าขอ 20x20 ต้องรวมสี่ใบ ขายไม่ออกต้องแบ่งกลับ ที่ผ่านมาต้องไปแก้ข้อมูลดิบเอง
+
+   บูธใช้สิทธิ์ floorplan:write (admin, operations, sales) ส่วนกล่องยังเป็น admin
+   อย่างเดียวเหมือนเดิม คนละชุดสิทธิ์กันตั้งแต่แรก ไม่ได้รวบให้เท่ากัน */
+const canBooth=()=>can("floorplan")==="write";
+/* บูธนอนบนช่องกริดเต็มช่องเสมอ ไม่เหมือนกล่องที่ลงครึ่งช่องได้
+   ถ้าปล่อยให้บูธลงครึ่งช่องด้วย แถวบูธจะเหลื่อมกันทีละนิดจนผังเพี้ยนทั้งฮอลล์ */
+const bsnap=(v)=>Math.round(v);
+function bAt(pt){
+  for(let i=B.length-1;i>=0;i--){
+    const b=B[i];
+    if(pt.x>=b.x&&pt.x<=b.x+b.w&&pt.y>=b.y&&pt.y<=b.y+b.h)return b;
+  }
+  return null;
+}
+/* รหัสบูธใหม่ในโซนหนึ่ง เลี่ยงเลขที่ใช้ไปแล้ว
+   แยกออกมาจากปุ่ม + Add booth เพราะทั้งแบ่งบูธและรวมบูธต้องใช้ตัวเดียวกัน */
+function nextCode(zone,taken){
+  const used=taken||new Set(B.map(b=>b.code));
+  let n=B.filter(b=>b.zone===zone).length+1, code=zone+n;
+  while(used.has(code)){ n++; code=zone+n }
+  return code;
+}
+/* บูธที่เลือกไว้หลายใบ เก็บเป็นรหัส ไม่ใช่ตัวอ้างอิงวัตถุ
+   เพราะการรวมและการแบ่งสร้างวัตถุใหม่ทั้งชุด ตัวอ้างอิงเก่าจะชี้ของที่ไม่อยู่ในผังแล้ว */
+let selSet=new Set();
+const selBooths=()=>[...selSet].map(c=>B.find(b=>b.code===c)).filter(Boolean);
+
+/* รวมบูธ — ต้องต่อกันเป็นสี่เหลี่ยมพอดีเป๊ะ ไม่มีรูและไม่ทับกัน
+   เช็คด้วยพื้นที่รวมเทียบกับพื้นที่กรอบนอก ถ้าเท่ากันแปลว่าปูเต็มพอดี */
+function mergeCheck(list){
+  if(list.length<2)return {ok:false,why:"เลือกบูธอย่างน้อยสองใบก่อน (กด Shift ค้างแล้วคลิก)"};
+  const x0=Math.min(...list.map(b=>b.x)), y0=Math.min(...list.map(b=>b.y));
+  const x1=Math.max(...list.map(b=>b.x+b.w)), y1=Math.max(...list.map(b=>b.y+b.h));
+  const area=list.reduce((s,b)=>s+b.w*b.h,0);
+  if(area!==(x1-x0)*(y1-y0))
+    return {ok:false,why:"บูธที่เลือกไม่ได้ต่อกันเป็นสี่เหลี่ยมพอดี — ต้องไม่มีช่องว่างและไม่ทับกัน"};
+  const sold=list.filter(b=>b.st!=="free");
+  return {ok:true,x:x0,y:y0,w:x1-x0,h:y1-y0,sold};
+}
+function mergeSel(){
+  const list=selBooths(), c=mergeCheck(list);
+  if(!c.ok){ alert(c.why); return }
+  /* ขายไปแล้วมากกว่าหนึ่งใบ รวมแล้วต้องทิ้งลูกค้าไปหนึ่งราย ให้คนตัดสินใจเอง */
+  if(c.sold.length>1&&!confirm("บูธที่เลือกมีคนจองแล้ว "+c.sold.length+" ใบ ("+
+     c.sold.map(b=>b.code+(b.co?" · "+b.co:"")).join(", ")+")\n"+
+     "รวมแล้วจะเหลือข้อมูลลูกค้าของใบแรกใบเดียว ยืนยันหรือไม่"))return;
+  /* ใบที่เก็บไว้คือใบที่ขายไปแล้ว ถ้ามี ไม่งั้นเอาใบซ้ายบนสุด
+     เพื่อไม่ให้ข้อมูลลูกค้ากับประวัติการขายหายไปโดยไม่จำเป็น */
+  const keep=c.sold[0]||list.slice().sort((a,b)=>a.y-b.y||a.x-b.x)[0];
+  const price=list.reduce((s,b)=>s+(b.list||0),0);
+  const codes=new Set(list.map(b=>b.code));
+  const kept=B.filter(b=>!codes.has(b.code)||b===keep);
+  B.length=0; kept.forEach(b=>B.push(b));
+  Object.assign(keep,{x:c.x,y:c.y,w:c.w,h:c.h,list:price});
+  /* คิวจองของใบที่หายไป ย้ายมารวมที่ใบที่เหลือ ไม่ใช่ทิ้ง */
+  list.forEach(b=>{ if(b===keep)return;
+    const qs=Q[b.code]||[]; if(qs.length){ Q[keep.code]=(Q[keep.code]||[]).concat(qs) }
+    delete Q[b.code]; });
+  selSet=new Set([keep.code]); sel=keep.code;
+  snapSoon(); pPlan();
+  toastTL("รวม "+list.length+" บูธเป็น "+keep.code+" ("+c.w+"×"+c.h+" ช่อง) แล้ว");
+}
+/* แบ่งบูธ — ตัดเป็นช่องละ cw x ch ใบแรกใช้รหัสเดิมและเก็บข้อมูลลูกค้าไว้ */
+function splitBooth(b,cw,ch){
+  const nx=Math.floor(b.w/cw), ny=Math.floor(b.h/ch);
+  if(nx*ny<2){ alert("บูธนี้เล็กเกินกว่าจะแบ่งเป็น "+cw+"×"+ch+" ได้มากกว่าหนึ่งช่อง"); return }
+  if(nx*cw!==b.w||ny*ch!==b.h){
+    if(!confirm("แบ่ง "+b.w+"×"+b.h+" เป็นช่องละ "+cw+"×"+ch+" จะเหลือเศษที่หายไป\nดำเนินการต่อหรือไม่"))return;
+  }
+  if(b.st!=="free"&&!confirm("บูธ "+b.code+" มีคนจองแล้ว"+(b.co?" ("+b.co+")":"")+
+     "\nแบ่งแล้วข้อมูลลูกค้าจะอยู่กับช่องซ้ายบนช่องเดียว ยืนยันหรือไม่"))return;
+  const taken=new Set(B.map(x=>x.code));
+  const each=Math.round((b.list||0)/(nx*ny));
+  const made=[];
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+    if(i===0&&j===0){
+      Object.assign(b,{w:cw,h:ch,list:each}); made.push(b.code); continue;
+    }
+    const code=nextCode(b.zone||"A",taken); taken.add(code);
+    B.push({...b,code,x:b.x+i*cw,y:b.y+j*ch,w:cw,h:ch,list:each,
+      /* ช่องที่แตกออกมาเป็นของว่าง ไม่ใช่สำเนาของลูกค้ารายเดิม */
+      st:"free",co:null,sales:null,product:null,contact:null,phone:null,email:null,
+      form:false,board:false,due:null,hold:null});
+    made.push(code);
+  }
+  selSet=new Set(made); sel=b.code;
+  snapSoon(); pPlan();
+  toastTL("แบ่ง "+b.code+" เป็น "+made.length+" บูธแล้ว");
+}
+
+/* ---------- ตรวจผัง ----------
+   เปิดให้ลากบูธเองเมื่อไหร่ ผังพังเงียบ ๆ ได้ทันที บูธซ้อนกันหนึ่งคู่แปลว่าขายที่
+   เดียวกันสองรอบ ซึ่งจะไปรู้เอาวันติดตั้ง ตรวจสามอย่างที่ทำให้เกิดเรื่องจริง */
+/* ปุ่มรวม/แบ่ง/ลบ ขึ้นกับว่าเลือกบูธไว้กี่ใบ แต่การเลือกเกิดใน paint() ซึ่งวาดแค่ SVG
+   ไม่ได้วาดแถบเครื่องมือใหม่ ถ้าไม่ซิงก์ตรงนี้ Shift+คลิกจนครบแล้วปุ่มรวมก็ยังกดไม่ได้
+   เรียก pPlan() ทั้งหน้าแทนไม่ได้ เพราะจะไปตัดการลากที่ค้างอยู่ */
+function syncPlanBtns(){
+  const m=$("#bmerge"), sp=$("#bsplit"), dl=$("#bdelb");
+  if(m){ m.disabled=selSet.size<2; m.textContent="รวมบูธ"+(selSet.size>1?" ("+selSet.size+")":"") }
+  if(sp)sp.disabled=!splitTarget();
+  if(dl){ dl.disabled=!selSet.size; dl.textContent="ลบบูธ"+(selSet.size>1?" ("+selSet.size+")":"") }
+}
+/* บูธที่แบ่งได้คือใบเดียวที่เลือกอยู่และใหญ่กว่าหนึ่งช่อง */
+function splitTarget(){
+  if(selSet.size!==1)return null;
+  const b=selBooths()[0];
+  return b&&(b.w>1||b.h>1)?b:null;
+}
+function delSelBooths(){
+  const list=selBooths(); if(!list.length)return;
+  const sold=list.filter(b=>b.st!=="free");
+  if(sold.length&&!confirm("บูธที่จะลบมีคนจองแล้ว "+sold.length+" ใบ ("+
+    sold.map(b=>b.code+(b.co?" · "+b.co:"")).join(", ")+")\nยืนยันลบหรือไม่"))return;
+  if(!sold.length&&!confirm("ลบบูธ "+list.map(b=>b.code).join(", ")+" ออกจากผัง"))return;
+  const codes=new Set(list.map(b=>b.code));
+  const keep=B.filter(b=>!codes.has(b.code));
+  B.length=0; keep.forEach(b=>B.push(b));
+  codes.forEach(c=>{ delete Q[c] });
+  selSet=new Set(); sel=null;
+  snapSoon(); pPlan(); toastTL("ลบ "+codes.size+" บูธแล้ว");
+}
+/* รายการปัญหาบนผัง กดแล้วเด้งไปที่บูธนั้น */
+function showAudit(){
+  const out=auditPlan();
+  if(!out.length){ toastTL("✓ ตรวจผังแล้ว ไม่พบปัญหา — บูธ "+B.length+" ใบ"); return }
+  const byCode={};
+  out.forEach(o=>{ (byCode[o.code]=byCode[o.code]||[]).push(o.t) });
+  const codes=Object.keys(byCode);
+  const sd=$("#sd"); if(!sd)return;
+  selAr=null; sd.hidden=false;
+  sd.innerHTML='<button class="x" aria-label="ปิด">×</button>'+
+    '<h3>ตรวจผัง</h3><p class="s">พบ '+out.length+' จุดใน '+codes.length+' บูธ</p>'+
+    '<ul class="klist" style="gap:9px">'+codes.map(c=>
+      '<li style="display:block"><button class="lnk audj" data-c="'+esc(c)+'" '+
+      'style="border:0;background:none;font:inherit;color:var(--risk);font-weight:700;cursor:pointer;padding:0">'+
+      esc(c)+' →</button><div style="font-size:12.5px;color:var(--ink2)">'+
+      byCode[c].map(esc).join(" · ")+'</div></li>').join("")+'</ul>'+
+    '<p class="simnote" style="margin-top:12px">บูธซ้อนกันแปลว่าขายที่เดียวกันสองรอบ '+
+    'ถ้าไม่แก้จะไปรู้เอาวันติดตั้ง</p>';
+  sd.querySelector(".x").addEventListener("click",()=>{ sd.hidden=true; sd.innerHTML="" });
+  sd.querySelectorAll(".audj").forEach(bn=>bn.addEventListener("click",()=>{
+    const c=bn.dataset.c; sel=c; selSet=new Set([c]); paint(); sidebar(); syncPlanBtns();
+  }));
+}
+
+function auditPlan(){
+  const out=[], HB=hallBox();
+  const seen={};
+  B.forEach(b=>{ (seen[b.code]=seen[b.code]||[]).push(b) });
+  Object.keys(seen).forEach(c=>{
+    if(seen[c].length>1)out.push({k:"dup",code:c,t:"รหัสซ้ำ "+seen[c].length+" ใบ"});
+  });
+  for(let i=0;i<B.length;i++)for(let j=i+1;j<B.length;j++){
+    const a=B[i],b=B[j];
+    if(a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h)
+      out.push({k:"hit",code:a.code,t:"ซ้อนกับบูธ "+b.code});
+  }
+  if(HB)B.forEach(b=>{
+    if(b.x<0||b.y<0||b.x+b.w>HB.gw||b.y+b.h>HB.gh)
+      out.push({k:"out",code:b.code,t:"อยู่นอกขอบฮอลล์"});
+  });
+  B.forEach(b=>{ if(b.w<1||b.h<1)out.push({k:"sz",code:b.code,t:"ขนาดเล็กกว่าหนึ่งช่อง"}) });
+  return out;
+}
+
 function arNew(x,y,w,h){
   const a={name:"กล่องใหม่",x:snap(x),y:snap(y),w:Math.max(snap(w),1),h:Math.max(snap(h),1),
     kind:"",note:"",link:null};
@@ -1637,25 +1833,55 @@ function arNew(x,y,w,h){
 function wirePlan(){
   const svg=$("#plan"); if(!svg)return;
   svg.addEventListener("pointerdown",e=>{
-    if(!planEdit||!canArea())return;
+    if(!planEdit)return;
     const pt=planPt(e); if(!pt)return;
+    /* บูธอยู่ชั้นบนสุดของผัง (วาดทีหลังกล่อง) การกดจึงต้องเช็คบูธก่อน
+       ไม่งั้นกดบูธที่วางอยู่บนโซนอาหารแล้วจะไปโดนโซนอาหารแทน */
+    const bh=canBooth()?bAt(pt):null;
+    if(bh){
+      const grab=selSet.has(bh.code)&&pt.x>bh.x+bh.w-.55&&pt.y>bh.y+bh.h-.55;
+      if(e.shiftKey){
+        /* Shift คือการสะสมไว้รวมบูธ ไม่ใช่การเริ่มลาก */
+        if(selSet.has(bh.code)&&selSet.size>1)selSet.delete(bh.code); else selSet.add(bh.code);
+        sel=bh.code; selAr=null;
+        e.preventDefault(); paint(); sidebar(); syncPlanBtns(); return;
+      }
+      if(!selSet.has(bh.code)){ selSet=new Set([bh.code]) }
+      sel=bh.code; selAr=null;
+      arDrag=grab?{m:"bsize",b:bh}:{m:"bmove",b:bh,dx:pt.x-bh.x,dy:pt.y-bh.y,
+        /* ลากทั้งชุดที่เลือกไว้พร้อมกัน จำตำแหน่งตั้งต้นของแต่ละใบไว้เทียบ */
+        set:selBooths().map(x=>({b:x,ox:x.x-bh.x,oy:x.y-bh.y}))};
+      e.preventDefault(); svg.setPointerCapture(e.pointerId);
+      paint(); sidebar(); syncPlanBtns(); return;
+    }
+    if(!canArea())return;
     const hit=arAt(pt);
     /* มุมขวาล่างของกล่องที่เลือกอยู่คือที่จับย่อขยาย เผื่อระยะไว้ครึ่งช่องให้กดโดนง่าย */
     if(hit&&hit===selAr&&pt.x>hit.x+hit.w-.6&&pt.y>hit.y+hit.h-.6){
       arDrag={m:"size",a:hit}; }
     else if(hit){
-      selAr=hit; sel=null;
+      selAr=hit; sel=null; selSet=new Set();
       arDrag={m:"move",a:hit,dx:pt.x-hit.x,dy:pt.y-hit.y}; }
     else{
-      selAr=arNew(pt.x,pt.y,1,1);
+      selAr=arNew(pt.x,pt.y,1,1); sel=null; selSet=new Set();
       arDrag={m:"size",a:selAr,fresh:true};
     }
     e.preventDefault(); svg.setPointerCapture(e.pointerId);
-    paint(); arSidebar();
+    paint(); arSidebar(); syncPlanBtns();
   });
   svg.addEventListener("pointermove",e=>{
     if(!arDrag)return;
     const pt=planPt(e); if(!pt)return;
+    if(arDrag.m==="bmove"){
+      const nx=bsnap(pt.x-arDrag.dx), ny=bsnap(pt.y-arDrag.dy);
+      arDrag.set.forEach(o=>{ o.b.x=nx+o.ox; o.b.y=ny+o.oy });
+      arDrag.moved=true; paint(); return;
+    }
+    if(arDrag.m==="bsize"){
+      const b=arDrag.b;
+      b.w=Math.max(bsnap(pt.x-b.x),1); b.h=Math.max(bsnap(pt.y-b.y),1);
+      arDrag.moved=true; paint(); return;
+    }
     const a=arDrag.a;
     if(arDrag.m==="move"){ a.x=snap(pt.x-arDrag.dx); a.y=snap(pt.y-arDrag.dy) }
     else{ a.w=Math.max(snap(pt.x-a.x),.5); a.h=Math.max(snap(pt.y-a.y),.5) }
@@ -1663,13 +1889,32 @@ function wirePlan(){
   });
   const stop=(e)=>{
     if(!arDrag)return;
+    const wasBooth=arDrag.m==="bmove"||arDrag.m==="bsize", moved=arDrag.moved;
     /* ลากแล้วปล่อยทันทีโดยไม่ได้ขยาย ถือว่าเป็นการกดเปล่า ๆ ไม่ใช่ตั้งใจสร้างกล่อง */
     if(arDrag.fresh&&arDrag.a.w<=1&&arDrag.a.h<=1){ arDrag.a.w=2; arDrag.a.h=1.5 }
-    arDrag=null; snapSoon(); paint(); arSidebar();
+    arDrag=null;
+    if(wasBooth){
+      /* เตือนตรงนั้นเลยถ้าเพิ่งลากไปทับใบอื่น รอให้ไปกดตรวจผังเองจะสายเกินไป */
+      if(moved){ const bad=auditPlan().filter(x=>x.k==="hit"||x.k==="out");
+        if(bad.length)toastTL("⚠️ ผังมีปัญหา "+bad.length+" จุด — กด ตรวจผัง เพื่อดู"); }
+      snapSoon(); paint(); sidebar(); syncPlanBtns();
+    } else { snapSoon(); paint(); arSidebar() }
     try{ $("#plan").releasePointerCapture(e.pointerId) }catch(x){}
   };
   svg.addEventListener("pointerup",stop);
   svg.addEventListener("pointercancel",stop);
+  /* ผูกครั้งเดียวที่ document เพราะ SVG รับโฟกัสแทนบูธแต่ละใบไม่ได้
+     เช็ค planEdit ทุกครั้ง จะได้ไม่ไปลบอะไรตอนอยู่โหมดดูอย่างเดียว */
+  if(!wirePlan._keys){
+    wirePlan._keys=true;
+    document.addEventListener("keydown",e=>{
+      if(e.key!=="Delete"&&e.key!=="Backspace")return;
+      if(!planEdit||!canBooth()||!selSet.size)return;
+      const t=e.target.tagName;
+      if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT"||e.target.isContentEditable)return;
+      e.preventDefault(); delSelBooths();
+    });
+  }
 }
 /* แผงข้างของกล่อง ใช้ช่องเดียวกับแผงบูธ เลือกได้ทีละอย่าง */
 function arSidebar(){
@@ -1773,7 +2018,9 @@ function paint(){
   });
   const s=q.trim().toLowerCase();
   B.forEach(b=>{
-    const st=ST[b.st],g=E("g",{class:"bt"+(sel===b.code?" sel":""),tabindex:0,role:"button"});
+    const multi=selSet.has(b.code);
+    const st=ST[b.st],g=E("g",{class:"bt"+(sel===b.code?" sel":"")+(multi?" msel":"")+
+      (planEdit&&canBooth()?" ed":""),tabindex:0,role:"button"});
     g.setAttribute("aria-label",b.code+" "+st.l);
     g.appendChild(E("rect",{x:b.x+.06,y:b.y+.06,width:b.w-.12,height:b.h-.12,rx:.17,fill:cv(st.c)}));
     const cx=b.x+b.w/2,cy=b.y+b.h/2;
@@ -1807,8 +2054,16 @@ function paint(){
     const okZ=!fZone||b.zone===fZone;
     const okP=!fPkg||b.pkg===fPkg;
     if(!(okQ&&okZ&&okP))g.classList.add("dim");
-    g.addEventListener("click",()=>{sel=b.code;selAr=null;paint();sidebar()});
-    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();sel=b.code;paint();sidebar()}});
+    /* จับที่มุมขวาล่างสำหรับย่อขยาย โผล่เฉพาะใบที่เลือกอยู่ตอนแก้ผัง */
+    if(multi&&planEdit&&canBooth()){
+      g.appendChild(E("rect",{x:b.x+b.w-.42,y:b.y+b.h-.42,width:.42,height:.42,rx:.08,
+        class:"bth",fill:cv("--accent")}));
+    }
+    /* ตอนแก้ผัง การกดถูก pointerdown จัดการไปแล้ว ปล่อยให้ click ทำงานอีกจะเลือกซ้อน */
+    g.addEventListener("click",()=>{ if(planEdit&&canBooth())return;
+      sel=b.code;selSet=new Set([b.code]);selAr=null;paint();sidebar();syncPlanBtns()});
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();
+      sel=b.code;selSet=new Set([b.code]);paint();sidebar()}});
     svg.appendChild(g);
   });
 }
