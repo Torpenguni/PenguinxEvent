@@ -1077,16 +1077,48 @@ function pDash(){
     '</ul>');
 
   // ต้องตามงาน
+  // ตัวหารทุกตัวมาจากของที่คำนวณไว้ข้างบนแล้ว ไม่มี query เพิ่ม
+  const freeB=B.filter(x=>x.st==="free").length;
+  const onHold=B.filter(b=>holdState(b)).length;          // บูธที่จองไว้และรอมัดจำ
+  const overdue=overdueBooths().length;
+  const chaseDep=warnBooths().length+overdue;
+  /* warnBooths รวมบูธที่ยังไม่ได้ตั้งวันครบกำหนดไว้ด้วย (holdState คืน k:"none")
+     ซึ่งเป็นคนละเรื่องกับเลยกำหนด แต่เดิมนับรวมกันแล้วรายงานเป็นก้อนเดียว
+     ทำให้กรณี "ยังไม่ได้ตั้งวันสักใบ" อ่านออกมาเหมือน "ทุกอย่างเรียบร้อย" */
+  const noDue=B.filter(b=>{const st=holdState(b);return st&&st.k==="none"}).length;
+  const depTrail=overdue?(f(overdue)+" already overdue — call today")
+    :noDue?(f(noDue)+" with no deposit deadline set")
+    :chaseDep?(f(chaseDep)+" due within 7 days")
+    :"all on track";
+  const ppl=SES.reduce((n,s)=>n+s.people.length,0);        // สปีกเกอร์ทั้งหมดที่ลงไว้
+  const allTasks=DEALS.reduce((n,d)=>n+Object.values(d.tasks).length,0);
+  const pctOf=(a,b)=>b>0?Math.round(a/b*100):0;
+
   h+=w('Needs chasing','w12',
-    '<div class="tw" style="border:0;box-shadow:none"><table style="min-width:520px"><tbody>'+
-    row("Booths still free",B.filter(x=>x.st==="free").length,"less than a year of selling time left")+
-    row("Booths needing deposit follow-up",warnBooths().length+overdueBooths().length,
-      "due within 7 days, or already overdue")+
-    (seeMoney?row("Outstanding (THB)",f(m.con-m.got),"Deposit received but not complete"):"")+
-    row("Stage slots with no speaker",noSpk,"can we sell more stage time, or do we need speakers fast")+
-    row("Speakers with no phone on file",noPhone,"if nobody shows up on the day, there is no number to call")+
-    row("Open items with exhibitors",openTasks,"logos, documents and badges still outstanding")+
-    '</tbody></table></div>');
+    '<div class="chase">'+
+    chaseRow({ic:"◱",label:"Booths still free",sub:"less than a year of selling time left",
+      value:f(freeB),unit:"booths",done:B.length-freeB,total:B.length,
+      level:"todo",trail:"sold "+pctOf(B.length-freeB,B.length)+"% of the floor"})+
+    chaseRow({ic:"⏱",label:"Booths needing deposit follow-up",sub:"due within 7 days, or already overdue",
+      value:f(chaseDep),unit:"on hold",done:onHold-chaseDep,total:onHold,
+      /* เลยกำหนดแล้วคือด่วนที่สุดในการ์ดนี้ ถ้ายังแค่ใกล้ครบกำหนดให้เป็นระดับรอง */
+      level:overdue?"block":(chaseDep?"doing":"done"),
+      trail:depTrail})+
+    (seeMoney?chaseRow({ic:"฿",label:"Outstanding (THB)",sub:"deposit received but not complete",
+      value:f(m.con-m.got),unit:"contracted",done:m.got,total:m.con,
+      level:"part",trail:"collected "+pctOf(m.got,m.con)+"% of what is signed"}):"")+
+    chaseRow({ic:"▣",label:"Stage slots with no speaker",sub:"sell more stage time, or find speakers fast",
+      value:f(noSpk),unit:"slots",done:real.length-noSpk,total:real.length,
+      level:noSpk?"doing":"done",trail:"stage "+pctOf(real.length-noSpk,real.length)+"% filled"})+
+    chaseRow({ic:"☎",label:"Speakers with no phone on file",sub:"if nobody shows up, there is no number to call",
+      value:f(noPhone),unit:"speakers",done:ppl-noPhone,total:ppl,
+      level:noPhone?"doing":"done",trail:"only "+pctOf(ppl-noPhone,ppl)+"% reachable on the day"})+
+    chaseRow({ic:"✎",label:"Open items with exhibitors",sub:"logos, documents and badges",
+      value:f(openTasks),unit:"items",done:allTasks-openTasks,total:allTasks,
+      /* เกือบครบแล้วไม่ควรขึ้นสีเตือน จะได้ไม่แย่งสายตาไปจากแถวที่ด่วนจริง */
+      level:pctOf(allTasks-openTasks,allTasks)>=80?"done":"doing",
+      trail:pctOf(allTasks-openTasks,allTasks)+"% already collected"})+
+    '</div>');
 
   h+='</div>';
   /* รายการที่ต้องจัดการเคยอยู่บนสุด ดันกราฟทั้งหมดลงไปจนต้องเลื่อนถึงจะเห็นภาพรวม
@@ -1155,6 +1187,33 @@ function stacked(reps,colors){
 const card=(v,l,s,c)=>{if(c===undefined){c=s;s=null}
   return '<div class="c" style="--t:'+cv(c)+'"><b>'+v+'</b><span>'+l+'</span>'+(s?'<small>'+s+'</small>':'')+'</div>'};
 const row=(a,b,c)=>'<tr><td>'+a+'</td><td class="num"><b>'+b+'</b></td><td style="color:var(--ink2)">'+c+'</td></tr>';
+
+/* แถวของการ์ด "Needs chasing"
+   เดิมทุกแถวเป็น <tr> หน้าตาเหมือนกันหมด ป้าย ตัวเลข คำอธิบาย ผลคือ 9
+   (มัดจำที่เลยกำหนดแล้ว ต้องโทรวันนี้) กับ 77 (บูธว่าง ยังมีเวลาขายอีกเป็นปี)
+   ตัวหนาเท่ากันและอยู่ติดกัน อ่านแล้วแยกไม่ออกว่าอะไรด่วนกว่า
+   และตัวเลขเปล่า ๆ ไม่บอกว่าเป็นเท่าไหร่จากทั้งหมด — "36 งานค้าง" ดูเยอะ
+   จนกว่าจะรู้ว่าเก็บไปแล้ว 83%
+
+   o = {ic, label, sub, value, unit, done, total, level, trail}
+   done/total คือความคืบหน้าที่ทำไปแล้ว ไม่ใช่ของที่ค้าง แถบจึงยาวขึ้นเมื่อดีขึ้น
+   เหมือนกันทั้งหกแถว ตัวหารทุกตัวมาจากตัวแปรที่ pDash คำนวณไว้อยู่แล้ว
+   สีความด่วนใช้ชุด --st-* ของระบบตามกฎที่เขียนกำกับไว้ใน mock_css */
+const CHASE_TONE={block:"--st-block",doing:"--st-doing",part:"--st-part",
+                  done:"--st-done",todo:"--st-todo"};
+function chaseRow(o){
+  const tone=cv(CHASE_TONE[o.level]||"--st-todo");
+  const pct=o.total>0?Math.round(o.done/o.total*100):0;
+  return '<div class="chr">'+
+    '<div class="chi">'+o.ic+'</div>'+
+    '<div class="chl">'+o.label+(o.sub?'<small>'+o.sub+'</small>':'')+'</div>'+
+    '<div class="chv"><b>'+o.value+'</b>'+
+      (o.total>0?'<span>/ '+f(o.total)+(o.unit?' '+o.unit:'')+'</span>':'')+'</div>'+
+    '<div class="chp">'+
+      '<div class="chbar"><i style="width:'+pct+'%;background:'+tone+'"></i></div>'+
+      '<div class="cht"><span class="chd" style="background:'+tone+'"></span>'+o.trail+'</div>'+
+    '</div></div>';
+}
 
 
 /* ---------- กำหนดชำระมัดจำ ----------
