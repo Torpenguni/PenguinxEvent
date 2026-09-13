@@ -1430,4 +1430,24 @@ tr.brow:hover>td{background:var(--soft)}
 .bt .bth{cursor:nwse-resize}
 /* ลากอยู่ไม่ต้องหรี่ตามตัวกรอง ไม่งั้นลากบูธที่ถูกกรองออกแล้วจะมองไม่เห็นว่าไปอยู่ไหน */
 .bt.msel.dim{opacity:1}
+
+/* ---------- เฟส 2 ของหน้าผัง ---------- */
+.bt .btlk text{pointer-events:none}
+.hileg li{align-items:center}
+/* พิมพ์ผัง เหลือเฉพาะผังเต็มหน้า ตัดเมนู แถบเครื่องมือ และแผงข้างออกให้หมด
+   เพราะไฟล์นี้จะถูกส่งต่อให้ผู้รับเหมา ไม่ใช่ภาพหน้าจอของแอป */
+@media print{
+  body.printplan .side,body.printplan .top,body.printplan .bar2,
+  body.printplan .side2,body.printplan .pfbar,body.printplan .hallbar,
+  body.printplan .note,body.printplan .hileg,body.printplan .seg{display:none !important}
+  /* เชลล์เป็นกริดสองคอลัมน์ 236px + ที่เหลือ ซ่อนเมนูเฉย ๆ ไม่พอ
+     คอลัมน์ยังจองที่ไว้ ผังเลยถูกบีบเหลือเท่าความกว้างเมนู */
+  body.printplan #app.on{display:block}
+  body.printplan .page{padding:0}
+  body.printplan .planhost{display:block;overflow:visible}
+  body.printplan .pw{overflow:visible;width:100%}
+  body.printplan #plan{width:100%;height:auto}
+  body.printplan .bt.dim{opacity:1}
+  @page{size:landscape;margin:10mm}
+}
 </style>

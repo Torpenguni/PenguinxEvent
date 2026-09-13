@@ -1388,14 +1388,24 @@ function pPlan(){
         (splitTarget()?'':' disabled')+'>แบ่งบูธ</button>'+
       '<button class="act" id="bdelb" style="padding:9px 14px"'+
         (selSet.size?'':' disabled')+'>ลบบูธ'+(selSet.size>1?" ("+selSet.size+")":"")+'</button>':'')+
+   (planEdit&&canBooth()
+     ?'<button class="act" id="block" style="padding:9px 14px"'+
+        (selSet.size?'':' disabled')+'>'+
+        (selBooths().length&&selBooths().every(isLocked)?"ปลดล็อก":"ล็อกบูธ")+'</button>':'')+
    ((canArea()||canBooth())
      ?'<button class="act" id="baudit" style="padding:9px 14px">ตรวจผัง</button>':'')+
+   '<select id="hisel" title="ไฮไลต์บูธตามคุณสมบัติ">'+
+     HIMODES.map(m=>'<option value="'+m[0]+'"'+(hiMode===m[0]?" selected":"")+'>'+
+       (m[0]?"ไฮไลต์: ":"")+m[1]+'</option>').join("")+'</select>'+
+   '<button class="act" id="bdxf" style="padding:9px 14px">ส่งออก DXF</button>'+
+   '<button class="act" id="bprint" style="padding:9px 14px">พิมพ์ / PDF</button>'+
    '<div class="seg">'+["free","booked","deposit","paid"].map(k=>
      '<span style="padding:9px 13px;font-size:13px;color:var(--ink2)"><i class="dot" style="background:'+
      cv(ST[k].c)+'"></i>'+ST[k].l+' '+shown().filter(x=>x.st===k).length+'</span>').join("")+'</div></div>'+
    ((fZone||fPkg)?'<p class="rdonly" style="margin:0 0 10px">Showing '+shown().length+' booths of '+
      B.length+' · '+[fZone?(EV.zoneNames||{})[fZone]:"",fPkg].filter(Boolean).map(esc).join(" · ")+
      '</p>':'')+
+   hiLegend()+
    planBar(can("floorplan")==="write")+
    hallBar()+
    '<div class="planhost"><div class="pw"><div id="planbg"></div><svg id="plan"></svg></div>'+
@@ -1446,6 +1456,10 @@ function pPlan(){
   });
   const bd=$("#bdelb"); if(bd)bd.addEventListener("click",delSelBooths);
   const ba=$("#baudit"); if(ba)ba.addEventListener("click",showAudit);
+  const bl=$("#block"); if(bl)bl.addEventListener("click",()=>toggleLock(selBooths()));
+  const hs3=$("#hisel"); if(hs3)hs3.addEventListener("change",e=>{ hiMode=e.target.value; pPlan() });
+  const bx=$("#bdxf"); if(bx)bx.addEventListener("click",exportDXF);
+  const bp=$("#bprint"); if(bp)bp.addEventListener("click",printPlan);
   const fc=$("#fclear");
   if(fc)fc.addEventListener("click",()=>{fZone="";fPkg="";q="";pPlan()});
   const rel=$("#rel");
@@ -1700,7 +1714,10 @@ function mergeCheck(list){
   return {ok:true,x:x0,y:y0,w:x1-x0,h:y1-y0,sold};
 }
 function mergeSel(){
-  const list=selBooths(), c=mergeCheck(list);
+  const list=selBooths();
+  const lk=list.filter(isLocked);
+  if(lk.length){ alert("บูธที่ล็อกไว้รวมไม่ได้ — "+lk.map(b=>b.code).join(", ")); return }
+  const c=mergeCheck(list);
   if(!c.ok){ alert(c.why); return }
   /* ขายไปแล้วมากกว่าหนึ่งใบ รวมแล้วต้องทิ้งลูกค้าไปหนึ่งราย ให้คนตัดสินใจเอง */
   if(c.sold.length>1&&!confirm("บูธที่เลือกมีคนจองแล้ว "+c.sold.length+" ใบ ("+
@@ -1724,6 +1741,7 @@ function mergeSel(){
 }
 /* แบ่งบูธ — ตัดเป็นช่องละ cw x ch ใบแรกใช้รหัสเดิมและเก็บข้อมูลลูกค้าไว้ */
 function splitBooth(b,cw,ch){
+  if(isLocked(b)){ alert("บูธ "+b.code+" ถูกล็อกไว้ — ปลดล็อกก่อนถึงจะแบ่งได้"); return }
   const nx=Math.floor(b.w/cw), ny=Math.floor(b.h/ch);
   if(nx*ny<2){ alert("บูธนี้เล็กเกินกว่าจะแบ่งเป็น "+cw+"×"+ch+" ได้มากกว่าหนึ่งช่อง"); return }
   if(nx*cw!==b.w||ny*ch!==b.h){
@@ -1756,11 +1774,27 @@ function splitBooth(b,cw,ch){
 /* ปุ่มรวม/แบ่ง/ลบ ขึ้นกับว่าเลือกบูธไว้กี่ใบ แต่การเลือกเกิดใน paint() ซึ่งวาดแค่ SVG
    ไม่ได้วาดแถบเครื่องมือใหม่ ถ้าไม่ซิงก์ตรงนี้ Shift+คลิกจนครบแล้วปุ่มรวมก็ยังกดไม่ได้
    เรียก pPlan() ทั้งหน้าแทนไม่ได้ เพราะจะไปตัดการลากที่ค้างอยู่ */
+/* คำอธิบายสีของไฮไลต์ ถ้าไม่มีก็เดาไม่ออกว่าสีไหนคืออะไร */
+function hiLegend(){
+  if(!hiMode)return "";
+  const ks=hiKeys();
+  if(!ks.length)return '<p class="rdonly" style="margin:0 0 10px">ไม่มีบูธที่มีข้อมูลนี้</p>';
+  const name=(HIMODES.find(m=>m[0]===hiMode)||["",""])[1];
+  return '<ul class="klist hileg" style="margin:0 0 12px">'+
+    '<li style="flex:0 0 auto;color:var(--ink3)">'+esc(name)+'</li>'+
+    ks.map((k,i)=>'<li style="flex:0 0 auto"><span class="sw" style="background:'+
+      cv(HICOL[i%HICOL.length])+'"></span>'+esc(k)+
+      ' <span style="color:var(--ink3)">'+B.filter(b=>hiKey(b)===k).length+'</span></li>').join("")+
+    '</ul>';
+}
 function syncPlanBtns(){
   const m=$("#bmerge"), sp=$("#bsplit"), dl=$("#bdelb");
   if(m){ m.disabled=selSet.size<2; m.textContent="รวมบูธ"+(selSet.size>1?" ("+selSet.size+")":"") }
   if(sp)sp.disabled=!splitTarget();
   if(dl){ dl.disabled=!selSet.size; dl.textContent="ลบบูธ"+(selSet.size>1?" ("+selSet.size+")":"") }
+  const lk=$("#block");
+  if(lk){ const list=selBooths(); lk.disabled=!list.length;
+    lk.textContent=list.length&&list.every(isLocked)?"ปลดล็อก":"ล็อกบูธ" }
 }
 /* บูธที่แบ่งได้คือใบเดียวที่เลือกอยู่และใหญ่กว่าหนึ่งช่อง */
 function splitTarget(){
@@ -1770,6 +1804,9 @@ function splitTarget(){
 }
 function delSelBooths(){
   const list=selBooths(); if(!list.length)return;
+  const lk=list.filter(isLocked);
+  if(lk.length){ alert("บูธที่ล็อกไว้ลบไม่ได้ — "+lk.map(b=>b.code).join(", ")+
+    "\nปลดล็อกก่อนแล้วลองใหม่"); return }
   const sold=list.filter(b=>b.st!=="free");
   if(sold.length&&!confirm("บูธที่จะลบมีคนจองแล้ว "+sold.length+" ใบ ("+
     sold.map(b=>b.code+(b.co?" · "+b.co:"")).join(", ")+")\nยืนยันลบหรือไม่"))return;
@@ -1803,6 +1840,166 @@ function showAudit(){
   sd.querySelectorAll(".audj").forEach(bn=>bn.addEventListener("click",()=>{
     const c=bn.dataset.c; sel=c; selSet=new Set([c]); paint(); sidebar(); syncPlanBtns();
   }));
+}
+
+/* ---------- ประเภทบูธ ----------
+   คิดจากตำแหน่งจริง ไม่ให้คนกรอก เพราะประเภทบูธคือ "เปิดรับคนเดินกี่ด้าน"
+   ซึ่งเป็นผลของผัง ไม่ใช่คุณสมบัติที่ตั้งเองได้ ถ้าให้กรอกมือ พอย้ายบูธทีเดียว
+   ค่าที่กรอกไว้ก็ผิดทันทีโดยไม่มีอะไรเตือน
+   ด้านที่ชนขอบฮอลล์นับเป็นผนัง ไม่ใช่ทางเดิน ไม่งั้นบูธริมกำแพงจะถูกนับว่าเปิด */
+const BTYPE={
+  island:    ["Island","เปิดทั้ง 4 ด้าน"],
+  peninsula: ["Peninsula","เปิด 3 ด้าน"],
+  corner:    ["หัวมุม","เปิด 2 ด้านที่ติดกัน"],
+  through:   ["สองหน้า","เปิด 2 ด้านตรงข้าม"],
+  inline:    ["Inline","เปิดด้านเดียว"],
+  inner:     ["ไม่ติดทางเดิน","ไม่มีด้านไหนเปิดเลย"],
+};
+const BTORDER=["island","peninsula","corner","through","inline","inner"];
+function boothOpen(b){
+  const HB=hallBox(), s={n:true,e:true,s:true,w:true};
+  if(HB){
+    if(b.y<=0)s.n=false;
+    if(b.y+b.h>=HB.gh)s.s=false;
+    if(b.x<=0)s.w=false;
+    if(b.x+b.w>=HB.gw)s.e=false;
+  }
+  B.forEach(o=>{
+    if(o===b)return;
+    const ox=o.x<b.x+b.w&&b.x<o.x+o.w;     // เหลื่อมกันในแนวนอน จึงเป็นเพื่อนบ้านบน/ล่างได้
+    const oy=o.y<b.y+b.h&&b.y<o.y+o.h;
+    if(ox&&o.y+o.h===b.y)s.n=false;
+    if(ox&&o.y===b.y+b.h)s.s=false;
+    if(oy&&o.x+o.w===b.x)s.w=false;
+    if(oy&&o.x===b.x+b.w)s.e=false;
+  });
+  return s;
+}
+function boothType(b){
+  const s=boothOpen(b), n=[s.n,s.e,s.s,s.w].filter(Boolean).length;
+  if(n===4)return "island";
+  if(n===3)return "peninsula";
+  if(n===2)return ((s.n&&s.s)||(s.e&&s.w))?"through":"corner";
+  if(n===1)return "inline";
+  return "inner";
+}
+const btLabel=(b)=>(BTYPE[boothType(b)]||BTYPE.inline)[0];
+
+/* ---------- ป้ายกำกับ ----------
+   ข้อความอิสระต่อบูธ เช่น ติดทางลำเลียง เพดานต่ำ ทำเลดี
+   แยกจากโซนและแพ็กเกจ เพราะสองอันนั้นผูกกับราคาและการแบ่งพื้นที่ ส่วนป้ายเป็นข้อเท็จจริง
+   ของทำเลที่ทีมขายต้องบอกลูกค้าก่อนปิดดีล */
+const bTags=(b)=>Array.isArray(b.tags)?b.tags:[];
+function allTags(){
+  const out=[]; B.forEach(b=>bTags(b).forEach(t=>{ if(t&&!out.includes(t))out.push(t) }));
+  return out.sort((a,b)=>String(a).localeCompare(String(b),"th"));
+}
+
+/* ---------- ไฮไลต์ ----------
+   ต่างจากตัวกรองตรงที่ไม่ซ่อนบูธอื่น ยังเห็นทั้งผัง แต่บูธที่เข้าเกณฑ์เปลี่ยนสี
+   ทำให้เห็นการกระจายตัว เช่น บูธ 10x10 ที่ยังว่างเกาะอยู่มุมไหนของฮอลล์
+   สีที่ใช้เป็นชุดประเภท (--k-*) ไม่ใช่ชุดสถานะ ตามกฎที่เขียนกำกับไว้ใน mock_css
+   ว่าชุดสถานะใช้เหมือนกันทั้งระบบและห้ามเอาไปแทนประเภทของอะไร */
+let hiMode="";
+const HICOL=["--k-keynote-solid","--k-talk-solid","--k-workshop-solid","--k-ceremony-solid",
+             "--k-networking-solid","--k-registration-solid","--k-break-solid"];
+const HIMODES=[["","สถานะขาย (ปกติ)"],["size","ขนาดบูธ"],["type","ประเภทบูธ"],
+               ["tag","ป้ายกำกับ"],["pkg","แพ็กเกจ"],["zone","โซน"]];
+/* คืนคีย์ของบูธตามโหมดที่เลือก null คือไม่เข้าพวกไหนเลย */
+function hiKey(b){
+  if(hiMode==="size")return b.w+"×"+b.h;
+  if(hiMode==="type")return btLabel(b);
+  if(hiMode==="tag")return bTags(b)[0]||null;
+  if(hiMode==="pkg")return b.pkg||null;
+  if(hiMode==="zone")return (EV.zoneNames||{})[b.zone]||b.zone||null;
+  return null;
+}
+/* เรียงคีย์ให้คงที่ บูธเดิมจะได้สีเดิมทุกครั้งที่วาดใหม่
+   ขนาดเรียงตามพื้นที่ ประเภทเรียงตามลำดับความเปิด ที่เหลือเรียงตามตัวอักษร */
+function hiKeys(){
+  const set=[...new Set(B.map(hiKey).filter(x=>x!=null))];
+  if(hiMode==="size")return set.sort((a,b)=>{
+    const p=s=>s.split("×").reduce((x,y)=>x*+y,1);
+    return p(a)-p(b)||String(a).localeCompare(String(b));
+  });
+  if(hiMode==="type")return set.sort((a,b)=>
+    BTORDER.findIndex(k=>BTYPE[k][0]===a)-BTORDER.findIndex(k=>BTYPE[k][0]===b));
+  return set.sort((a,b)=>String(a).localeCompare(String(b),"th"));
+}
+function hiColor(b){
+  const k=hiKey(b); if(k==null)return cv("--line2");
+  const i=hiKeys().indexOf(k);
+  return i<0?cv("--line2"):cv(HICOL[i%HICOL.length]);
+}
+
+/* ---------- ล็อกบูธ ----------
+   ตกลงกับลูกค้าแล้วก็ล็อกไว้ ใครลากโดนก็ไม่ขยับ ปลดล็อกได้เมื่อต้องแก้จริง
+   ถูกกว่าการทำ real-time หลายคนพร้อมกันมาก และกันเคสที่เกิดจริงได้เท่ากัน
+   คือมีคนลากผิดใบแล้วไม่มีใครรู้จนถึงวันติดตั้ง */
+const isLocked=(b)=>!!b.lock;
+function toggleLock(list){
+  if(!list.length)return;
+  const on=!list.every(isLocked);      // ถ้ายังไม่ล็อกครบทุกใบ ให้ล็อกทั้งหมด
+  list.forEach(b=>{ b.lock=on });
+  snapSoon(); paint(); sidebar(); syncPlanBtns();
+  toastTL((on?"ล็อก ":"ปลดล็อก ")+list.length+" บูธแล้ว");
+}
+
+/* ---------- ส่งผังให้ผู้รับเหมา ----------
+   ผู้รับเหมาต้องการไฟล์ผัง ไม่ใช่ภาพหน้าจอ DXF เขียนเองได้เพราะเป็นไฟล์ข้อความ
+   และของที่เราต้องส่งมีแค่สี่เหลี่ยมกับตัวหนังสือ ซึ่ง DXF R12 รองรับตรง ๆ
+   ใช้ R12 เพราะเป็นเวอร์ชันที่ AutoCAD ทุกรุ่นกับของฟรีอย่าง LibreCAD เปิดได้หมด
+   หน่วยเป็นเมตรจริง ไม่ใช่ช่องกริด คูณด้วยขนาดช่องที่ตั้งไว้ */
+function planDXF(){
+  const m=GRIDM(), HB=hallBox(), L=[];
+  /* ความสูงที่ใช้กลับแกน y ปกติเอาจากขนาดฮอลล์ แต่ถ้ายังไม่ได้ตั้งขนาดไว้
+     ต้องวัดจากของที่วางจริง ไม่งั้น H เป็น 0 แล้วผังทั้งใบไปอยู่ใต้จุดกำเนิด
+     ค่าพิกัดติดลบหมด ซึ่งเปิดใน CAD ได้แต่ต้องไล่หาว่าผังไปอยู่ไหน */
+  const H=(HB?HB.gh:Math.max(0,...B.concat(AR).map(o=>o.y+o.h)))*m;
+  const p=(c,v)=>{ L.push(c); L.push(String(v)) };
+  p(0,"SECTION"); p(2,"ENTITIES");
+  const rect=(x,y,w,h,layer)=>{
+    /* แกน y ของ DXF ชี้ขึ้น ส่วนผังเราชี้ลง กลับด้านให้ผังไม่ออกมาหัวกลับ */
+    const X=x*m, Y=H-(y+h)*m, W=w*m, Ht=h*m;
+    const pts=[[X,Y],[X+W,Y],[X+W,Y+Ht],[X,Y+Ht]];
+    p(0,"LWPOLYLINE"); p(8,layer); p(100,"AcDbEntity"); p(100,"AcDbPolyline");
+    p(90,4); p(70,1);
+    pts.forEach(pt=>{ p(10,pt[0].toFixed(3)); p(20,pt[1].toFixed(3)) });
+  };
+  const text=(x,y,t,hgt,layer)=>{
+    p(0,"TEXT"); p(8,layer); p(10,(x*m).toFixed(3)); p(20,(H-y*m).toFixed(3));
+    p(40,hgt.toFixed(3)); p(1,String(t).replace(/\n/g," "));
+  };
+  if(HB)rect(0,0,HB.gw,HB.gh,"HALL");
+  B.forEach(b=>{
+    rect(b.x,b.y,b.w,b.h,"BOOTH");
+    text(b.x+0.15,b.y+b.h-0.3,b.code,m*0.28,"BOOTH_CODE");
+    if(b.co)text(b.x+0.15,b.y+b.h-0.75,b.co,m*0.2,"BOOTH_NAME");
+  });
+  AR.forEach(a=>{
+    rect(a.x,a.y,a.w,a.h,"AREA");
+    if(a.name)text(a.x+0.15,a.y+a.h-0.3,a.name,m*0.24,"AREA_NAME");
+  });
+  p(0,"ENDSEC"); p(0,"EOF");
+  return L.join("\r\n")+"\r\n";
+}
+function exportDXF(){
+  if(!B.length){ alert("ยังไม่มีบูธบนผัง"); return }
+  const name=(EV.name||"floorplan").replace(/[^\wก-๙ -]/g,"").slice(0,40).trim()||"floorplan";
+  const url=URL.createObjectURL(new Blob([planDXF()],{type:"application/dxf"}));
+  const a=document.createElement("a"); a.href=url; a.download=name+".dxf";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  toastTL("ส่งออก DXF แล้ว — บูธ "+B.length+" ใบ ขนาดจริงเป็นเมตร (1 ช่อง = "+GRIDM()+" ม.)");
+}
+/* พิมพ์ผัง ใช้ไดอะล็อกพิมพ์ของเบราว์เซอร์ ซึ่งมี Save as PDF อยู่แล้วทุกเครื่อง
+   ไม่ต้องแบกไลบรารี PDF เข้ามาในไฟล์เดียวที่โหลดทั้งแอป */
+function printPlan(){
+  document.body.classList.add("printplan");
+  const done=()=>{ document.body.classList.remove("printplan");
+    window.removeEventListener("afterprint",done) };
+  window.addEventListener("afterprint",done);
+  setTimeout(()=>{ window.print(); setTimeout(done,1500) },120);
 }
 
 function auditPlan(){
@@ -1848,9 +2045,14 @@ function wirePlan(){
       }
       if(!selSet.has(bh.code)){ selSet=new Set([bh.code]) }
       sel=bh.code; selAr=null;
+      /* ล็อกไว้ก็ยังเลือกดูได้ แค่ลากไม่ได้ ไม่งั้นจะกดดูรายละเอียดบูธที่ล็อกไม่ได้เลย */
+      if(isLocked(bh)){
+        e.preventDefault(); paint(); sidebar(); syncPlanBtns();
+        toastTL("บูธ "+bh.code+" ถูกล็อกไว้ — กดปลดล็อกก่อนถึงจะย้ายได้"); return;
+      }
       arDrag=grab?{m:"bsize",b:bh}:{m:"bmove",b:bh,dx:pt.x-bh.x,dy:pt.y-bh.y,
         /* ลากทั้งชุดที่เลือกไว้พร้อมกัน จำตำแหน่งตั้งต้นของแต่ละใบไว้เทียบ */
-        set:selBooths().map(x=>({b:x,ox:x.x-bh.x,oy:x.y-bh.y}))};
+        set:selBooths().filter(x=>!isLocked(x)).map(x=>({b:x,ox:x.x-bh.x,oy:x.y-bh.y}))};
       e.preventDefault(); svg.setPointerCapture(e.pointerId);
       paint(); sidebar(); syncPlanBtns(); return;
     }
@@ -2022,7 +2224,11 @@ function paint(){
     const st=ST[b.st],g=E("g",{class:"bt"+(sel===b.code?" sel":"")+(multi?" msel":"")+
       (planEdit&&canBooth()?" ed":""),tabindex:0,role:"button"});
     g.setAttribute("aria-label",b.code+" "+st.l);
-    g.appendChild(E("rect",{x:b.x+.06,y:b.y+.06,width:b.w-.12,height:b.h-.12,rx:.17,fill:cv(st.c)}));
+    /* เปิดไฮไลต์แล้วสีพื้นเปลี่ยนไปตามคุณสมบัติที่เลือก ไม่ใช่สถานะขาย
+       ตัวหนังสือจึงต้องเป็นสีขาวเสมอ เพราะชุดสีประเภทเป็นโทนเข้มทั้งชุด */
+    const fill=hiMode?hiColor(b):cv(st.c);
+    const ink=hiMode?"#fff":st.t;
+    g.appendChild(E("rect",{x:b.x+.06,y:b.y+.06,width:b.w-.12,height:b.h-.12,rx:.17,fill:fill}));
     const cx=b.x+b.w/2,cy=b.y+b.h/2;
     /* ตัวหนังสือแนวนอนเสมอ ถ้าไม่พอกว้างก็ตัดเป็นสองบรรทัดแล้วย่อขนาดให้พอดี */
     const lines=fitLines(b.code,b.w-.22);
@@ -2031,13 +2237,13 @@ function paint(){
     const total=lines.fs*1.06*lines.n+(nameOK?.34:0);
     let ty=cy-total/2+lines.fs*.86;
     lines.parts.forEach(part=>{
-      const t=E("text",{x:cx,y:ty,"text-anchor":"middle","font-size":lines.fs,fill:st.t});
+      const t=E("text",{x:cx,y:ty,"text-anchor":"middle","font-size":lines.fs,fill:ink});
       t.textContent=part; g.appendChild(t); ty+=lines.fs*1.06;
     });
     if(nameOK){
       const nf=Math.min(.34,Math.max(.16,(b.w-.24)/(Math.min(b.co.length,14)*.5)));
       const mx=Math.max(3,Math.floor((b.w-.24)/(nf*.5)));
-      const n=E("text",{x:cx,y:ty+nf*.5,"text-anchor":"middle","font-size":nf,fill:st.t,opacity:.9});
+      const n=E("text",{x:cx,y:ty+nf*.5,"text-anchor":"middle","font-size":nf,fill:ink,opacity:.9});
       n.textContent=b.co.length>mx?b.co.slice(0,mx-1)+"…":b.co;
       g.appendChild(n);
     }
@@ -2054,8 +2260,17 @@ function paint(){
     const okZ=!fZone||b.zone===fZone;
     const okP=!fPkg||b.pkg===fPkg;
     if(!(okQ&&okZ&&okP))g.classList.add("dim");
+    /* บูธที่ล็อกไว้ต้องดูออกจากผังเลย ไม่ต้องกดเข้าไปดู */
+    if(isLocked(b)){
+      const lg=E("g",{class:"btlk"});
+      lg.appendChild(E("rect",{x:b.x+.1,y:b.y+.1,width:.42,height:.42,rx:.1,
+        fill:"rgba(0,0,0,.45)"}));
+      const lt=E("text",{x:b.x+.31,y:b.y+.44,"text-anchor":"middle","font-size":.3,fill:"#fff"});
+      lt.textContent="🔒"; lg.appendChild(lt);
+      g.appendChild(lg);
+    }
     /* จับที่มุมขวาล่างสำหรับย่อขยาย โผล่เฉพาะใบที่เลือกอยู่ตอนแก้ผัง */
-    if(multi&&planEdit&&canBooth()){
+    if(multi&&planEdit&&canBooth()&&!isLocked(b)){
       g.appendChild(E("rect",{x:b.x+b.w-.42,y:b.y+b.h-.42,width:.42,height:.42,rx:.08,
         class:"bth",fill:cv("--accent")}));
     }
@@ -2091,6 +2306,22 @@ function sidebar(){
     }
   }
   const pk=(EV.packages||{})[b.pkg];
+  const bt=BTYPE[boothType(b)]||BTYPE.inline;
+  h+='<p class="s" style="margin-top:-4px">'+
+    '<span class="pill" style="background:var(--soft);color:var(--accent)">'+esc(bt[0])+'</span> '+
+    '<span style="color:var(--ink3)">'+esc(bt[1])+' · '+b.w+'×'+b.h+' ช่อง</span>'+
+    (isLocked(b)?' <span class="pill" style="background:var(--line);color:var(--ink2)">🔒 ล็อกไว้</span>':'')+
+    '</p>'+
+    /* ป้ายเป็นข้อความคั่นจุลภาค ง่ายกว่าตัวเลือกตายตัวเพราะแต่ละงานเรียกคนละอย่าง */
+    (wr?'<label class="bf wide"><span>ป้ายกำกับ (คั่นด้วยจุลภาค)</span>'+
+      '<input id="btags" value="'+esc(bTags(b).join(", "))+'" '+
+      'placeholder="เช่น ติดทางลำเลียง, เพดานต่ำ, ทำเลดี"></label>'
+     :(bTags(b).length?'<p class="s">'+bTags(b).map(t=>
+        '<span class="pill" style="background:var(--line);color:var(--ink2)">'+esc(t)+'</span>').join(" ")+'</p>':''))+
+    (wr&&bTags(b).length?'<p class="s" style="margin-top:-2px">'+bTags(b).map(t=>
+      '<span class="pill" style="background:var(--line);color:var(--ink2)">'+esc(t)+'</span>').join(" ")+'</p>':'')+
+    (wr?'<div class="lgbtns" style="margin:6px 0 10px"><button id="block2">'+
+      (isLocked(b)?"ปลดล็อกบูธนี้":"ล็อกบูธนี้")+'</button></div>':'');
   h+='<dl class="kv">'+
    (b.co&&!own?'<dt>Client</dt><dd><span style="color:var(--ink2)">Other reps’ deals</span></dd>':'')+
    (!b.co?'<dt>Client</dt><dd><span style="color:var(--ink2)">None yet</span></dd>':'')+
@@ -2133,6 +2364,15 @@ function sidebar(){
   sd.innerHTML='<button class="x" aria-label="Off">×</button>'+h;
   sd.querySelector(".x").addEventListener("click",()=>{sel=null;sidebar();paint()});
   sd.querySelectorAll("[data-a]").forEach(x=>x.addEventListener("click",()=>act(x.dataset.a)));
+  const tg=sd.querySelector("#btags");
+  if(tg)tg.addEventListener("change",()=>{
+    b.tags=tg.value.split(",").map(t=>t.trim()).filter(Boolean);
+    snapSoon(); paint(); sidebar();
+    /* เปิดไฮไลต์ตามป้ายอยู่ ต้องวาดคำอธิบายสีใหม่ด้วย ไม่งั้นป้ายใหม่จะไม่มีในคำอธิบาย */
+    if(hiMode==="tag")pPlan();
+  });
+  const lk2=sd.querySelector("#block2");
+  if(lk2)lk2.addEventListener("click",()=>toggleLock([b]));
   const bp=$("#bprice");
   if(bp){
     bp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();bp.blur()}});
