@@ -1662,6 +1662,8 @@ function planPt(ev){
   return {x:p.x,y:p.y};
 }
 const snap=(v)=>Math.round(v*2)/2;          // ล็อกเข้าครึ่งช่อง พอให้วางตรงแนวบูธได้
+/* ต้องลากเกินครึ่งช่องถึงจะนับว่าตั้งใจสร้างกล่องใหม่ ไม่ใช่มือลั่น */
+const AR_NEW_MIN=.5;
 function arAt(pt){
   /* กล่องที่วางทีหลังอยู่บนสุด ไล่จากท้ายรายการมาหน้า จะได้เลือกอันที่เห็นอยู่ข้างบนจริง ๆ */
   for(let i=AR.length-1;i>=0;i--){
@@ -2065,8 +2067,13 @@ function wirePlan(){
       selAr=hit; sel=null; selSet=new Set();
       arDrag={m:"move",a:hit,dx:pt.x-hit.x,dy:pt.y-hit.y}; }
     else{
-      selAr=arNew(pt.x,pt.y,1,1); sel=null; selSet=new Set();
-      arDrag={m:"size",a:selAr,fresh:true};
+      /* กดที่ว่างคือยกเลิกการเลือก ยังไม่ใช่การสร้างกล่อง
+         ของเดิมสร้างกล่องตั้งแต่ pointerdown แล้วตอนปล่อยถ้าไม่ได้ลากก็ยัดขนาด
+         2x1.5 ให้เอง ผลคือคลิกพลาดบนที่ว่างทีเดียวได้กล่องชื่อ "กล่องใหม่" ทันที
+         และเพราะมันซ้อนกันได้ คลิกพลาดหลายครั้งก็ได้กล่องกองอยู่ตรงนั้นหลายใบ
+         ตอนนี้รอจนกว่าจะลากเกินระยะจริงถึงจะสร้าง */
+      selAr=null; sel=null; selSet=new Set();
+      arDrag={m:"new",x0:snap(pt.x),y0:snap(pt.y)};
     }
     e.preventDefault(); svg.setPointerCapture(e.pointerId);
     paint(); arSidebar(); syncPlanBtns();
@@ -2074,6 +2081,14 @@ function wirePlan(){
   svg.addEventListener("pointermove",e=>{
     if(!arDrag)return;
     const pt=planPt(e); if(!pt)return;
+    /* ลากจากที่ว่างเกินครึ่งช่องเมื่อไหร่ ค่อยสร้างกล่องแล้วเข้าโหมดย่อขยายตามปกติ
+       ต่ำกว่านี้ถือว่าเป็นการคลิก ไม่ใช่การลาก */
+    if(arDrag.m==="new"){
+      if(Math.abs(pt.x-arDrag.x0)<AR_NEW_MIN&&Math.abs(pt.y-arDrag.y0)<AR_NEW_MIN)return;
+      selAr=arNew(arDrag.x0,arDrag.y0,.5,.5);
+      arDrag={m:"size",a:selAr};
+      arSidebar();
+    }
     if(arDrag.m==="bmove"){
       const nx=bsnap(pt.x-arDrag.dx), ny=bsnap(pt.y-arDrag.dy);
       arDrag.set.forEach(o=>{ o.b.x=nx+o.ox; o.b.y=ny+o.oy });
@@ -2092,9 +2107,14 @@ function wirePlan(){
   const stop=(e)=>{
     if(!arDrag)return;
     const wasBooth=arDrag.m==="bmove"||arDrag.m==="bsize", moved=arDrag.moved;
-    /* ลากแล้วปล่อยทันทีโดยไม่ได้ขยาย ถือว่าเป็นการกดเปล่า ๆ ไม่ใช่ตั้งใจสร้างกล่อง */
-    if(arDrag.fresh&&arDrag.a.w<=1&&arDrag.a.h<=1){ arDrag.a.w=2; arDrag.a.h=1.5 }
+    /* ปล่อยตอนยังเป็นโหมด new แปลว่าคลิกที่ว่างเฉย ๆ ไม่ได้ลาก ไม่ต้องสร้างอะไร */
+    const wasClick=arDrag.m==="new";
     arDrag=null;
+    if(wasClick){
+      paint(); arSidebar(); syncPlanBtns();
+      try{ $("#plan").releasePointerCapture(e.pointerId) }catch(x){}
+      return;
+    }
     if(wasBooth){
       /* เตือนตรงนั้นเลยถ้าเพิ่งลากไปทับใบอื่น รอให้ไปกดตรวจผังเองจะสายเกินไป */
       if(moved){ const bad=auditPlan().filter(x=>x.k==="hit"||x.k==="out");
