@@ -1798,6 +1798,40 @@ function syncPlanBtns(){
   if(lk){ const list=selBooths(); lk.disabled=!list.length;
     lk.textContent=list.length&&list.every(isLocked)?"ปลดล็อก":"ล็อกบูธ" }
 }
+/* ---------- เปลี่ยนรหัสบูธ ----------
+   รหัสบูธเป็นตัวอ้างอิงของหลายอย่าง ไม่ใช่แค่ป้ายชื่อบนผัง เปลี่ยนแล้วต้องตามไปแก้
+   ทุกที่ที่ชี้มาหา ไม่งั้นบูธจะหลุดจากดีล คิวจอง และกล่องบนผังที่ผูกไว้ โดยไม่มี
+   อะไรฟ้อง จะไปรู้เอาตอนเปิดดีลแล้วไม่เจอบูธ
+     1. DEALS[].booths[]  รายการรหัสบูธในแต่ละดีล
+     2. Q[code]           คิวจองที่คีย์ด้วยรหัส
+     3. AR[].link         กล่องบนผังที่ผูกกับบูธ
+     4. sel / selSet      ตัวที่เลือกอยู่บนหน้าจอ */
+function renameBooth(b,raw){
+  const code=String(raw||"").trim().replace(/\s+/g," ");
+  if(!code||code===b.code)return false;
+  if(code.length>16){ alert("รหัสบูธยาวเกินไป ใส่ได้ไม่เกิน 16 ตัวอักษร"); return false }
+  if(B.some(x=>x!==b&&x.code===code)){
+    alert("รหัส "+code+" มีบูธอื่นใช้อยู่แล้ว — รหัสบูธต้องไม่ซ้ำกันทั้งงาน"); return false }
+  const old=b.code;
+  b.code=code;
+  DEALS.forEach(d=>{
+    const i=(d.booths||[]).indexOf(old);
+    if(i>=0)d.booths[i]=code;
+  });
+  if(Q[old]){ Q[code]=Q[old]; delete Q[old] }
+  AR.forEach(a=>{ if(a.link&&a.link.t==="booth"&&a.link.v===old)a.link.v=code });
+  if(sel===old)sel=code;
+  if(selSet.has(old)){ selSet.delete(old); selSet.add(code) }
+  snapSoon();
+  const hit=[
+    DEALS.filter(d=>(d.booths||[]).includes(code)).length&&"ดีล",
+    Q[code]&&"คิวจอง",
+    AR.some(a=>a.link&&a.link.t==="booth"&&a.link.v===code)&&"กล่องบนผัง",
+  ].filter(Boolean);
+  toastTL("เปลี่ยนรหัส "+old+" → "+code+(hit.length?" · อัปเดต"+hit.join(" ")+"ให้แล้ว":""));
+  return true;
+}
+
 /* บูธที่แบ่งได้คือใบเดียวที่เลือกอยู่และใหญ่กว่าหนึ่งช่อง */
 function splitTarget(){
   if(selSet.size!==1)return null;
@@ -2308,7 +2342,11 @@ function sidebar(){
   sd.hidden=false;
   const b=B.find(x=>x.code===sel),st=ST[b.st],qs=Q[b.code]||[],hs=holdState(b);
   const own=ROLE[role].scope==="all"||!b.sales||b.sales===me, wr=can("floorplan")==="write";
-  let h='<h3>'+esc(b.code)+'</h3><p class="s"><span class="pill" style="background:'+cv(st.c)+';color:'+st.t+'">'+
+  let h=(wr?'<h3><span class="inl" contenteditable="plaintext-only" id="bcode">'+esc(b.code)+
+      '</span></h3><p class="s" style="margin-top:-6px;color:var(--ink3);font-size:12px">'+
+      'แก้รหัสบูธได้ตรงนี้ — กด Enter เพื่อบันทึก</p>'
+     :'<h3>'+esc(b.code)+'</h3>')+
+   '<p class="s"><span class="pill" style="background:'+cv(st.c)+';color:'+st.t+'">'+
    st.l+'</span>'+(b.pkg?" · "+esc(b.pkg):"")+'</p>';
   if(b.co&&own){
     h+='<div class="lgrow">'+logoTile(b.co,46)+'<div class="meta"><b>'+esc(b.co)+'</b>'+
@@ -2393,6 +2431,15 @@ function sidebar(){
   });
   const lk2=sd.querySelector("#block2");
   if(lk2)lk2.addEventListener("click",()=>toggleLock([b]));
+  const bc=$("#bcode");
+  if(bc){
+    bc.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); bc.blur() } });
+    bc.addEventListener("blur",()=>{
+      /* เขียนกลับเป็นรหัสเดิมทุกครั้งที่ไม่สำเร็จ จะได้ไม่ค้างข้อความที่ใช้ไม่ได้ไว้บนจอ */
+      if(!renameBooth(b,bc.textContent)){ bc.textContent=b.code; return }
+      pPlan();
+    });
+  }
   const bp=$("#bprice");
   if(bp){
     bp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();bp.blur()}});
