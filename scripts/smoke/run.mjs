@@ -7,8 +7,17 @@ import os from 'node:os'
 import path from 'node:path'
 
 const URL = process.argv[2] || 'https://penguinx-event.vercel.app'
-const EMAIL = process.env.SMOKE_EMAIL || 'admin@penguinx.local'
-const PASS = process.env.SMOKE_PASSWORD || 'pxe-setup-2027'
+/* ไม่มีค่าตั้งต้น เพราะที่นี่ยิงใส่ production จริง
+   เดิมมีอีเมลและรหัสของบัญชีแอดมินเป็นค่า default อยู่ในไฟล์นี้
+   ซึ่งอยู่ใน repo สาธารณะ แปลว่ารหัสแอดมินของระบบจริงเปิดให้ใครก็อ่านได้
+   ต้องส่งผ่าน env เท่านั้น และถ้าไม่ส่งมาก็ให้หยุด ไม่ใช่เดาต่อ */
+const EMAIL = process.env.SMOKE_EMAIL
+const PASS = process.env.SMOKE_PASSWORD
+if (!EMAIL || !PASS) {
+  console.error('ต้องตั้ง SMOKE_EMAIL และ SMOKE_PASSWORD ก่อนรัน')
+  console.error('ตัวอย่าง: SMOKE_EMAIL=you@penguinx.co SMOKE_PASSWORD=... npm run smoke')
+  process.exit(1)
+}
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const PORT = 9444
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'smoke-'))

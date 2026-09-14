@@ -29,7 +29,7 @@ node apps/api/src/index.js
 
 ## บัญชีตั้งต้น
 
-รหัสผ่านชั่วคราวเหมือนกันหมดคือ `pxe-setup-2027` และระบบตั้งค่า
+รหัสผ่านชั่วคราวมาจาก `SEED_PASSWORD` ที่ตั้งตอนสร้างผู้ใช้ (ห้ามเขียนรหัสจริงลงไฟล์นี้) และระบบตั้งค่า
 `must_change_password` ไว้ทุกบัญชี ต้องเปลี่ยนตอนเข้าครั้งแรกเมื่อทำหน้าล็อกอินจริง
 
 | อีเมล | บทบาท |
@@ -44,7 +44,7 @@ node apps/api/src/index.js
 ```bash
 curl localhost:4000/api/health
 curl -X POST localhost:4000/api/auth/login -H 'content-type: application/json' \
-  -d '{"email":"admin@penguinx.local","password":"pxe-setup-2027"}'
+  -d "{\"email\":\"$SEED_EMAIL\",\"password\":\"$SEED_PASSWORD\"}"
 ```
 
 ## นำเข้าข้อมูลใหม่

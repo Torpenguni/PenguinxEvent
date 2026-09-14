@@ -17,7 +17,9 @@ async function main () {
   await q('begin')
 
   // ---- ผู้ใช้ตั้งต้น หนึ่งคนต่อหนึ่งบทบาท รหัสผ่านชั่วคราว ต้องเปลี่ยนตอนเข้าครั้งแรก
-  const hash = await bcrypt.hash('pxe-setup-2027', 10)
+  /* ไม่มีรหัสตั้งต้นในโค้ด ไฟล์นี้อยู่ใน repo สาธารณะ */
+  if (!process.env.SEED_PASSWORD) throw new Error('ต้องตั้ง SEED_PASSWORD ก่อนรัน')
+  const hash = await bcrypt.hash(process.env.SEED_PASSWORD, 10)
   const roles = (await q('select code from role order by sort')).rows.map(r => r.code)
   for (const r of roles) {
     await q(`insert into app_user (email, name, role, password_hash, must_change_password)

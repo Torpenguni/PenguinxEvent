@@ -4,7 +4,7 @@ const API = process.env.PXE_API || 'https://penguinx-event.vercel.app'
 const CODE = 'rgs-2026'
 const login = await (await fetch(API + '/api/auth/login', {
   method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ email: 'admin@penguinx.local', password: 'pxe-setup-2027' }),
+  body: JSON.stringify({ email: process.env.SEED_EMAIL, password: process.env.SEED_PASSWORD }),
 })).json()
 const H = { 'content-type': 'application/json', authorization: 'Bearer ' + login.token }
 const { event: ev } = await (await fetch(`${API}/api/events/${CODE}/full`, { headers: H })).json()
