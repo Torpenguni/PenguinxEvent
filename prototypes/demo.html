@@ -2174,26 +2174,38 @@ function pickLogo(id){
    แถว timeline เก็บ a/b เป็นสัปดาห์เทียบวันจัดงาน ติดลบคือก่อนงาน */
 const DAY=86400000;
 const dOnly=(d)=>{ const x=new Date(d); x.setHours(0,0,0,0); return x };
+/* ชื่อฟิลด์วันจัดงานไม่ตรงกันระหว่างสองทาง ไฟล์เดโมเก็บเป็น eventDate
+   ส่วน API ส่ง start_date มาตามชื่อคอลัมน์ในฐานข้อมูล ตอนแรกอ่านแค่ eventDate
+   ผลคือบนของจริงคำนวณช่วงไม่ได้สักงาน แล้วส่วนนี้ถูกซ่อนไปเงียบ ๆ
+   ทั้งที่บนเดโมทำงานปกติ */
+const evStart=(e)=>parseDate(e.eventDate||e.event_date||e.start_date);
+const evEnd=(e)=>parseDate(e.end_date||e.endDate)||evStart(e);
 function evMonday(e){
-  const d=parseDate(e.eventDate||e.event_date);
+  const d=evStart(e);
   return d?monday(d):null;
 }
 /* คืนช่วงเวลาของงานหนึ่ง เป็นวันที่จริงทั้งหมด */
 function evSpan(e){
   const m=evMonday(e); if(!m)return null;
-  const start=parseDate(e.eventDate||e.event_date);
-  const end=parseDate(e.end_date)||start;
+  const start=evStart(e);
+  const end=evEnd(e);
   const rows=e.timeline||[];
   const off=(k)=>{ const d=new Date(m); d.setDate(d.getDate()+k*7); return dOnly(d) };
-  /* ช่วงเตรียมงานเริ่มจากแถวที่เริ่มเร็วที่สุด ถ้างานไหนยังไม่มี timeline
-     ก็ถือว่าเตรียมงานเริ่มวันเดียวกับงาน จะได้ไม่ลากแถบยาวไปมั่ว ๆ */
-    const as=rows.map(r=>r.a).filter(v=>typeof v==="number");
+  const as=rows.map(r=>r.a).filter(v=>typeof v==="number");
   const bs=rows.map(r=>r.b).filter(v=>typeof v==="number");
-  const prepFrom=as.length?off(Math.min(...as)):dOnly(start);
-  /* งานที่ยังไม่ได้วางไทม์ไลน์ ไม่มีข้อมูลว่าเตรียมงานนานแค่ไหน ต้องบอกให้รู้
+  /* หน้าเลือกงานไม่ได้โหลดไทม์ไลน์ของทุกงานมาด้วย จะกลายเป็นยิงทีละงาน
+     ฝั่ง API จึงสรุปสัปดาห์เริ่ม-จบของไทม์ไลน์มาให้เป็น prep_weeks / post_weeks
+     ใช้ค่านั้นแทนเมื่อไม่มีแถวจริงอยู่ในมือ */
+  const pw=typeof e.prep_weeks==="number"?e.prep_weeks:null;
+  const qw=typeof e.post_weeks==="number"?e.post_weeks:null;
+  /* งานที่ยังไม่ได้วางไทม์ไลน์เลย ไม่มีข้อมูลว่าเตรียมงานนานแค่ไหน ต้องบอกให้รู้
      ไม่ใช่วาดแถบกว้างศูนย์แล้วปล่อยให้เข้าใจว่าไม่ต้องเตรียมอะไร */
-  const noPlan=!rows.length;
-  const postTo=bs.length?off(Math.max(...bs)+1):dOnly(end);
+  const noPlan=!rows.length&&pw==null&&qw==null;
+  /* วันเข้า-ออกพื้นที่ที่ตกลงกับสถานที่ไว้แล้ว เชื่อถือได้กว่าค่าที่คำนวณจากไทม์ไลน์
+     จึงใช้ก่อนเสมอถ้ากรอกไว้ */
+  const mi=parseDate(e.move_in_from), mo=parseDate(e.move_out_to);
+  const prepFrom=mi||(as.length?off(Math.min(...as)):(pw!=null?off(pw):dOnly(start)));
+  const postTo=mo||(bs.length?off(Math.max(...bs)+1):(qw!=null?off(qw+1):dOnly(end)));
   return {
     e, name:e.name, short:e.short||e.name, status:e.status,
     prepFrom, prepTo:dOnly(start),
@@ -2211,6 +2223,9 @@ function overlap(a1,a2,b1,b2){
 }
 /* ทีมที่งานหนึ่งต้องใช้ในช่วงวันที่กำหนด อ่านจากคอลัมน์ by ของ timeline */
 function teamsBetween(sp,from,to){
+  /* ไม่มีแถวไทม์ไลน์อยู่ในมือ = ตอบไม่ได้ว่าทีมไหนชน ไม่ใช่ตอบว่าไม่มีทีมชน
+     คืน null เพื่อให้ฝั่งแสดงผลแยกสองกรณีนี้ออกจากกันได้ */
+  if(!sp.rows.length)return null;
   const m=evMonday(sp.e); if(!m)return [];
   const out=new Set();
   sp.rows.forEach(r=>{
@@ -2250,7 +2265,7 @@ function evClashes(spans){
     if(any){
       /* เอาเฉพาะทีมที่ทั้งสองงานต้องใช้ในช่วงเดียวกัน ทีมที่ว่างไม่ต้องรายงาน */
       const ta=teamsBetween(A,any.from,any.to), tb=teamsBetween(Bv,any.from,any.to);
-      const both=ta.filter(t=>tb.includes(t));
+      const both=(ta&&tb)?ta.filter(t=>tb.includes(t)):null;
       const pa=phasesIn(A,any.from,any.to), pb=phasesIn(Bv,any.from,any.to);
       /* ฝั่งไหนอยู่ในวันจัดงานตอนที่อีกฝั่งยังวุ่นอยู่ ถือว่าหนักกว่าช่วงเตรียมชนเตรียม */
       const hard=pa.includes("จัดงาน")||pb.includes("จัดงาน");
@@ -2359,7 +2374,10 @@ function clashHTML(cl,spans){
         list.map(c=>'<div class="atlci"><span class="d">'+c.days+' วัน</span>'+
           esc(c.a.short)+' ('+c.pa.join("+")+') × '+esc(c.b.short)+' ('+c.pb.join("+")+')'+
           ' <span class="w">'+fmtDY(c.from)+' – '+fmtDY(c.to)+'</span>'+
-          (c.teams.length?'<span class="tm">ทีมที่ถูกเรียกทั้งสองงาน: '+c.teams.map(esc).join(" · ")+'</span>'
+          (c.teams==null
+            ?'<span class="tm ok">ยังบอกไม่ได้ว่าทีมไหนชน — เปิดงานนั้นสักครั้งเพื่อโหลดไทม์ไลน์</span>'
+            :c.teams.length
+            ?'<span class="tm">ทีมที่ถูกเรียกทั้งสองงาน: '+c.teams.map(esc).join(" · ")+'</span>'
             :'<span class="tm ok">ไม่มีทีมไหนถูกเรียกซ้ำในช่วงนี้</span>')+
           '</div>').join("")+
         '</div>';
@@ -2403,7 +2421,7 @@ function showPick(){
   /* ไทม์ไลน์รวมขึ้นเมื่อมีงานตั้งแต่สองงานขึ้นไป งานเดียวไม่มีอะไรให้เทียบ */
   const aw=$("#atlwrap");
   if(aw){
-    const many=EVENTS.filter(e=>e.eventDate||e.event_date).length>1;
+    const many=EVENTS.filter(e=>evStart(e)).length>1;
     aw.hidden=!many;
     if(many){
       pAllTimeline();

@@ -8,14 +8,25 @@ const r = Router()
 r.get('/', need('floorplan'), async (req, res, next) => {
   try {
     const { rows } = await q(
+      /* ไทม์ไลน์รวมทุกงานบนหน้าเลือกงานต้องรู้ช่วงเตรียมและช่วงเก็บของแต่ละงาน
+         ซึ่งอยู่ใน timeline_task ที่เก็บ plan_a / plan_b เป็นสัปดาห์เทียบวันจัดงาน
+         ดึงมาเป็นค่าต่ำสุด/สูงสุดในคิวรี่เดียว จะได้ไม่ต้องยิงรายงานทีละงานจากหน้าเลือกงาน
+         move_in_from / move_out_to มีในตารางมาตั้งแต่แรกแต่ไม่เคยถูกส่งออกมา
+         ถ้ากรอกไว้ให้ใช้ค่านั้นก่อน เพราะเป็นวันจริงที่ตกลงกับสถานที่ ไม่ใช่ค่าที่คำนวณเอา */
       `select e.id, e.code, e.name, e.venue, e.hall, e.start_date, e.end_date, e.status,
-              e.logo_url,
+              e.move_in_from, e.move_out_to, e.logo_url,
+              t.prep_weeks, t.post_weeks,
               coalesce(json_agg(b.name order by b.id) filter (where b.id is not null), '[]') as brands
          from event e
          left join event_brand b on b.event_id = e.id
          left join user_event ue on ue.event_id = e.id and ue.user_id = $1
+         left join lateral (
+           select min(least(plan_a, act_a)) as prep_weeks,
+                  max(greatest(plan_b, act_b)) as post_weeks
+             from timeline_task where event_id = e.id
+         ) t on true
         where e.status <> 'archived'
-        group by e.id
+        group by e.id, t.prep_weeks, t.post_weeks
         order by e.start_date desc nulls last`,
       [req.user.id],
     )
