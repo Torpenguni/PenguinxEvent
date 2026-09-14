@@ -1521,6 +1521,19 @@ tr.brow:hover>td{background:var(--soft)}
   .atlhead,.atlrow{grid-template-columns:minmax(110px,140px) 1fr}
   .atlwrap{padding:14px 13px 16px}
 }
+
+/* สถานะ "ยังเทียบไม่ได้" ต้องอธิบายว่าขาดอะไรและไปกรอกที่ไหน
+   ของเดิมซ่อนทั้งส่วนไปเลย คนเลยหาไม่เจอและไม่รู้ว่าทำไม */
+.atlempty{padding:16px 18px;border:1px dashed var(--line2);border-radius:10px;background:var(--paper)}
+.atlempty > b{display:block;font-size:14px;color:var(--ink);margin-bottom:4px}
+.atlempty > p{margin:0 0 8px;font-size:13px;color:var(--ink2)}
+.atlempty ul{margin:0 0 10px;padding-left:18px;font-size:13px;color:var(--ink2)}
+.atlempty li{margin-bottom:3px}
+.atlempty button,.atlmiss button{border:0;background:none;font:inherit;color:var(--accent);
+  font-weight:700;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
+.atlempty .how{margin:0;font-size:12.5px;color:var(--ink3)}
+.atlmiss{margin-top:14px;padding:10px 14px;border-radius:9px;font-size:13px;
+  background:var(--warning-bg,rgba(208,138,10,.1));color:var(--warn);border:1px solid var(--warn)}
 </style>
 
 <div id="login">
@@ -2284,8 +2297,21 @@ const fmtDY=(d)=>fmtD(d)+" "+d.getFullYear();
 function pAllTimeline(){
   const spans=EVENTS.map(evSpan).filter(Boolean).sort((a,b)=>a.showFrom-b.showFrom);
   const host=$("#alltl"); if(!host)return;
-  if(!spans.length){
-    host.innerHTML='<p class="rdonly">ยังไม่มีงานที่ตั้งวันจัดงานไว้ — ใส่วันจัดงานในหน้าตั้งค่าของแต่ละงานก่อน</p>';
+  const missing=EVENTS.filter(e=>!evStart(e));
+  /* บอกให้ครบว่าขาดอะไรและต้องไปกรอกที่ไหน แทนที่จะไม่ขึ้นอะไรเลย
+     ต้องมีวันจัดงานอย่างน้อยสองงานถึงจะมี "ซ้อนกัน" ให้ดู */
+  const needMore=spans.length<2;
+  if(needMore){
+    host.innerHTML='<div class="atlempty">'+
+      '<b>ยังเทียบงานไม่ได้ — ต้องมีวันจัดงานอย่างน้อย 2 งาน</b>'+
+      '<p>ตอนนี้กรอกวันจัดงานไว้ '+spans.length+' จาก '+EVENTS.length+' งาน</p>'+
+      (missing.length?'<ul>'+missing.map(e=>
+        '<li><button data-fix="'+e.id+'">'+esc(e.name)+'</button> — ยังไม่มีวันจัดงาน</li>').join("")+'</ul>':'')+
+      '<p class="how">กรอกที่ <b>เปิดงานนั้น → Settings → Event details → Start date / End date</b> '+
+      'กดชื่องานด้านบนเพื่อเข้าไปกรอกได้เลย</p>'+
+      '</div>';
+    host.querySelectorAll("[data-fix]").forEach(b=>
+      b.addEventListener("click",()=>enter(b.dataset.fix)));
     return;
   }
   /* ลากช่วงให้ครอบวันนี้เสมอ ไม่งั้นถ้างานแรกยังอีกไกล เส้นวันนี้จะหลุดออกนอกกราฟ
@@ -2346,10 +2372,13 @@ function pAllTimeline(){
        '<li style="flex:0 0 auto"><span class="sw atlsw '+k[0]+'"></span>'+k[1]+'</li>').join("")+
      '<li style="flex:0 0 auto;color:var(--ink3)">ช่วงเตรียมงานคิดจากไทม์ไลน์ของแต่ละงาน</li>'+
    '</ul>'+
+   (missing.length?'<div class="atlmiss">⚠️ ยังไม่ได้กรอกวันจัดงานของ '+
+      missing.map(e=>'<button data-fix="'+e.id+'">'+esc(e.name)+'</button>').join(" · ")+
+      ' — งานเหล่านี้จึงยังไม่อยู่บนไทม์ไลน์ และอาจชนกับงานอื่นโดยที่ยังไม่เห็น</div>':'')+
    clashHTML(clashes,spans);
 
-  host.querySelectorAll("[data-go]").forEach(b=>
-    b.addEventListener("click",()=>enter(b.dataset.go)));
+  host.querySelectorAll("[data-go],[data-fix]").forEach(b=>
+    b.addEventListener("click",()=>enter(b.dataset.go||b.dataset.fix)));
 }
 function clashHTML(cl,spans){
   const noPlan=(spans||[]).filter(s=>s.noPlan);
@@ -2418,10 +2447,13 @@ function showPick(){
      '<span class="go">Start →</span></button>':'');
   $("#evgrid").querySelectorAll("[data-e]").forEach(b=>
     b.addEventListener("click",()=>enter(b.dataset.e)));
-  /* ไทม์ไลน์รวมขึ้นเมื่อมีงานตั้งแต่สองงานขึ้นไป งานเดียวไม่มีอะไรให้เทียบ */
+  /* ขึ้นเมื่อมีงานตั้งแต่สองงาน งานเดียวไม่มีอะไรให้เทียบ
+     เดิมซ่อนทั้งส่วนเมื่อยังไม่มีงานที่กรอกวันจัดงานครบสองงาน ผลคือคนหาไม่เจอ
+     และไม่มีอะไรบอกว่าทำไม ฟีเจอร์ที่หายไปเงียบ ๆ กับฟีเจอร์ที่ไม่มีอยู่จริง
+     หน้าตาเหมือนกันทุกประการสำหรับคนใช้ */
   const aw=$("#atlwrap");
   if(aw){
-    const many=EVENTS.filter(e=>evStart(e)).length>1;
+    const many=EVENTS.length>1;
     aw.hidden=!many;
     if(many){
       pAllTimeline();
