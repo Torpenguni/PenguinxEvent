@@ -1497,6 +1497,24 @@ tr.brow:hover>td{background:var(--soft)}
 .atlsw.spost{background:var(--k-break-solid);opacity:.6}
 .atlleg{margin:12px 0 0;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
 
+/* ฟอร์มกรอกวันจัดงานในที่เดียว */
+.atlform{padding:16px 18px;border:1px dashed var(--line2);border-radius:10px;background:var(--paper)}
+.atlform > b{display:block;font-size:14px;color:var(--ink);margin-bottom:4px}
+.atlform > p{margin:0 0 12px;font-size:13px;color:var(--ink2)}
+table.dft{border-collapse:collapse;width:100%;max-width:620px}
+table.dft th{text-align:left;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--ink3);font-weight:700;padding:0 10px 6px 0}
+table.dft td{padding:5px 10px 5px 0;vertical-align:middle;border-bottom:1px solid var(--line)}
+table.dft tr:last-child td{border-bottom:0}
+table.dft td.dfn{font-size:13.5px;font-weight:600;color:var(--ink);min-width:170px;line-height:1.35}
+table.dft input[type=date]{padding:6px 9px;border:1px solid var(--line2);border-radius:7px;
+  background:var(--card);color:var(--ink);font:inherit;font-size:13px}
+table.dft td.dfs{font-weight:800;color:var(--ok);width:22px;text-align:center}
+.dfbtn{display:flex;align-items:center;gap:12px;margin-top:12px}
+.dfmsg{font-size:12.5px;color:var(--ink2)}
+.atlmore{border:0;background:none;font:inherit;font-size:12.5px;font-weight:700;color:var(--warn);
+  text-decoration:underline;text-underline-offset:2px;cursor:pointer;margin-left:8px;padding:0}
+#atlform{margin-top:12px}
 .atlok{margin-top:14px;padding:11px 14px;border-radius:9px;background:var(--soft);
   color:var(--accent);font-size:13.5px;font-weight:600}
 .atlcl{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}

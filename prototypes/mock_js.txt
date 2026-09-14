@@ -683,6 +683,74 @@ const fmtD=(d)=>d.getDate()+" "+THMS[d.getMonth()];
    หน้าเดียวกันมีทั้ง "2027" บนการ์ดและ "70" บนไทม์ไลน์ อ่านแล้วสะดุด */
 const fmtDY=(d)=>fmtD(d)+" "+d.getFullYear();
 
+/* ฟอร์มกรอกวันจัดงานของทุกงานในที่เดียว
+   ใช้เส้นทางบันทึกเดียวกับหน้า Settings → Event details (PATCH /api/events/:id)
+   เพื่อไม่ให้มีสองทางที่เขียนฟิลด์เดียวกันแล้วหลุดจากกันภายหลัง */
+function dateFormHTML(have,compact){
+  const rows=EVENTS.map(e=>{
+    const a=evStart(e), b=evEnd(e);
+    const iso=(d)=>d?d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+
+      String(d.getDate()).padStart(2,"0"):"";
+    return '<tr data-ev="'+e.id+'">'+
+      '<td class="dfn">'+esc(e.name)+'</td>'+
+      '<td><input type="date" class="dfa" value="'+iso(a)+'"></td>'+
+      '<td><input type="date" class="dfb" value="'+(a?iso(b):"")+'"></td>'+
+      '<td class="dfs"></td></tr>';
+  }).join("");
+  return '<div class="atlform">'+
+    (compact?'':'<b>ยังเทียบงานไม่ได้ — ต้องมีวันจัดงานอย่างน้อย 2 งาน</b>'+
+      '<p>ตอนนี้กรอกไว้ '+have+' จาก '+EVENTS.length+' งาน · กรอกตรงนี้ได้เลย ไม่ต้องเข้าไปทีละงาน</p>')+
+    '<table class="dft"><thead><tr><th>งาน</th><th>วันเริ่ม</th><th>วันจบ</th><th></th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table>'+
+    '<div class="dfbtn"><button class="act go" data-dfsave>บันทึกวันจัดงาน</button>'+
+    '<span class="dfmsg"></span></div></div>';
+}
+function wireDateForm(root){
+  const btn=root.querySelector("[data-dfsave]"); if(!btn||btn._on)return;
+  btn._on=true;
+  const msg=root.querySelector(".dfmsg");
+  /* วันจบว่างไว้ได้ ถือว่างานวันเดียว แต่ถ้ากรอกแล้วต้องไม่อยู่ก่อนวันเริ่ม */
+  root.querySelectorAll("tr[data-ev]").forEach(tr=>{
+    const a=tr.querySelector(".dfa"), b=tr.querySelector(".dfb");
+    a.addEventListener("change",()=>{ if(a.value&&(!b.value||b.value<a.value))b.value=a.value });
+  });
+  btn.addEventListener("click",async()=>{
+    const jobs=[];
+    root.querySelectorAll("tr[data-ev]").forEach(tr=>{
+      const e=EVENTS.find(x=>String(x.id)===tr.dataset.ev); if(!e)return;
+      const a=tr.querySelector(".dfa").value, b=tr.querySelector(".dfb").value||a;
+      if(!a)return;
+      const cur=evStart(e);
+      const iso=cur?cur.getFullYear()+"-"+String(cur.getMonth()+1).padStart(2,"0")+"-"+
+        String(cur.getDate()).padStart(2,"0"):"";
+      if(a===iso&&(b===((evEnd(e)&&e.end_date)||a)))return;   // ไม่เปลี่ยนก็ไม่ต้องยิง
+      jobs.push({e,tr,a,b});
+    });
+    if(!jobs.length){ msg.textContent="ยังไม่ได้กรอกวันไหนเพิ่ม"; return }
+    btn.disabled=true; msg.textContent="กำลังบันทึก…";
+    let ok=0, fail=0;
+    for(const j of jobs){
+      try{
+        if(online())await api("/api/events/"+encodeURIComponent(j.e.id),
+          {method:"PATCH",body:JSON.stringify({eventDate:j.a,endDate:j.b})});
+        Object.assign(j.e,{eventDate:j.a,event_date:j.a,start_date:j.a,end_date:j.b});
+        /* งานที่เปิดค้างอยู่ต้องตามไปด้วย ไม่งั้นหน้าในงานจะยังเห็นวันเดิม */
+        if(typeof EV!=="undefined"&&EV&&EV.id===j.e.id)
+          Object.assign(EV,{eventDate:j.a,event_date:j.a,end_date:j.b});
+        j.tr.querySelector(".dfs").textContent="✓";
+        ok++;
+      }catch(err){
+        j.tr.querySelector(".dfs").textContent="✕";
+        j.tr.querySelector(".dfs").title=err.message; fail++;
+      }
+    }
+    btn.disabled=false;
+    msg.textContent=fail?("บันทึกได้ "+ok+" งาน · ไม่สำเร็จ "+fail+" งาน")
+                        :("บันทึก "+ok+" งานแล้ว");
+    if(ok)setTimeout(()=>{ showPick() },700);
+  });
+}
+
 function pAllTimeline(){
   const spans=EVENTS.map(evSpan).filter(Boolean).sort((a,b)=>a.showFrom-b.showFrom);
   const host=$("#alltl"); if(!host)return;
@@ -690,16 +758,11 @@ function pAllTimeline(){
   /* บอกให้ครบว่าขาดอะไรและต้องไปกรอกที่ไหน แทนที่จะไม่ขึ้นอะไรเลย
      ต้องมีวันจัดงานอย่างน้อยสองงานถึงจะมี "ซ้อนกัน" ให้ดู */
   if(spans.length<2){
-    host.innerHTML='<div class="atlempty">'+
-      '<b>ยังเทียบงานไม่ได้ — ต้องมีวันจัดงานอย่างน้อย 2 งาน</b>'+
-      '<p>ตอนนี้กรอกวันจัดงานไว้ '+spans.length+' จาก '+EVENTS.length+' งาน</p>'+
-      (missing.length?'<ul>'+missing.map(e=>
-        '<li><button data-fix="'+e.id+'">'+esc(e.name)+'</button> — ยังไม่มีวันจัดงาน</li>').join("")+'</ul>':'')+
-      '<p class="how">กรอกที่ <b>เปิดงานนั้น → Settings → Event details → Start date / End date</b> '+
-      'กดชื่องานด้านบนเพื่อเข้าไปกรอกได้เลย</p>'+
-      '</div>';
-    host.querySelectorAll("[data-fix]").forEach(b=>
-      b.addEventListener("click",()=>enter(b.dataset.fix)));
+    /* กรอกวันได้ตรงนี้เลย เดิมบอกให้ไปกรอกที่ Settings ของแต่ละงาน ซึ่งแปลว่า
+       เข้างาน-หาเมนู-กรอก-ย้อนกลับ คูณจำนวนงาน กว่าจะได้เห็นกราฟสักที
+       งานที่ยังไม่มีวันคือเหตุผลเดียวที่กราฟไม่ขึ้น จึงควรแก้ได้จากที่เดียวกับที่บอกปัญหา */
+    host.innerHTML=dateFormHTML(spans.length);
+    wireDateForm(host);
     return;
   }
 
@@ -763,12 +826,21 @@ function pAllTimeline(){
      '<li style="flex:0 0 auto;color:var(--ink3)">เส้นเขียวคือสัปดาห์นี้ · ช่วงเตรียมงานคิดจากไทม์ไลน์ของแต่ละงาน</li>'+
    '</ul>'+
    (missing.length?'<div class="atlmiss">⚠️ ยังไม่ได้กรอกวันจัดงานของ '+
-      missing.map(e=>'<button data-fix="'+e.id+'">'+esc(e.name)+'</button>').join(" · ")+
-      ' — งานเหล่านี้จึงยังไม่อยู่บนไทม์ไลน์ และอาจชนกับงานอื่นโดยที่ยังไม่เห็น</div>':'')+
+      missing.map(e=>esc(e.name)).join(" · ")+
+      ' — งานเหล่านี้จึงยังไม่อยู่บนไทม์ไลน์ และอาจชนกับงานอื่นโดยที่ยังไม่เห็น'+
+      '<button class="atlmore" id="atladd">กรอกวันที่นี่</button></div>'+
+      '<div id="atlform" hidden>'+dateFormHTML(spans.length,true)+'</div>':'')+
    clashHTML(evClashes(spans),spans);
 
-  host.querySelectorAll("[data-go],[data-fix]").forEach(b=>
-    b.addEventListener("click",()=>enter(b.dataset.go||b.dataset.fix)));
+  host.querySelectorAll("[data-go]").forEach(b=>
+    b.addEventListener("click",()=>enter(b.dataset.go)));
+  const more=host.querySelector("#atladd");
+  if(more)more.addEventListener("click",()=>{
+    const f=host.querySelector("#atlform");
+    const off=f.hasAttribute("hidden");
+    if(off){ f.removeAttribute("hidden"); wireDateForm(f); more.textContent="ซ่อนช่องกรอก" }
+    else { f.setAttribute("hidden",""); more.textContent="กรอกวันที่นี่" }
+  });
   /* เลื่อนให้เห็นสัปดาห์นี้ตั้งแต่แรก ไม่ใช่ต้นแกนซึ่งอาจเป็นเมื่อครึ่งปีก่อน */
   const box=host.querySelector(".atlgt");
   const nowTh=host.querySelector("th.gtw.gtnow");
