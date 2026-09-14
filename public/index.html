@@ -402,8 +402,12 @@ button.act.warn{color:var(--risk);border-color:var(--risk)}
 svg#plan{display:block;min-width:740px;width:100%;height:auto}
 .pw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px;box-shadow:var(--sh)}
 .bt{cursor:pointer}.bt rect{stroke:#fff;stroke-width:.09}
-.bt:hover rect{stroke:var(--ink);stroke-width:.22}
-.bt.sel rect{stroke:var(--ink);stroke-width:.3}
+/* เส้นตอนชี้และตอนเลือก วัดเป็นพิกเซลบนจอ ไม่ใช่หน่วยกริด
+   ของเดิม .3 คือ 30% ของความสูงบูธหนึ่งช่อง หนาจนกินตัวบูธไปเยอะ
+   และเพราะ viewBox ย่อตามจำนวนบูธ งานที่บูธเยอะจะยิ่งเห็นเส้นหนาขึ้นไปอีก
+   non-scaling-stroke ทำให้เส้นคงที่เท่ากันทุกงานและทุกระดับการย่อ */
+.bt:hover rect{stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.bt.sel rect{stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke}
 .bt.dim{opacity:.15}.bt text{pointer-events:none;font-weight:600}
 .ar rect{fill:var(--line);opacity:.5}.ar text{fill:var(--ink2);font-weight:600;pointer-events:none}
 .tl{position:relative;display:grid;grid-template-columns:56px repeat(3,1fr);min-width:800px}
@@ -1433,8 +1437,8 @@ tr.brow:hover>td{background:var(--soft)}
    ตอนอยู่โหมดแก้ผัง บูธต้องดูจับได้ และใบที่เลือกไว้หลายใบ (ไว้รวมกัน)
    ต้องแยกออกจากใบที่กำลังดูรายละเอียดอยู่ */
 .bt.ed{cursor:move}
-.bt.msel rect:first-of-type{stroke:var(--accent);stroke-width:.26}
-.bt.sel.msel rect:first-of-type{stroke:var(--ink);stroke-width:.3}
+.bt.msel rect:first-of-type{stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke}
+.bt.sel.msel rect:first-of-type{stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke}
 .bt .bth{cursor:nwse-resize}
 /* ลากอยู่ไม่ต้องหรี่ตามตัวกรอง ไม่งั้นลากบูธที่ถูกกรองออกแล้วจะมองไม่เห็นว่าไปอยู่ไหน */
 .bt.msel.dim{opacity:1}
