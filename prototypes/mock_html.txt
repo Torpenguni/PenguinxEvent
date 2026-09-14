@@ -26,6 +26,16 @@
   <h1>Choose an event</h1>
   <p class="sub">You have access to these events</p>
   <div class="evgrid" id="evgrid"></div>
+  <section class="atlwrap" id="atlwrap" hidden>
+    <div class="atltop">
+      <div>
+        <h2>ไทม์ไลน์รวมทุกงาน</h2>
+        <p>ดูว่างานไหนซ้อนกันช่วงไหน เพื่อวางคนล่วงหน้า</p>
+      </div>
+      <button id="atltog" class="btn2">ซ่อน</button>
+    </div>
+    <div id="alltl"></div>
+  </section>
   <p class="out">Signed in as <b id="pwho">—</b> · <button id="pout">Sign out</button></p>
 </div></div>
 

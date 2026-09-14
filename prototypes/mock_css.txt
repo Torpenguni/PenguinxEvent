@@ -1454,4 +1454,71 @@ tr.brow:hover>td{background:var(--soft)}
   body.printplan .bt.dim{opacity:1}
   @page{size:landscape;margin:10mm}
 }
+
+/* ---------- ไทม์ไลน์รวมทุกงาน ----------
+   อยู่บนหน้าเลือกงาน เพราะเป็นมุมมองข้ามงาน ไม่ได้อยู่ในงานใดงานหนึ่ง
+   สีของแถบใช้ชุดประเภท (--k-*) ไม่ใช่ชุดสถานะ ตามกฎที่เขียนไว้ข้างบน */
+.atlwrap{margin:34px 0 6px;text-align:left;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:18px 20px 20px;box-shadow:var(--sh)}
+.atlwrap[hidden]{display:none}
+.atltop{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+.atltop h2{margin:0 0 3px;font-size:17px;font-weight:800;color:var(--ink)}
+.atltop p{margin:0;font-size:13.5px;color:var(--ink2)}
+.btn2{border:1px solid var(--line2);background:var(--paper);color:var(--ink2);
+  border-radius:8px;padding:6px 13px;font:inherit;font-size:13px;cursor:pointer;flex:0 0 auto}
+.btn2:hover{background:var(--soft);color:var(--accent)}
+
+.atl{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.atlhead,.atlrow{display:grid;grid-template-columns:minmax(150px,210px) 1fr;align-items:stretch}
+.atlhead{background:var(--paper);border-bottom:1px solid var(--line)}
+.atlhead .atltrack{height:30px}
+.atlm{position:absolute;top:0;height:30px;line-height:30px;font-size:11px;color:var(--ink3);
+  padding-left:5px;border-left:1px solid var(--line);white-space:nowrap;overflow:hidden}
+.atlm.y{border-left-color:var(--line2)}
+.atlm b{color:var(--ink2);font-weight:700}
+.atltrack{position:relative;min-height:46px}
+.atlrow{border-bottom:1px solid var(--line)}
+.atlrow:last-child{border-bottom:0}
+.atlrow.clash{background:var(--warning-bg,rgba(208,138,10,.06))}
+.atlname{padding:10px 12px;border-right:1px solid var(--line);display:flex;
+  flex-direction:column;justify-content:center;gap:2px;min-width:0}
+.atlname button{border:0;background:none;font:inherit;font-size:13.5px;font-weight:700;
+  color:var(--ink);text-align:left;cursor:pointer;padding:0;line-height:1.3}
+.atlname button:hover{color:var(--accent);text-decoration:underline}
+.atlname small{font-size:11.5px;color:var(--ink3);line-height:1.4}
+
+.atlb{position:absolute;top:50%;transform:translateY(-50%);height:16px;border-radius:4px}
+.atlb.prep{background:var(--k-talk-solid);opacity:.42;height:11px}
+.atlb.show{background:var(--accent);height:20px;border-radius:5px;z-index:2}
+.atlb.post{background:var(--k-break-solid);opacity:.38;height:11px}
+.atlsw.prep{background:var(--k-talk-solid);opacity:.42}
+.atlsw.show{background:var(--accent)}
+.atlsw.post{background:var(--k-break-solid);opacity:.38}
+.atllab{position:absolute;top:50%;transform:translate(6px,-50%);font-size:11px;font-weight:700;
+  color:var(--ink2);white-space:nowrap;pointer-events:none;z-index:3}
+.atllab.right{transform:translate(-6px,-50%)}
+.atlnow{position:absolute;top:0;bottom:0;font-size:10px;color:var(--risk);font-weight:700;
+  white-space:nowrap;padding-left:4px;z-index:4}
+.atlnow i{position:absolute;left:0;top:0;bottom:-1000px;width:1.5px;background:var(--risk);opacity:.55}
+.atlleg{margin:12px 0 0;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+
+.atlok{margin-top:14px;padding:11px 14px;border-radius:9px;background:var(--soft);
+  color:var(--accent);font-size:13.5px;font-weight:600}
+.atlcl{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.atlcl h3{margin:0 0 10px;font-size:14px;font-weight:800;color:var(--ink)}
+.atlgrp{margin-bottom:14px}
+.atlgrp:last-child{margin-bottom:0}
+.atlgrp > b{font-size:13px;color:var(--ink)}
+.atlgrp > b.hard{color:var(--risk)}
+.atlgrp > p{margin:2px 0 8px;font-size:12.5px;color:var(--ink2)}
+.atlci{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:13px;
+  padding:7px 11px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--paper)}
+.atlci .d{font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.atlci .w{color:var(--ink3);font-size:12px}
+.atlci .tm{flex:1 1 100%;font-size:12px;color:var(--warn)}
+.atlci .tm.ok{color:var(--ink3)}
+@media(max-width:760px){
+  .atlhead,.atlrow{grid-template-columns:minmax(110px,140px) 1fr}
+  .atlwrap{padding:14px 13px 16px}
+}
 </style>

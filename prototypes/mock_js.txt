@@ -566,6 +566,210 @@ function pickLogo(id){
       } }) };
   inp.click();
 }
+/* ---------- ไทม์ไลน์รวมทุกงาน ----------
+   หน้าในงานดูได้ทีละงาน แต่คำถามที่ตอบไม่ได้เลยคือ "งานไหนซ้อนกันบ้าง"
+   ซึ่งเป็นคำถามของการวางคน ไม่ใช่ของการวางผัง ทีมชุดเดียวกันวิ่งทุกงาน
+   ถ้าช่วงเตรียมของสองงานทับกัน แปลว่าต้องมีคนสองชุดหรือต้องเลื่อนอย่างใดอย่างหนึ่ง
+   และจะรู้ตอนนั้นไม่ได้ถ้าต้องเปิดทีละงานมาเทียบเอง
+
+   ช่วงของแต่ละงานคำนวณจาก timeline ที่มีอยู่แล้ว ไม่ต้องกรอกอะไรเพิ่ม
+   แถว timeline เก็บ a/b เป็นสัปดาห์เทียบวันจัดงาน ติดลบคือก่อนงาน */
+const DAY=86400000;
+const dOnly=(d)=>{ const x=new Date(d); x.setHours(0,0,0,0); return x };
+function evMonday(e){
+  const d=parseDate(e.eventDate||e.event_date);
+  return d?monday(d):null;
+}
+/* คืนช่วงเวลาของงานหนึ่ง เป็นวันที่จริงทั้งหมด */
+function evSpan(e){
+  const m=evMonday(e); if(!m)return null;
+  const start=parseDate(e.eventDate||e.event_date);
+  const end=parseDate(e.end_date)||start;
+  const rows=e.timeline||[];
+  const off=(k)=>{ const d=new Date(m); d.setDate(d.getDate()+k*7); return dOnly(d) };
+  /* ช่วงเตรียมงานเริ่มจากแถวที่เริ่มเร็วที่สุด ถ้างานไหนยังไม่มี timeline
+     ก็ถือว่าเตรียมงานเริ่มวันเดียวกับงาน จะได้ไม่ลากแถบยาวไปมั่ว ๆ */
+    const as=rows.map(r=>r.a).filter(v=>typeof v==="number");
+  const bs=rows.map(r=>r.b).filter(v=>typeof v==="number");
+  const prepFrom=as.length?off(Math.min(...as)):dOnly(start);
+  /* งานที่ยังไม่ได้วางไทม์ไลน์ ไม่มีข้อมูลว่าเตรียมงานนานแค่ไหน ต้องบอกให้รู้
+     ไม่ใช่วาดแถบกว้างศูนย์แล้วปล่อยให้เข้าใจว่าไม่ต้องเตรียมอะไร */
+  const noPlan=!rows.length;
+  const postTo=bs.length?off(Math.max(...bs)+1):dOnly(end);
+  return {
+    e, name:e.name, short:e.short||e.name, status:e.status,
+    prepFrom, prepTo:dOnly(start),
+    showFrom:dOnly(start), showTo:dOnly(end),
+    postFrom:dOnly(end), postTo:postTo>dOnly(end)?postTo:dOnly(end),
+    from:prepFrom, to:postTo>dOnly(end)?postTo:dOnly(end),
+    rows, noPlan,
+  };
+}
+const spanDays=(a,b)=>Math.round((b-a)/DAY);
+/* วันที่ทับกันของสองช่วง คืน null ถ้าไม่ทับ */
+function overlap(a1,a2,b1,b2){
+  const s=Math.max(+a1,+b1), e=Math.min(+a2,+b2);
+  return e>=s?{from:new Date(s),to:new Date(e),days:spanDays(s,e)+1}:null;
+}
+/* ทีมที่งานหนึ่งต้องใช้ในช่วงวันที่กำหนด อ่านจากคอลัมน์ by ของ timeline */
+function teamsBetween(sp,from,to){
+  const m=evMonday(sp.e); if(!m)return [];
+  const out=new Set();
+  sp.rows.forEach(r=>{
+    if(typeof r.a!=="number"||typeof r.b!=="number")return;
+    const s=new Date(m); s.setDate(s.getDate()+r.a*7);
+    const t=new Date(m); t.setDate(t.getDate()+(r.b+1)*7);
+    if(t<from||s>to)return;
+    String(r.by||"").split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>out.add(x));
+  });
+  return [...out];
+}
+
+/* หาจุดที่งานชนกัน แยกเป็นสองระดับ
+   ช่วงงานชนกัน = หนักที่สุด เพราะหน้างานต้องมีคนอยู่สองที่พร้อมกัน
+   ช่วงเตรียมชนกัน = จัดการได้ถ้ารู้ล่วงหน้า แต่ต้องรู้ว่าทีมไหนโดน */
+/* เฟสของงานหนึ่งที่กินช่วงวันที่กำหนด ใช้บอกว่าที่ชนกันจริง ๆ คือเฟสไหนชนเฟสไหน
+   ของเดิมเรียกทุกอย่างที่ไม่ใช่วันงานว่า "ช่วงเตรียมงานชนกัน" ซึ่งผิด
+   เพราะช่วงเก็บงานของงานก่อนหน้าทับวันจัดงานของงานถัดไปก็เข้าเงื่อนไขนั้นด้วย */
+function phasesIn(sp,from,to){
+  const out=[];
+  if(sp.prepFrom<sp.prepTo&&overlap(sp.prepFrom,sp.prepTo,from,to))out.push("เตรียมงาน");
+  if(overlap(sp.showFrom,sp.showTo,from,to))out.push("จัดงาน");
+  if(sp.postTo>sp.postFrom&&overlap(sp.postFrom,sp.postTo,from,to))out.push("เก็บงาน");
+  return out;
+}
+function evClashes(spans){
+  const out=[];
+  for(let i=0;i<spans.length;i++)for(let j=i+1;j<spans.length;j++){
+    const A=spans[i], Bv=spans[j];
+    const show=overlap(A.showFrom,A.showTo,Bv.showFrom,Bv.showTo);
+    if(show){
+      out.push({kind:"show",a:A,b:Bv,...show,teams:[],
+        pa:["จัดงาน"],pb:["จัดงาน"]});
+      continue;
+    }
+    const any=overlap(A.from,A.to,Bv.from,Bv.to);
+    if(any){
+      /* เอาเฉพาะทีมที่ทั้งสองงานต้องใช้ในช่วงเดียวกัน ทีมที่ว่างไม่ต้องรายงาน */
+      const ta=teamsBetween(A,any.from,any.to), tb=teamsBetween(Bv,any.from,any.to);
+      const both=ta.filter(t=>tb.includes(t));
+      const pa=phasesIn(A,any.from,any.to), pb=phasesIn(Bv,any.from,any.to);
+      /* ฝั่งไหนอยู่ในวันจัดงานตอนที่อีกฝั่งยังวุ่นอยู่ ถือว่าหนักกว่าช่วงเตรียมชนเตรียม */
+      const hard=pa.includes("จัดงาน")||pb.includes("จัดงาน");
+      out.push({kind:hard?"onsite":"prep",a:A,b:Bv,...any,teams:both,pa,pb});
+    }
+  }
+  const rank={show:0,onsite:1,prep:2};
+  return out.sort((x,y)=>(rank[x.kind]-rank[y.kind])||(x.from-y.from));
+}
+const THMS=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const fmtD=(d)=>d.getDate()+" "+THMS[d.getMonth()];
+/* ปีแบบเดียวกับที่การ์ดงานใช้ ซึ่งเป็น ค.ศ. เต็ม เคยย่อเป็น พ.ศ. สองหลักแล้ว
+   หน้าเดียวกันมีทั้ง "2027" บนการ์ดและ "70" บนไทม์ไลน์ อ่านแล้วสะดุด */
+const fmtDY=(d)=>fmtD(d)+" "+d.getFullYear();
+
+function pAllTimeline(){
+  const spans=EVENTS.map(evSpan).filter(Boolean).sort((a,b)=>a.showFrom-b.showFrom);
+  const host=$("#alltl"); if(!host)return;
+  if(!spans.length){
+    host.innerHTML='<p class="rdonly">ยังไม่มีงานที่ตั้งวันจัดงานไว้ — ใส่วันจัดงานในหน้าตั้งค่าของแต่ละงานก่อน</p>';
+    return;
+  }
+  /* ลากช่วงให้ครอบวันนี้เสมอ ไม่งั้นถ้างานแรกยังอีกไกล เส้นวันนี้จะหลุดออกนอกกราฟ
+     แล้วคนดูจะไม่รู้ว่าตอนนี้ยืนอยู่ตรงไหนของแผน */
+  const today=dOnly(new Date());
+  const t0=dOnly(new Date(Math.min(...spans.map(s=>+s.from),+today)));
+  const t1=dOnly(new Date(Math.max(...spans.map(s=>+s.to),+today)));
+  const total=Math.max(1,spanDays(t0,t1));
+  const pc=(d)=>((spanDays(t0,d)/total)*100);
+  const now=dOnly(new Date());
+  const clashes=evClashes(spans);
+
+  /* หัวตารางเป็นเดือน ไม่ใช่สัปดาห์ เพราะช่วงรวมกินเวลาหลายปี
+     สัปดาห์จะถี่จนอ่านไม่ออก */
+  const months=[]; const cur=new Date(t0.getFullYear(),t0.getMonth(),1);
+  while(cur<=t1){ months.push(new Date(cur)); cur.setMonth(cur.getMonth()+1) }
+
+  host.innerHTML=
+   '<div class="atl">'+
+     '<div class="atlhead"><div class="atlname"></div><div class="atltrack">'+
+       months.map((m,i)=>{
+         const a=new Date(Math.max(+m,+t0));
+         const nx=new Date(m.getFullYear(),m.getMonth()+1,1);
+         const b=new Date(Math.min(+nx,+t1));
+         const w=((spanDays(a,b)/total)*100);
+         if(w<=0)return "";
+         return '<span class="atlm'+(m.getMonth()===0?" y":"")+'" style="left:'+pc(a)+'%;width:'+w+'%">'+
+           THMS[m.getMonth()]+(m.getMonth()===0||i===0?' <b>'+m.getFullYear()+'</b>':'')+'</span>';
+       }).join("")+
+       (now>=t0&&now<=t1?'<span class="atlnow" style="left:'+pc(now)+'%"><i></i>วันนี้</span>':'')+
+     '</div></div>'+
+     spans.map(s=>{
+       const seg=(from,to,cls,label)=>{
+         const w=Math.max(((spanDays(from,to)/total)*100),.35);
+         return '<span class="atlb '+cls+'" style="left:'+pc(from)+'%;width:'+w+'%" title="'+
+           esc(label+" · "+fmtDY(from)+" – "+fmtDY(to))+'"></span>';
+       };
+       const inClash=clashes.some(c=>c.a===s||c.b===s);
+       return '<div class="atlrow'+(inClash?" clash":"")+'">'+
+         '<div class="atlname"><button data-go="'+s.e.id+'">'+esc(s.name)+'</button>'+
+           '<small>'+esc(s.e.dates||fmtDY(s.showFrom))+' · '+
+           (s.status==="selling"?"กำลังขาย":"อยู่ระหว่างวางแผน")+
+           (s.noPlan?' · <span style="color:var(--warn)">ยังไม่มีไทม์ไลน์</span>':'')+'</small></div>'+
+         '<div class="atltrack">'+
+           (s.prepFrom<s.prepTo?seg(s.prepFrom,s.prepTo,"prep","ช่วงเตรียมงาน"):"")+
+           seg(s.showFrom,s.showTo,"show","ช่วงจัดงาน")+
+           (s.postTo>s.postFrom?seg(s.postFrom,s.postTo,"post","ช่วงเก็บงาน"):"")+
+           /* งานที่อยู่ค่อนไปทางขวาของกราฟ ป้ายต้องพลิกไปอยู่ซ้ายของแถบ
+              ไม่งั้นชื่อจะไหลออกนอกกรอบแล้วถูกตัดหาย */
+           (pc(s.showTo)>72
+             ?'<span class="atllab right" style="right:'+(100-pc(s.showFrom))+'%">'+esc(s.short)+'</span>'
+             :'<span class="atllab" style="left:'+pc(s.showTo)+'%">'+esc(s.short)+'</span>')+
+         '</div></div>';
+     }).join("")+
+   '</div>'+
+   '<ul class="klist atlleg">'+
+     [["prep","ช่วงเตรียมงาน"],["show","ช่วงจัดงาน"],["post","ช่วงเก็บงาน"]].map(k=>
+       '<li style="flex:0 0 auto"><span class="sw atlsw '+k[0]+'"></span>'+k[1]+'</li>').join("")+
+     '<li style="flex:0 0 auto;color:var(--ink3)">ช่วงเตรียมงานคิดจากไทม์ไลน์ของแต่ละงาน</li>'+
+   '</ul>'+
+   clashHTML(clashes,spans);
+
+  host.querySelectorAll("[data-go]").forEach(b=>
+    b.addEventListener("click",()=>enter(b.dataset.go)));
+}
+function clashHTML(cl,spans){
+  const noPlan=(spans||[]).filter(s=>s.noPlan);
+  const warnPlan=noPlan.length?'<div class="atlci" style="border-color:var(--warn)">'+
+    '<span class="tm">⚠️ '+noPlan.map(s=>esc(s.short)).join(" · ")+
+    (noPlan.length>1?" ยังไม่ได้วางไทม์ไลน์":" ยังไม่ได้วางไทม์ไลน์")+
+    ' — ช่วงเตรียมงานจึงยังคำนวณไม่ได้ และงานนี้อาจชนกับงานอื่นโดยที่ยังไม่เห็นตรงนี้</span></div>':'';
+  if(!cl.length)return '<div class="atlok">✓ ไม่มีงานไหนซ้อนกันเลย — ทีมชุดเดียววิ่งได้ครบทุกงาน</div>'+
+    (warnPlan?'<div class="atlcl">'+warnPlan+'</div>':'');
+  const G=[
+    ["show","ช่วงจัดงานชนกัน","หน้างานต้องมีทีมอยู่สองที่พร้อมกัน — เลื่อนไม่ได้แล้ว ต้องแบ่งคนหรือจ้างเพิ่ม",true],
+    ["onsite","วันจัดงานคาบกับอีกงานที่ยังไม่จบ","งานหนึ่งเข้าวันจริงขณะที่อีกงานยังเก็บงานหรือเตรียมอยู่ — คนหน้างานจะถูกดึงสองทาง",true],
+    ["prep","ช่วงเตรียมงานชนกัน","จัดการได้ถ้ารู้ล่วงหน้า — ทีมที่ถูกเรียกทั้งสองงานในช่วงเดียวกันคือจุดที่ต้องดูก่อน",false],
+  ];
+  return '<div class="atlcl">'+
+    '<h3>จุดที่ต้องวางคนล่วงหน้า</h3>'+
+    G.map(([k,title,why,hard])=>{
+      const list=cl.filter(c=>c.kind===k);
+      if(!list.length)return "";
+      return '<div class="atlgrp"><b'+(hard?' class="hard"':'')+'>'+title+' '+list.length+' คู่</b>'+
+        '<p>'+why+'</p>'+
+        list.map(c=>'<div class="atlci"><span class="d">'+c.days+' วัน</span>'+
+          esc(c.a.short)+' ('+c.pa.join("+")+') × '+esc(c.b.short)+' ('+c.pb.join("+")+')'+
+          ' <span class="w">'+fmtDY(c.from)+' – '+fmtDY(c.to)+'</span>'+
+          (c.teams.length?'<span class="tm">ทีมที่ถูกเรียกทั้งสองงาน: '+c.teams.map(esc).join(" · ")+'</span>'
+            :'<span class="tm ok">ไม่มีทีมไหนถูกเรียกซ้ำในช่วงนี้</span>')+
+          '</div>').join("")+
+        '</div>';
+    }).join("")+
+    warnPlan+
+    '</div>';
+}
+
 function showPick(){
   $("#login").style.display="none";
   $("#app").classList.remove("on");
@@ -598,6 +802,23 @@ function showPick(){
      '<span class="go">Start →</span></button>':'');
   $("#evgrid").querySelectorAll("[data-e]").forEach(b=>
     b.addEventListener("click",()=>enter(b.dataset.e)));
+  /* ไทม์ไลน์รวมขึ้นเมื่อมีงานตั้งแต่สองงานขึ้นไป งานเดียวไม่มีอะไรให้เทียบ */
+  const aw=$("#atlwrap");
+  if(aw){
+    const many=EVENTS.filter(e=>e.eventDate||e.event_date).length>1;
+    aw.hidden=!many;
+    if(many){
+      pAllTimeline();
+      const tg=$("#atltog");
+      if(tg&&!tg._on){ tg._on=true;
+        tg.addEventListener("click",()=>{
+          const box=$("#alltl"); const off=box.hasAttribute("hidden");
+          if(off)box.removeAttribute("hidden"); else box.setAttribute("hidden","");
+          tg.textContent=off?"ซ่อน":"แสดง";
+        });
+      }
+    }
+  }
   $("#evgrid").querySelectorAll("[data-lg]").forEach(b=>
     b.addEventListener("click",e=>{e.stopPropagation();pickLogo(b.dataset.lg)}));
   const nb=$("#evnew"); if(nb)nb.addEventListener("click",pNewEvent);
