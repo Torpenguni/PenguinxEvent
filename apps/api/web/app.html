@@ -1466,7 +1466,8 @@ tr.brow:hover>td{background:var(--soft)}
 
 /* ---------- ไทม์ไลน์รวมทุกงาน ----------
    อยู่บนหน้าเลือกงาน เพราะเป็นมุมมองข้ามงาน ไม่ได้อยู่ในงานใดงานหนึ่ง
-   สีของแถบใช้ชุดประเภท (--k-*) ไม่ใช่ชุดสถานะ ตามกฎที่เขียนไว้ข้างบน */
+   ตารางใช้คลาสชุดเดียวกับหน้า Timeline ในงาน (table.gt) เพื่อให้เป็นภาษาภาพเดียวกัน
+   ที่เพิ่มคือสีของสามช่วง ซึ่งใช้ชุดประเภท (--k-*) ไม่ใช่ชุดสถานะ ตามกฎด้านบน */
 .atlwrap{margin:34px 0 6px;text-align:left;background:var(--card);border:1px solid var(--line);
   border-radius:12px;padding:18px 20px 20px;box-shadow:var(--sh)}
 .atlwrap[hidden]{display:none}
@@ -1477,38 +1478,32 @@ tr.brow:hover>td{background:var(--soft)}
   border-radius:8px;padding:6px 13px;font:inherit;font-size:13px;cursor:pointer;flex:0 0 auto}
 .btn2:hover{background:var(--soft);color:var(--accent)}
 
-.atl{border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.atlhead,.atlrow{display:grid;grid-template-columns:minmax(150px,210px) 1fr;align-items:stretch}
-.atlhead{background:var(--paper);border-bottom:1px solid var(--line)}
-.atlhead .atltrack{height:30px}
-.atlm{position:absolute;top:0;height:30px;line-height:30px;font-size:11px;color:var(--ink3);
-  padding-left:5px;border-left:1px solid var(--line);white-space:nowrap;overflow:hidden}
-.atlm.y{border-left-color:var(--line2)}
-.atlm b{color:var(--ink2);font-weight:700}
-.atltrack{position:relative;min-height:46px}
-.atlrow{border-bottom:1px solid var(--line)}
-.atlrow:last-child{border-bottom:0}
-.atlrow.clash{background:var(--warning-bg,rgba(208,138,10,.06))}
-.atlname{padding:10px 12px;border-right:1px solid var(--line);display:flex;
-  flex-direction:column;justify-content:center;gap:2px;min-width:0}
-.atlname button{border:0;background:none;font:inherit;font-size:13.5px;font-weight:700;
-  color:var(--ink);text-align:left;cursor:pointer;padding:0;line-height:1.3}
-.atlname button:hover{color:var(--accent);text-decoration:underline}
-.atlname small{font-size:11.5px;color:var(--ink3);line-height:1.4}
-
-.atlb{position:absolute;top:50%;transform:translateY(-50%);height:16px;border-radius:4px}
-.atlb.prep{background:var(--k-talk-solid);opacity:.42;height:11px}
-.atlb.show{background:var(--accent);height:20px;border-radius:5px;z-index:2}
-.atlb.post{background:var(--k-break-solid);opacity:.38;height:11px}
-.atlsw.prep{background:var(--k-talk-solid);opacity:.42}
-.atlsw.show{background:var(--accent)}
-.atlsw.post{background:var(--k-break-solid);opacity:.38}
-.atllab{position:absolute;top:50%;transform:translate(6px,-50%);font-size:11px;font-weight:700;
-  color:var(--ink2);white-space:nowrap;pointer-events:none;z-index:3}
-.atllab.right{transform:translate(-6px,-50%)}
-.atlnow{position:absolute;top:0;bottom:0;font-size:10px;color:var(--risk);font-weight:700;
-  white-space:nowrap;padding-left:4px;z-index:4}
-.atlnow i{position:absolute;left:0;top:0;bottom:-1000px;width:1.5px;background:var(--risk);opacity:.55}
+.atlgt{max-height:none}
+.atlgt table.gt th.atlgn,.atlgt table.gt td.atlgn{width:230px;min-width:230px;
+  position:sticky;left:0;z-index:3;background:var(--card)}
+.atlgt table.gt thead th.atlgn{z-index:5;background:var(--paper)}
+.atlgt td.atlgn small{display:block;font-size:11px;color:var(--ink3);font-weight:400;
+  line-height:1.45;margin-top:2px}
+.atlgt td.atlgn small b.warn{color:var(--warn);font-weight:700}
+.atlgo{border:0;background:none;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink);
+  text-align:left;cursor:pointer;padding:0;line-height:1.3;display:block}
+.atlgo:hover{color:var(--accent);text-decoration:underline}
+/* tr.gtg เป็นแถว "หัวกลุ่ม" ในตารางเดิม จึงมีพื้นหลัง --soft ของตัวเอง
+   ยืมคลาสมาใช้กับแถวงานแล้วทั้งตารางเลยเขียวไปหมด ทับกลับเป็นพื้นการ์ด
+   เหลือไว้เฉพาะแถบสลับเดือนกับคอลัมน์สัปดาห์นี้ที่ยังต้องเห็น */
+.atlgt tr.atlev > td{background:var(--card)}
+.atlgt tr.atlev > td.gtalt{background:var(--tl-alt)}
+.atlgt tr.atlev > td.gtnow{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.atlgt tr.atlev:hover > td{background:var(--bg2,var(--paper))}
+.atlgt tr.atlev:hover > td.atlgn{background:var(--paper)}
+/* สามช่วงของงาน วางซ้อนคนละความสูงในช่องเดียวกัน จะได้เห็นตอนที่ช่วงคาบกัน */
+.atlgt td.gtc .gsum{opacity:1}
+.atlgt td.gtc .gsum.sprep{background:var(--k-talk-solid);opacity:.72;top:22px;height:6px}
+.atlgt td.gtc .gsum.spost{background:var(--k-break-solid);opacity:.6;top:22px;height:6px}
+.atlgt td.gtc .gsum.sshow{background:var(--accent);top:17px;height:12px;border-radius:3px}
+.atlsw.sprep{background:var(--k-talk-solid);opacity:.72}
+.atlsw.sshow{background:var(--accent)}
+.atlsw.spost{background:var(--k-break-solid);opacity:.6}
 .atlleg{margin:12px 0 0;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
 
 .atlok{margin-top:14px;padding:11px 14px;border-radius:9px;background:var(--soft);
@@ -1527,8 +1522,9 @@ tr.brow:hover>td{background:var(--soft)}
 .atlci .tm{flex:1 1 100%;font-size:12px;color:var(--warn)}
 .atlci .tm.ok{color:var(--ink3)}
 @media(max-width:760px){
-  .atlhead,.atlrow{grid-template-columns:minmax(110px,140px) 1fr}
   .atlwrap{padding:14px 13px 16px}
+  .atlgt table.gt th.atlgn,.atlgt table.gt td.atlgn{width:150px;min-width:150px}
+}
 }
 
 /* สถานะ "ยังเทียบไม่ได้" ต้องอธิบายว่าขาดอะไรและไปกรอกที่ไหน
@@ -2309,8 +2305,7 @@ function pAllTimeline(){
   const missing=EVENTS.filter(e=>!evStart(e));
   /* บอกให้ครบว่าขาดอะไรและต้องไปกรอกที่ไหน แทนที่จะไม่ขึ้นอะไรเลย
      ต้องมีวันจัดงานอย่างน้อยสองงานถึงจะมี "ซ้อนกัน" ให้ดู */
-  const needMore=spans.length<2;
-  if(needMore){
+  if(spans.length<2){
     host.innerHTML='<div class="atlempty">'+
       '<b>ยังเทียบงานไม่ได้ — ต้องมีวันจัดงานอย่างน้อย 2 งาน</b>'+
       '<p>ตอนนี้กรอกวันจัดงานไว้ '+spans.length+' จาก '+EVENTS.length+' งาน</p>'+
@@ -2323,71 +2318,77 @@ function pAllTimeline(){
       b.addEventListener("click",()=>enter(b.dataset.fix)));
     return;
   }
-  /* ลากช่วงให้ครอบวันนี้เสมอ ไม่งั้นถ้างานแรกยังอีกไกล เส้นวันนี้จะหลุดออกนอกกราฟ
-     แล้วคนดูจะไม่รู้ว่าตอนนี้ยืนอยู่ตรงไหนของแผน */
-  const today=dOnly(new Date());
-  const t0=dOnly(new Date(Math.min(...spans.map(s=>+s.from),+today)));
-  const t1=dOnly(new Date(Math.max(...spans.map(s=>+s.to),+today)));
-  const total=Math.max(1,spanDays(t0,t1));
-  const pc=(d)=>((spanDays(t0,d)/total)*100);
-  const now=dOnly(new Date());
-  const clashes=evClashes(spans);
 
-  /* หัวตารางเป็นเดือน ไม่ใช่สัปดาห์ เพราะช่วงรวมกินเวลาหลายปี
-     สัปดาห์จะถี่จนอ่านไม่ออก */
-  const months=[]; const cur=new Date(t0.getFullYear(),t0.getMonth(),1);
-  while(cur<=t1){ months.push(new Date(cur)); cur.setMonth(cur.getMonth()+1) }
+  /* ใช้ตารางแบบเดียวกับหน้า Timeline ในงาน (table.gt) — หัวเดือนคร่อมช่องสัปดาห์
+     คนในทีมอ่านตารางนั้นอยู่ทุกวัน การใช้คนละภาษาภาพสองที่สำหรับเรื่องเดียวกัน
+     คือการให้เรียนรู้ซ้ำโดยไม่ได้อะไรเพิ่ม
+     ต่างกันที่แกน: ของในงานนับสัปดาห์เทียบวันงานของตัวเอง ส่วนตรงนี้ทุกงานต้อง
+     อยู่บนแกนเดียวกัน จึงใช้สัปดาห์ปฏิทินจริง (จันทร์) เป็นคอลัมน์ */
+  const today=dOnly(new Date());
+  const lo=monday(new Date(Math.min(...spans.map(s=>+s.from),+today)));
+  const hi=monday(new Date(Math.max(...spans.map(s=>+s.to),+today)));
+  const cols=[]; for(let d=new Date(lo); d<=hi; d.setDate(d.getDate()+7))cols.push(new Date(d));
+  const wk=(d)=>{ const m=monday(d); return Math.round((m-lo)/604800000) };
+  const nowK=wk(today);
+
+  /* หัวเดือน คร่อมจำนวนสัปดาห์ที่ตกอยู่ในเดือนนั้น */
+  const mons=[]; cols.forEach(d=>{
+    const key=d.getFullYear()+"-"+d.getMonth();
+    const last=mons[mons.length-1];
+    if(last&&last.key===key)last.n++;
+    else mons.push({key,n:1,l:THMS[d.getMonth()]+" "+d.getFullYear()});
+  });
+  /* แถบสลับสีต่อเดือน อ่านง่ายขึ้นเวลามีหลายสิบคอลัมน์ */
+  const band=[]; let bi=0, seen=null;
+  cols.forEach(d=>{ const k=d.getFullYear()+"-"+d.getMonth();
+    if(k!==seen){ seen=k; bi++ } band.push(bi%2?"":" gtalt") });
+
+  const seg=(k,from,to,cls)=>{
+    const a=wk(from), b=wk(to);
+    if(k<a||k>b)return "";
+    const one=a===b, s0=k===a, s1=k===b;
+    return '<i class="gsum '+cls+(one?" gsone":s0?" gsa":s1?" gsb":"")+'"></i>';
+  };
 
   host.innerHTML=
-   '<div class="atl">'+
-     '<div class="atlhead"><div class="atlname"></div><div class="atltrack">'+
-       months.map((m,i)=>{
-         const a=new Date(Math.max(+m,+t0));
-         const nx=new Date(m.getFullYear(),m.getMonth()+1,1);
-         const b=new Date(Math.min(+nx,+t1));
-         const w=((spanDays(a,b)/total)*100);
-         if(w<=0)return "";
-         return '<span class="atlm'+(m.getMonth()===0?" y":"")+'" style="left:'+pc(a)+'%;width:'+w+'%">'+
-           THMS[m.getMonth()]+(m.getMonth()===0||i===0?' <b>'+m.getFullYear()+'</b>':'')+'</span>';
-       }).join("")+
-       (now>=t0&&now<=t1?'<span class="atlnow" style="left:'+pc(now)+'%"><i></i>วันนี้</span>':'')+
-     '</div></div>'+
+   '<div class="tw twg atlgt"><table class="gt"><thead>'+
+     '<tr><th class="gtn atlgn" rowspan="2">งาน</th>'+
+       mons.map(m=>'<th colspan="'+m.n+'" class="gtm"><span>'+esc(m.l)+'</span></th>').join("")+
+     '</tr><tr>'+
+       cols.map((d,k)=>'<th class="gtw'+band[k]+(k===nowK?" gtnow":"")+'">W'+
+         (Math.floor((d.getDate()-1)/7)+1)+'</th>').join("")+
+     '</tr></thead><tbody>'+
      spans.map(s=>{
-       const seg=(from,to,cls,label)=>{
-         const w=Math.max(((spanDays(from,to)/total)*100),.35);
-         return '<span class="atlb '+cls+'" style="left:'+pc(from)+'%;width:'+w+'%" title="'+
-           esc(label+" · "+fmtDY(from)+" – "+fmtDY(to))+'"></span>';
-       };
-       const inClash=clashes.some(c=>c.a===s||c.b===s);
-       return '<div class="atlrow'+(inClash?" clash":"")+'">'+
-         '<div class="atlname"><button data-go="'+s.e.id+'">'+esc(s.name)+'</button>'+
-           '<small>'+esc(s.e.dates||fmtDY(s.showFrom))+' · '+
-           (s.status==="selling"?"กำลังขาย":"อยู่ระหว่างวางแผน")+
-           (s.noPlan?' · <span style="color:var(--warn)">ยังไม่มีไทม์ไลน์</span>':'')+'</small></div>'+
-         '<div class="atltrack">'+
-           (s.prepFrom<s.prepTo?seg(s.prepFrom,s.prepTo,"prep","ช่วงเตรียมงาน"):"")+
-           seg(s.showFrom,s.showTo,"show","ช่วงจัดงาน")+
-           (s.postTo>s.postFrom?seg(s.postFrom,s.postTo,"post","ช่วงเก็บงาน"):"")+
-           /* งานที่อยู่ค่อนไปทางขวาของกราฟ ป้ายต้องพลิกไปอยู่ซ้ายของแถบ
-              ไม่งั้นชื่อจะไหลออกนอกกรอบแล้วถูกตัดหาย */
-           (pc(s.showTo)>72
-             ?'<span class="atllab right" style="right:'+(100-pc(s.showFrom))+'%">'+esc(s.short)+'</span>'
-             :'<span class="atllab" style="left:'+pc(s.showTo)+'%">'+esc(s.short)+'</span>')+
-         '</div></div>';
+       const clash=false;
+       return '<tr class="gtg atlev">'+
+         '<td class="gtn gtgh atlgn">'+
+           '<button class="gtgn atlgo" data-go="'+s.e.id+'">'+esc(s.name)+'</button>'+
+           '<small>'+esc(s.e.dates||(fmtDY(s.showFrom)+" – "+fmtDY(s.showTo)))+
+           (s.noPlan?' · <b class="warn">ยังไม่มีไทม์ไลน์</b>':'')+'</small></td>'+
+         cols.map((d,k)=>'<td class="gtc'+band[k]+(k===nowK?" gtnow":"")+'">'+
+           seg(k,s.prepFrom,s.prepTo,"sprep")+
+           seg(k,s.postFrom,s.postTo,"spost")+
+           seg(k,s.showFrom,s.showTo,"sshow")+
+           '</td>').join("")+
+         '</tr>';
      }).join("")+
-   '</div>'+
+   '</tbody></table></div>'+
    '<ul class="klist atlleg">'+
-     [["prep","ช่วงเตรียมงาน"],["show","ช่วงจัดงาน"],["post","ช่วงเก็บงาน"]].map(k=>
+     [["sprep","ช่วงเตรียมงาน"],["sshow","ช่วงจัดงาน"],["spost","ช่วงเก็บงาน"]].map(k=>
        '<li style="flex:0 0 auto"><span class="sw atlsw '+k[0]+'"></span>'+k[1]+'</li>').join("")+
-     '<li style="flex:0 0 auto;color:var(--ink3)">ช่วงเตรียมงานคิดจากไทม์ไลน์ของแต่ละงาน</li>'+
+     '<li style="flex:0 0 auto;color:var(--ink3)">เส้นเขียวคือสัปดาห์นี้ · ช่วงเตรียมงานคิดจากไทม์ไลน์ของแต่ละงาน</li>'+
    '</ul>'+
    (missing.length?'<div class="atlmiss">⚠️ ยังไม่ได้กรอกวันจัดงานของ '+
       missing.map(e=>'<button data-fix="'+e.id+'">'+esc(e.name)+'</button>').join(" · ")+
       ' — งานเหล่านี้จึงยังไม่อยู่บนไทม์ไลน์ และอาจชนกับงานอื่นโดยที่ยังไม่เห็น</div>':'')+
-   clashHTML(clashes,spans);
+   clashHTML(evClashes(spans),spans);
 
   host.querySelectorAll("[data-go],[data-fix]").forEach(b=>
     b.addEventListener("click",()=>enter(b.dataset.go||b.dataset.fix)));
+  /* เลื่อนให้เห็นสัปดาห์นี้ตั้งแต่แรก ไม่ใช่ต้นแกนซึ่งอาจเป็นเมื่อครึ่งปีก่อน */
+  const box=host.querySelector(".atlgt");
+  const nowTh=host.querySelector("th.gtw.gtnow");
+  if(box&&nowTh)box.scrollLeft=Math.max(0,nowTh.offsetLeft-box.clientWidth/3);
 }
 function clashHTML(cl,spans){
   const noPlan=(spans||[]).filter(s=>s.noPlan);
