@@ -6,7 +6,7 @@
     <div class="f"><label for="em">Email</label>
       <input id="em" type="email" value="demo@example.com" autocomplete="username"></div>
     <div class="f"><label for="pw">Password</label>
-      <input id="pw" type="password" value="demo1234" autocomplete="current-password"></div>
+      <input id="pw" type="password" value="1234" autocomplete="current-password"></div>
     <div class="f" id="rlrow"><label for="rl">Role <span style="color:var(--ink3);font-weight:400">— pick one in this demo to see what each role can do</span></label>
       <select id="rl">
         <option value="sales">Sales</option>

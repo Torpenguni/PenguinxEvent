@@ -1558,7 +1558,7 @@ table.dft td.dfs{font-weight:800;color:var(--ok);width:22px;text-align:center}
     <div class="f"><label for="em">Email</label>
       <input id="em" type="email" value="demo@example.com" autocomplete="username"></div>
     <div class="f"><label for="pw">Password</label>
-      <input id="pw" type="password" value="demo1234" autocomplete="current-password"></div>
+      <input id="pw" type="password" value="1234" autocomplete="current-password"></div>
     <div class="f" id="rlrow"><label for="rl">Role <span style="color:var(--ink3);font-weight:400">— pick one in this demo to see what each role can do</span></label>
       <select id="rl">
         <option value="sales">Sales</option>
@@ -1648,10 +1648,10 @@ function useEvent(id){
   sel=null; stg=null; q=""; day=1;
 }
 const ROLE={
- admin:{n:"Administrator",p:{timeline:"write",price:"approve",share:"write",floorplan:"write",deal:"write",budget:"write",target:"write",stage:"write",exhibitor:"write",user:"write"},scope:"all"},
- exec:{n:"Executive",p:{timeline:"read",price:"approve",share:"read",floorplan:"read",deal:"read",budget:"write",target:"write",stage:"read",exhibitor:"read",user:"none"},scope:"all"},
- operations:{n:"Operations",p:{timeline:"write",price:"none",share:"write",floorplan:"write",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"write",user:"none"},scope:"all"},
- sales:{n:"Sales",p:{timeline:"read",price:"read",share:"none",floorplan:"write",deal:"write",budget:"none",target:"read",stage:"read",exhibitor:"read",user:"none"},scope:"own"}};
+ admin:{n:"Administrator",p:{match:"write",timeline:"write",price:"approve",share:"write",floorplan:"write",deal:"write",budget:"write",target:"write",stage:"write",exhibitor:"write",user:"write"},scope:"all"},
+ exec:{n:"Executive",p:{match:"read",timeline:"read",price:"approve",share:"read",floorplan:"read",deal:"read",budget:"write",target:"write",stage:"read",exhibitor:"read",user:"none"},scope:"all"},
+ operations:{n:"Operations",p:{match:"write",timeline:"write",price:"none",share:"write",floorplan:"write",deal:"read",budget:"none",target:"none",stage:"write",exhibitor:"write",user:"none"},scope:"all"},
+ sales:{n:"Sales",p:{match:"read",timeline:"read",price:"read",share:"none",floorplan:"write",deal:"write",budget:"none",target:"read",stage:"read",exhibitor:"read",user:"none"},scope:"own"}};
 /* ไอคอนเมนู วาดเป็น SVG เส้นหนา 1.7 ปลายมน ใช้ currentColor
    จึงกลืนกับสีข้อความทั้งบนแถบเข้มและแถบสว่างโดยไม่ต้องทำสองชุด */
 const ICON={
@@ -1690,7 +1690,9 @@ const NAV=[
     ["pnl","P&L","budget"],["target","Target & run rate","target"],
     ["income","Revenue by package","budget"],["cost","Expense budget","budget"]]},
  {id:"stage", t:"Stage",       m:"stage"},
- {id:"buyer", t:"Buyer",     m:"deal"},
+ {id:"buyer", t:"Buyer",     tabs:[
+    ["list","รายชื่อผู้ซื้อ","deal"],["setup","ช่วงเวลา & ที่นัด","match"],
+    ["pref","ใครอยากเจอใคร","match"],["perk","สิทธิประโยชน์","match"]]},
  {id:"exh",   t:"Exhibitor",  tabs:[
     ["list","Follow up","exhibitor"],["portal","Exhibitor view","exhibitor"],
     ["setup","Checklist setup","exhibitor"]]},
@@ -1736,7 +1738,8 @@ const PAGE={
  "plan:map":pPlan, "plan:pkg":pPkg,
  "money:pnl":pPnl, "money:target":pTarget, "money:income":pBudget, "money:cost":pCost,
  "stage":pStage,
- "buyer":pBuyer,
+ "buyer:list":pBuyer, "buyer:setup":pMatchSetup,
+ "buyer:pref":pMatchPref, "buyer:perk":pPerkRules,
  "exh:list":()=>{exhView="team";pExh()},
  "exh:portal":()=>{exhView="portal";pExh()},
  "exh:setup":pTaskSetup,
@@ -1852,7 +1855,7 @@ $("#lform").addEventListener("submit",async e=>{
 if(window.PXE_API){
   const em=document.getElementById("em"), pw=document.getElementById("pw");
   if(em&&em.value==="demo@example.com")em.value="";
-  if(pw&&pw.value==="demo1234")pw.value="";
+  if(pw&&pw.value==="1234")pw.value="";
   // เติมอีเมลที่เคยเข้าครั้งล่าสุดให้ ถ้าเบราว์เซอร์ไม่ได้เติมมาเอง
   try{ const last=localStorage.getItem("pxe.lastEmail");
     if(em&&!em.value&&last){ em.value=last;
@@ -7337,6 +7340,485 @@ function buyerImport(wr){
     }catch(err){ msg.textContent="นำเข้าไม่สำเร็จ · "+(err.message||"") }
   });
 }
+/* ---------- Business matching ----------
+   เฟสแรกทีมเป็นคนคีย์ทั้งหมด ยังไม่เปิดให้ผู้ซื้อหรือผู้ออกบูธกดเอง
+   ข้อมูลทั้งโมดูลอยู่ที่เซิร์ฟเวอร์ ไม่ได้อยู่ในก้อนงาน เพราะการบันทึกทั้งงาน
+   ลบทุกอย่างของงานแล้วเขียนใหม่ ตารางนัดหายทุกครั้งที่มีคนขยับบูธไม่ได้
+
+   สามหน้านี้คือขั้นที่หนึ่ง ตั้งช่วงเวลากับที่นัด แล้วคีย์ว่าใครอยากเจอใคร
+   ตัวจับคู่กับกริดปรับมืออยู่ในขั้นถัดไป และจะเรียก endpoint ชุดเดียวกันนี้ */
+let MT=null, mtLoaded=null;
+async function loadMatch(force){
+  if(!online()){ MT=null; mtLoaded=EV.id; return }
+  if(mtLoaded===EV.id&&!force&&MT)return;
+  MT=await api("/api/events/"+encodeURIComponent(EV.id)+"/match");
+  mtLoaded=EV.id;
+}
+/* โหมดไฟล์เดียวไม่มีเซิร์ฟเวอร์ให้เก็บ ถ้าปล่อยให้คีย์ได้ในเบราว์เซอร์
+   ทีมจะคีย์ตารางนัดทั้งงานลงเครื่องตัวเองแล้วไม่มีใครเห็น จึงบอกให้ชัดว่าใช้ไม่ได้ */
+function mtOffline(){
+  $("#page").innerHTML='<div class="note"><p><b>หน้านี้ทำงานเฉพาะตอนต่อเซิร์ฟเวอร์</b> '+
+   'ตารางนัดเจรจาถูกเก็บที่ฐานข้อมูลกลาง ทุกคนในทีมจึงเห็นชุดเดียวกัน '+
+   'ถ้าเก็บในเบราว์เซอร์ คนที่จัดตารางกับคนที่ต้อนรับผู้ซื้อหน้างานจะถือคนละตาราง</p></div>';
+}
+function mtPage(draw){
+  if(!online())return mtOffline();
+  $("#page").innerHTML='<p class="rdonly">กำลังโหลด…</p>';
+  Promise.all([loadMatch(),loadBuyers()]).then(()=>draw()).catch(err=>{
+    $("#page").innerHTML='<div class="note" style="border-left-color:var(--risk)"><p>'+
+      '<b>โหลดข้อมูลไม่สำเร็จ</b> '+esc(err.message||"")+'</p></div>';
+  });
+}
+/* ผู้ออกบูธของงานนี้ พร้อมหมวดสินค้าที่อ่านจากโซนของบูธที่ถืออยู่
+   หมวดเป็นคำเดียวกับที่ผู้ซื้อเลือกเป็นความสนใจอยู่แล้ว จับคู่ได้ตรงโดยไม่ต้องมีตารางแปลง */
+function mtExhibitors(){
+  const byCode={}; (EV.booths||[]).forEach(b=>byCode[b.code]=b);
+  const map={};
+  (EV.deals||[]).forEach(d=>{
+    if(!d.co)return;
+    const m=map[d.co]||(map[d.co]={co:d.co,booths:[],zones:new Set(),cats:new Set()});
+    (d.booths||[]).forEach(c=>{
+      m.booths.push(c);
+      const b=byCode[c]; if(!b)return;
+      if(b.zone)m.zones.add(b.zone);
+      const nm=(EV.zoneNames||{})[b.zone]; if(nm)m.cats.add(nm);
+    });
+  });
+  return Object.values(map).map(m=>({co:m.co,booths:m.booths,
+    zones:[...m.zones],cats:[...m.cats]}))
+    .sort((a,b)=>String(a.co).localeCompare(String(b.co),"th"));
+}
+const mtBuyer=id=>BUYERS.find(b=>String(b.id)===String(id));
+const mtPrefs=id=>(MT.prefs||[]).filter(p=>String(p.buyerId)===String(id));
+const MTW={must:{l:"ต้องเจอ",c:"--accent"},nice:{l:"อยากเจอ",c:"--s-booked"},
+           exclude:{l:"ไม่เจอ",c:"--risk"}};
+
+/* ---------- ขั้นที่หนึ่ง ก ตั้งช่วงเวลาและที่นัด ---------- */
+function pMatchSetup(){ mtPage(()=>drawMatchSetup(can("match")==="write")) }
+function drawMatchSetup(wr){
+  const S=MT.slots||[], P=MT.places||[];
+  const meet=S.filter(s=>s.kind!=="break").length;
+  const act=P.filter(p=>p.active!==false).length;
+  let h='<div class="note" style="margin-bottom:14px"><p>'+
+   '<b>ช่วงเวลาคือเวลาของทั้งงาน ที่นัดคือจำนวนที่คุยได้พร้อมกัน</b> '+
+   'ความจุสูงสุดของงานคือสองอย่างนี้คูณกัน ตอนนี้ '+meet+' ช่วง × '+act+' ที่ = '+
+   '<b>'+f(meet*act)+' นัด</b> ถ้าผู้ซื้อหนึ่งคนนัด 8 ครั้ง รองรับได้ราว '+
+   f(Math.floor(meet*act/8))+' คน</p></div>';
+
+  h+='<h3 style="margin:4px 0 8px">ช่วงเวลา</h3><div class="tw"><table><thead><tr>'+
+   '<th>วันที่</th><th>เริ่ม</th><th class="num">นาที</th><th>ชนิด</th>'+(wr?'<th></th>':'')+
+   '</tr></thead><tbody>'+(S.length?S.map((s,i)=>
+    '<tr><td>'+(wr?'<span class="inl" contenteditable="plaintext-only" data-sd="'+i+'">'+
+      esc(s.onDate||"")+'</span>':esc(s.onDate||"—"))+'</td>'+
+    '<td>'+(wr?'<span class="inl" contenteditable="plaintext-only" data-ss="'+i+'">'+
+      esc(s.startsAt||"")+'</span>':esc(s.startsAt||""))+'</td>'+
+    '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-sm="'+i+'">'+
+      (s.minutes||30)+'</span>':(s.minutes||30))+'</td>'+
+    '<td>'+(wr?'<select class="cell" data-sk="'+i+'">'+
+      '<option value="meeting"'+(s.kind!=="break"?" selected":"")+'>นัดเจรจา</option>'+
+      '<option value="break"'+(s.kind==="break"?" selected":"")+'>พัก</option></select>'
+      :(s.kind==="break"?"พัก":"นัดเจรจา"))+'</td>'+
+    (wr?'<td><button class="rowdel" data-sx="'+i+'">ลบ</button></td>':'')+'</tr>').join("")
+   :'<tr><td colspan="5" style="color:var(--ink3)">ยังไม่มีช่วงเวลา</td></tr>')+
+   '</tbody></table></div>';
+  if(wr)h+='<div class="addbar" style="flex-wrap:wrap;gap:8px">'+
+   '<button id="msadd">+ เพิ่มช่วงเวลา</button>'+
+   '<span style="color:var(--ink3)">หรือสร้างทั้งวันรวดเดียว</span>'+
+   '<input id="msdate" type="date" class="cell" style="width:150px">'+
+   '<input id="msfrom" class="cell" style="width:70px" placeholder="09:00" value="09:00">'+
+   '<input id="msto" class="cell" style="width:70px" placeholder="17:00" value="17:00">'+
+   '<input id="mslen" class="cell" style="width:60px" placeholder="30" value="30">'+
+   '<input id="mslunch" class="cell" style="width:70px" placeholder="12:00" value="12:00">'+
+   '<button id="msgen">สร้างชุด</button></div>';
+
+  h+='<h3 style="margin:22px 0 8px">ที่นัด</h3><div class="tw"><table><thead><tr>'+
+   '<th>รหัส</th><th>ชนิด</th><th>บูธ</th><th>โซน</th><th>บริษัท</th>'+
+   '<th class="num">ที่นั่ง</th><th class="num">ใช้งาน</th>'+(wr?'<th></th>':'')+
+   '</tr></thead><tbody>'+(P.length?P.map((p,i)=>
+    '<tr><td>'+(wr?'<span class="inl" contenteditable="plaintext-only" data-pc="'+i+'">'+
+      esc(p.placeCode||"")+'</span>':esc(p.placeCode||""))+'</td>'+
+    '<td>'+(p.kind==="booth"?"ที่บูธ":"โต๊ะกลาง")+'</td>'+
+    '<td>'+esc(p.boothCode||"—")+'</td><td>'+esc(p.zone||"—")+'</td>'+
+    '<td>'+esc(p.company||"—")+'</td>'+
+    '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-pn="'+i+'">'+
+      (p.seats||2)+'</span>':(p.seats||2))+'</td>'+
+    '<td class="num">'+(wr?'<button class="tog" data-pa="'+i+'">'+
+      (p.active!==false?'<span style="color:var(--ok);font-weight:700">เปิด</span>'
+                       :'<span style="color:var(--ink3)">ปิด</span>')+'</button>'
+      :(p.active!==false?"เปิด":"ปิด"))+'</td>'+
+    (wr?'<td><button class="rowdel" data-px="'+i+'">ลบ</button></td>':'')+'</tr>').join("")
+   :'<tr><td colspan="8" style="color:var(--ink3)">ยังไม่มีที่นัด</td></tr>')+
+   '</tbody></table></div>';
+  if(wr){
+    const ex=mtExhibitors().filter(x=>!P.some(p=>p.company===x.co));
+    h+='<div class="addbar" style="flex-wrap:wrap;gap:8px">'+
+     '<input id="mptn" class="cell" style="width:60px" value="10">'+
+     '<button id="mptadd">+ เพิ่มโต๊ะกลาง</button>'+
+     '<span style="color:var(--ink3)">หรือเปิดให้นัดที่บูธ</span>'+
+     '<select id="mpbo" class="cell" style="max-width:240px">'+
+     '<option value="">เลือกผู้ออกบูธ…</option>'+
+     ex.map(x=>'<option value="'+esc(x.co)+'">'+esc(x.co)+
+       (x.booths[0]?" · "+esc(x.booths[0]):"")+'</option>').join("")+
+     '</select><button id="mpbadd">+ เพิ่มที่บูธ</button></div>';
+    h+='<div class="addbar" style="justify-content:flex-start;gap:10px;margin-top:16px">'+
+     '<button id="mtsave" class="btn">บันทึกช่วงเวลาและที่นัด</button>'+
+     '<span id="mtmsg" style="color:var(--ink3)"></span></div>';
+  }
+  $("#page").innerHTML=h;
+  if(!wr)return;
+  const P2=$("#page");
+  const redraw=()=>drawMatchSetup(wr);
+  const edit=(sel,fn)=>P2.querySelectorAll(sel).forEach(el=>{
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); el.blur() } });
+    el.addEventListener("blur",()=>{ fn(el); redraw() });
+  });
+  edit("[data-sd]",el=>{ S[+el.dataset.sd].onDate=el.textContent.trim()||null });
+  edit("[data-ss]",el=>{ S[+el.dataset.ss].startsAt=el.textContent.trim() });
+  edit("[data-sm]",el=>{ S[+el.dataset.sm].minutes=+el.textContent.replace(/[^0-9]/g,"")||30 });
+  edit("[data-pc]",el=>{ P[+el.dataset.pc].placeCode=el.textContent.trim() });
+  edit("[data-pn]",el=>{ P[+el.dataset.pn].seats=+el.textContent.replace(/[^0-9]/g,"")||2 });
+  P2.querySelectorAll("[data-sk]").forEach(el=>el.addEventListener("change",()=>{
+    S[+el.dataset.sk].kind=el.value; redraw() }));
+  P2.querySelectorAll("[data-pa]").forEach(b=>b.addEventListener("click",()=>{
+    const p=P[+b.dataset.pa]; p.active=p.active===false; redraw() }));
+  P2.querySelectorAll("[data-sx]").forEach(b=>armDel(b,()=>{ S.splice(+b.dataset.sx,1); redraw() }));
+  P2.querySelectorAll("[data-px]").forEach(b=>armDel(b,()=>{ P.splice(+b.dataset.px,1); redraw() }));
+  P2.querySelector("#msadd").addEventListener("click",()=>{
+    const last=S[S.length-1];
+    S.push({onDate:last?last.onDate:(EV.eventDate||null),
+      startsAt:last?mtAdd(last.startsAt,last.minutes||30):"09:00",
+      minutes:last?last.minutes:30,kind:"meeting"});
+    redraw();
+  });
+  /* สร้างทั้งวันรวดเดียว ทีมตั้งงานหนึ่งงานทีละสามวัน วันละยี่สิบช่วง
+     ถ้าต้องกดเพิ่มทีละแถวหกสิบครั้ง หน้านี้จะถูกข้ามไปทำใน Excel แทน */
+  P2.querySelector("#msgen").addEventListener("click",()=>{
+    const d=P2.querySelector("#msdate").value||null;
+    const from=P2.querySelector("#msfrom").value.trim();
+    const to=P2.querySelector("#msto").value.trim();
+    const len=+P2.querySelector("#mslen").value||30;
+    const lunch=P2.querySelector("#mslunch").value.trim();
+    if(!/^\d{1,2}:\d{2}$/.test(from)||!/^\d{1,2}:\d{2}$/.test(to)){
+      toastTL("เวลาต้องเป็นรูปแบบ 09:00"); return }
+    let t=from, n=0;
+    while(mtMin(t)+len<=mtMin(to)&&n<60){
+      const isLunch=lunch&&mtMin(t)===mtMin(lunch);
+      if(!S.some(s=>s.onDate===d&&s.startsAt===t))
+        S.push({onDate:d,startsAt:t,minutes:len,kind:isLunch?"break":"meeting"});
+      t=mtAdd(t,len); n++;
+    }
+    S.sort((a,b)=>String(a.onDate||"").localeCompare(String(b.onDate||""))||
+      mtMin(a.startsAt)-mtMin(b.startsAt));
+    redraw();
+  });
+  P2.querySelector("#mptadd").addEventListener("click",()=>{
+    const n=+P2.querySelector("#mptn").value||1;
+    let next=1;
+    for(let i=0;i<n;i++){
+      while(P.some(p=>p.placeCode==="T"+String(next).padStart(2,"0")))next++;
+      P.push({placeCode:"T"+String(next).padStart(2,"0"),kind:"table",seats:2,active:true});
+    }
+    redraw();
+  });
+  P2.querySelector("#mpbadd").addEventListener("click",()=>{
+    const co=P2.querySelector("#mpbo").value; if(!co)return;
+    const x=mtExhibitors().find(e=>e.co===co); if(!x)return;
+    const code=x.booths[0]||co.slice(0,8);
+    if(P.some(p=>p.placeCode===code)){ toastTL("มีที่นัดรหัสนี้แล้ว"); return }
+    P.push({placeCode:code,kind:"booth",boothCode:x.booths[0]||null,
+      zone:(x.zones[0]||null),company:co,seats:2,active:true});
+    redraw();
+  });
+  P2.querySelector("#mtsave").addEventListener("click",async()=>{
+    const btn=P2.querySelector("#mtsave"), msg=P2.querySelector("#mtmsg");
+    btn.disabled=true; msg.textContent="กำลังบันทึก…";
+    try{
+      MT.slots=await api("/api/events/"+encodeURIComponent(EV.id)+"/match/slots",
+        {method:"PUT",body:JSON.stringify({slots:S})});
+      MT.places=await api("/api/events/"+encodeURIComponent(EV.id)+"/match/places",
+        {method:"PUT",body:JSON.stringify({places:P})});
+      toastTL("บันทึกแล้ว"); drawMatchSetup(wr);
+    }catch(err){ msg.textContent="บันทึกไม่สำเร็จ · "+(err.message||""); btn.disabled=false }
+  });
+}
+const mtMin=t=>{ const m=/^(\d{1,2}):(\d{2})/.exec(String(t||"")); return m?+m[1]*60+ +m[2]:0 };
+const mtAdd=(t,n)=>{ const v=mtMin(t)+(+n||30);
+  return String(Math.floor(v/60)%24).padStart(2,"0")+":"+String(v%60).padStart(2,"0") };
+/* ลบต้องกดสองครั้งเสมอ แถวเดียวที่หายไปโดยไม่ตั้งใจในตารางนัด
+   แปลว่ามีคนถือกระดาษเดินไปนั่งรอที่โต๊ะที่ไม่มีอยู่แล้ว */
+function armDel(b,fn){
+  b.addEventListener("click",()=>{
+    if(b.dataset.armed)return fn();
+    b.dataset.armed="1"; b.textContent="ยืนยันลบ?"; b.style.color=cv("--risk");
+    setTimeout(()=>{ if(b.dataset.armed){ delete b.dataset.armed; b.textContent="ลบ";
+      b.style.color="" } },4000);
+  });
+}
+
+/* ---------- ขั้นที่หนึ่ง ข คีย์ว่าใครอยากเจอใคร ----------
+   หน้านี้คือคอขวดจริงของโปรแกรม ผู้ซื้อสองร้อยคน คนละสิบรายการ คือสองพันแถวที่ต้องคีย์
+   จึงออกแบบให้จบด้วยคีย์บอร์ด พิมพ์ชื่อบริษัทแล้วกด Enter ได้ทันที
+   เลข 1 2 3 สลับน้ำหนัก และช่องพิมพ์ไม่เสียโฟกัสหลังเพิ่มแต่ละแถว */
+let mpBuyer=null, mpWeight="must", mpQ="", mpOnly="all";
+function pMatchPref(){ mtPage(()=>drawMatchPref(can("match")==="write")) }
+function drawMatchPref(wr){
+  const ex=mtExhibitors();
+  const prefCount={}; (MT.prefs||[]).forEach(p=>{
+    const k=String(p.buyerId); prefCount[k]=(prefCount[k]||0)+1 });
+  const listed=BUYERS.filter(b=>["qualified","invited","confirmed","attended"].includes(b.status));
+  const pool=(mpOnly==="todo"?listed.filter(b=>!prefCount[String(b.id)]):listed)
+    .filter(b=>!mpQ||((b.name||"")+" "+(b.company||"")).toLowerCase().includes(mpQ.toLowerCase()));
+  if(mpBuyer&&!BUYERS.some(b=>String(b.id)===String(mpBuyer)))mpBuyer=null;
+  const done=listed.filter(b=>prefCount[String(b.id)]).length;
+
+  let h='<div class="note" style="margin-bottom:14px"><p>'+
+   '<b>คีย์เฉพาะผู้ซื้อที่ผ่านเกณฑ์ขึ้นไป</b> คนที่เพิ่งสมัครเข้ามายังไม่ต้องคีย์ '+
+   'ตอนนี้คีย์แล้ว '+done+' จาก '+listed.length+' คน · '+
+   'พิมพ์ชื่อบริษัทแล้วกด Enter เพื่อเพิ่ม กด 1 2 3 เพื่อสลับน้ำหนัก</p></div>';
+  h+='<div class="mpwrap" style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start">';
+
+  h+='<div><div class="bar2" style="margin-bottom:8px"><div class="seg">'+
+   '<button data-mo="all" aria-pressed="'+(mpOnly==="all")+'">ทั้งหมด</button>'+
+   '<button data-mo="todo" aria-pressed="'+(mpOnly==="todo")+'">ยังไม่คีย์</button>'+
+   '</div></div>'+
+   '<input id="mpq" class="cell" style="width:100%;margin-bottom:8px" placeholder="ค้นหาชื่อหรือบริษัท" value="'+esc(mpQ)+'">'+
+   '<div class="tw" style="max-height:520px;overflow:auto"><table><tbody>'+
+   (pool.length?pool.map(b=>{
+     const n=prefCount[String(b.id)]||0;
+     return '<tr data-mb="'+esc(b.id)+'" style="cursor:pointer'+
+      (String(b.id)===String(mpBuyer)?';background:var(--line2)':'')+'">'+
+      '<td>'+esc(b.name)+'<br><small style="color:var(--ink3)">'+
+      esc(b.company||"—")+(b.province?" · "+esc(b.province):"")+'</small></td>'+
+      '<td class="num" style="white-space:nowrap">'+(n?n+' รายการ':
+        '<span style="color:var(--ink3)">—</span>')+'</td></tr>'}).join("")
+    :'<tr><td style="color:var(--ink3)">ไม่มีรายชื่อในเงื่อนไขนี้</td></tr>')+
+   '</tbody></table></div></div>';
+
+  h+='<div>';
+  if(!mpBuyer){
+    h+='<div class="note"><p>เลือกผู้ซื้อทางซ้ายเพื่อเริ่มคีย์</p></div>';
+  }else{
+    const b=mtBuyer(mpBuyer), mine2=mtPrefs(mpBuyer);
+    const cats=(b.interests||[]);
+    /* บูธที่หมวดตรงกับความสนใจของผู้ซื้อคนนี้ ขึ้นให้กดเพิ่มได้เลย
+       ทีมจะได้ไม่ต้องจำว่าใครอยู่หมวดไหนตอนคุยโทรศัพท์กับผู้ซื้อ */
+    const sug=ex.filter(x=>x.cats.some(c=>cats.includes(c))&&
+      !mine2.some(p=>p.company===x.co)).slice(0,12);
+    h+='<div class="note" style="margin-bottom:10px"><p><b>'+esc(b.name)+'</b> '+
+     esc(b.company||"")+(b.province?' · '+esc(b.province):"")+
+     (cats.length?'<br>สนใจ '+cats.map(esc).join(" · "):'<br>ยังไม่ได้ระบุความสนใจ')+'</p></div>';
+    if(wr){
+      h+='<div class="addbar" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">'+
+       '<div class="seg">'+["must","nice","exclude"].map((k,i)=>
+         '<button data-mw="'+k+'" aria-pressed="'+(mpWeight===k)+'">'+(i+1)+' '+MTW[k].l+'</button>').join("")+
+       '</div>'+
+       '<input id="mpadd" class="cell" style="min-width:280px" list="mpex" placeholder="พิมพ์ชื่อบริษัทแล้วกด Enter">'+
+       '<datalist id="mpex">'+ex.map(x=>'<option value="'+esc(x.co)+'">').join("")+'</datalist>'+
+       '</div>';
+      if(sug.length)h+='<div style="margin:6px 0 12px;display:flex;flex-wrap:wrap;gap:6px">'+
+       '<span style="color:var(--ink3);font-size:13px">ตรงหมวดที่สนใจ</span>'+
+       sug.map(x=>'<button class="chip" data-ms="'+esc(x.co)+'">+ '+esc(x.co)+'</button>').join("")+
+       '</div>';
+    }
+    h+='<div class="tw"><table><thead><tr><th>บริษัท</th><th>น้ำหนัก</th>'+
+     '<th>หมวด</th><th>บูธ</th>'+(wr?'<th></th>':'')+'</tr></thead><tbody>'+
+     (mine2.length?mine2.map(p=>{
+       const x=ex.find(e=>e.co===p.company);
+       return '<tr><td>'+esc(p.company)+'</td>'+
+        '<td>'+(wr?'<select class="cell" data-mp="'+esc(p.id)+'">'+
+          Object.keys(MTW).map(k=>'<option value="'+k+'"'+(p.weight===k?" selected":"")+'>'+
+            MTW[k].l+'</option>').join("")+'</select>'
+          :'<span style="color:'+cv(MTW[p.weight].c)+';font-weight:700">'+MTW[p.weight].l+'</span>')+'</td>'+
+        '<td>'+(x?x.cats.map(esc).join(" · "):"—")+'</td>'+
+        '<td>'+(x?esc(x.booths.join(", ")):"—")+'</td>'+
+        (wr?'<td><button class="rowdel" data-md="'+esc(p.id)+'">ลบ</button></td>':'')+'</tr>'}).join("")
+      :'<tr><td colspan="5" style="color:var(--ink3)">ยังไม่มีรายการ</td></tr>')+
+     '</tbody></table></div>';
+  }
+  h+='</div></div>';
+  $("#page").innerHTML=h;
+  const P2=$("#page");
+  P2.querySelectorAll("[data-mo]").forEach(b=>b.addEventListener("click",()=>{
+    mpOnly=b.dataset.mo; drawMatchPref(wr) }));
+  const qEl=P2.querySelector("#mpq");
+  qEl.addEventListener("input",()=>{ mpQ=qEl.value; drawMatchPref(wr);
+    const el=$("#page").querySelector("#mpq"); if(el){ el.focus();
+      el.setSelectionRange(el.value.length,el.value.length) } });
+  P2.querySelectorAll("[data-mb]").forEach(tr=>tr.addEventListener("click",()=>{
+    mpBuyer=tr.dataset.mb; drawMatchPref(wr);
+    const el=$("#page").querySelector("#mpadd"); if(el)el.focus() }));
+  if(!wr||!mpBuyer)return;
+  P2.querySelectorAll("[data-mw]").forEach(b=>b.addEventListener("click",()=>{
+    mpWeight=b.dataset.mw; drawMatchPref(wr);
+    const el=$("#page").querySelector("#mpadd"); if(el)el.focus() }));
+  P2.querySelectorAll("[data-ms]").forEach(b=>b.addEventListener("click",()=>
+    mpAdd(b.dataset.ms,wr)));
+  const add=P2.querySelector("#mpadd");
+  if(add){
+    add.addEventListener("keydown",e=>{
+      /* เลขหนึ่งถึงสามสลับน้ำหนักได้เฉพาะตอนช่องยังว่าง ไม่งั้นบริษัทที่ชื่อขึ้นต้นด้วยเลข
+         จะพิมพ์ไม่ได้เลย และคนคีย์จะไม่รู้ว่าทำไมตัวเลขหายไปจากช่อง */
+      if(!add.value&&["1","2","3"].includes(e.key)){
+        e.preventDefault(); mpWeight=["must","nice","exclude"][+e.key-1];
+        drawMatchPref(wr); const el=$("#page").querySelector("#mpadd"); if(el)el.focus(); return;
+      }
+      if(e.key==="Enter"){ e.preventDefault(); mpAdd(add.value.trim(),wr) }
+    });
+    add.focus();
+  }
+  P2.querySelectorAll("[data-mp]").forEach(sel=>sel.addEventListener("change",async()=>{
+    try{
+      const up=await api("/api/match/prefs/"+sel.dataset.mp,
+        {method:"PATCH",body:JSON.stringify({weight:sel.value})});
+      const i=MT.prefs.findIndex(p=>String(p.id)===String(up.id)); if(i>=0)MT.prefs[i]=up;
+      drawMatchPref(wr);
+    }catch(err){ toastTL("แก้ไม่สำเร็จ · "+(err.message||"")) }
+  }));
+  P2.querySelectorAll("[data-md]").forEach(b=>armDel(b,async()=>{
+    try{
+      await api("/api/match/prefs/"+b.dataset.md,{method:"DELETE"});
+      MT.prefs=MT.prefs.filter(p=>String(p.id)!==String(b.dataset.md));
+      drawMatchPref(wr);
+    }catch(err){ toastTL("ลบไม่สำเร็จ · "+(err.message||"")) }
+  }));
+}
+async function mpAdd(co,wr){
+  if(!co)return;
+  const ex=mtExhibitors();
+  /* ชื่อที่พิมพ์ต้องตรงกับผู้ออกบูธที่มีอยู่จริง ไม่งั้นพิมพ์ผิดหนึ่งตัวอักษร
+     จะกลายเป็นบริษัทใหม่ที่ไม่มีใครจับคู่ให้ได้ และไม่มีอะไรบนจอบอกว่าผิด */
+  const hit=ex.find(x=>x.co===co)||ex.find(x=>x.co.toLowerCase()===co.toLowerCase());
+  if(!hit){ toastTL("ไม่พบผู้ออกบูธชื่อนี้ในงาน"); return }
+  try{
+    const made=await api("/api/events/"+encodeURIComponent(EV.id)+"/match/prefs",
+      {method:"POST",body:JSON.stringify({buyerId:mpBuyer,company:hit.co,weight:mpWeight})});
+    const i=(MT.prefs||[]).findIndex(p=>String(p.id)===String(made.id));
+    if(i>=0)MT.prefs[i]=made; else MT.prefs.push(made);
+    drawMatchPref(wr);
+    const el=$("#page").querySelector("#mpadd"); if(el){ el.value=""; el.focus() }
+  }catch(err){ toastTL("เพิ่มไม่สำเร็จ · "+(err.message||"")) }
+}
+
+/* ---------- ขั้นที่หนึ่ง ค กฎสิทธิประโยชน์ ----------
+   เกณฑ์เป็นข้อมูล ทีมแก้เองได้ทั้งหมด ไม่มีตัวเลขไหนฝังอยู่ในโค้ด
+   งานแต่ละงานให้ไม่เหมือนกัน และเงื่อนไขมักถูกแก้กลางฤดูขายตอนงบเปลี่ยน */
+const PKIND={meal:"บัตรอาหาร",hotel:"ที่พัก",transport:"เดินทาง",ticket:"บัตรเข้างาน",other:"อื่น ๆ"};
+let mrPreview=null;
+function pPerkRules(){ mtPage(()=>drawPerkRules(can("match")==="write")) }
+function drawPerkRules(wr){
+  const R=MT.rules||[];
+  let h='<div class="note" style="margin-bottom:14px"><p>'+
+   '<b>สิทธิ์ออกให้ตอนผู้ซื้อยืนยัน แล้วตัดทีหลังถ้าไม่มาจริง</b> '+
+   'ช่องนัดขั้นต่ำนับจากนัดที่ยืนยันแล้ว ส่วนช่องเช็กอินขั้นต่ำใช้ตอนตัดสิทธิ์หลังงาน '+
+   'เว้นว่างไว้คือไม่ตัด</p></div>';
+  h+='<div class="tw"><table><thead><tr><th>สิทธิ์</th><th>ชนิด</th>'+
+   '<th class="num">นัดขั้นต่ำ</th><th class="num">เช็กอินขั้นต่ำ</th><th>จังหวัด</th>'+
+   '<th class="num">จำนวน</th><th>หน่วย</th><th class="num">ต้นทุน/หน่วย</th>'+
+   '<th class="num">โควตา</th><th class="num">ใช้งาน</th>'+(wr?'<th></th>':'')+
+   '</tr></thead><tbody>'+(R.length?R.map((x,i)=>
+    '<tr><td>'+(wr?'<span contenteditable="plaintext-only" data-rn="'+i+'">'+esc(x.name)+'</span>'
+      :esc(x.name))+'</td>'+
+    '<td>'+(wr?'<select class="cell" data-rk="'+i+'">'+Object.keys(PKIND).map(k=>
+      '<option value="'+k+'"'+(x.kind===k?" selected":"")+'>'+PKIND[k]+'</option>').join("")+
+      '</select>':esc(PKIND[x.kind]||x.kind))+'</td>'+
+    '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-rm="'+i+'">'+
+      (x.minMeetings||0)+'</span>':(x.minMeetings||0))+'</td>'+
+    '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-ra="'+i+'">'+
+      (x.minAttended==null?"":x.minAttended)+'</span>':(x.minAttended==null?"—":x.minAttended))+'</td>'+
+    '<td>'+(wr?'<select class="cell" data-rv="'+i+'">'+
+      '<option value="any"'+(x.provinceMode==="any"?" selected":"")+'>ทุกจังหวัด</option>'+
+      '<option value="not_in"'+(x.provinceMode==="not_in"?" selected":"")+'>ยกเว้นที่ระบุ</option>'+
+      '<option value="in"'+(x.provinceMode==="in"?" selected":"")+'>เฉพาะที่ระบุ</option></select>'+
+      (x.provinceMode!=="any"?'<br><span class="inl" contenteditable="plaintext-only" data-rp="'+i+'">'+
+        esc((x.provinces||[]).join(", "))+'</span>':"")
+      :(x.provinceMode==="any"?"ทุกจังหวัด":(x.provinceMode==="in"?"เฉพาะ ":"ยกเว้น ")+
+        esc((x.provinces||[]).join(", "))))+'</td>'+
+    '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-rq="'+i+'">'+
+      (x.qty||1)+'</span>':(x.qty||1))+'</td>'+
+    '<td>'+(wr?'<span class="inl" contenteditable="plaintext-only" data-ru="'+i+'">'+
+      esc(x.unit||"")+'</span>':esc(x.unit||"—"))+'</td>'+
+    '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-rc="'+i+'">'+
+      f(x.unitCost||0)+'</span>':f(x.unitCost||0))+'</td>'+
+    '<td class="num">'+(wr?'<span class="inl" contenteditable="plaintext-only" data-rz="'+i+'">'+
+      (x.quota==null?"":x.quota)+'</span>':(x.quota==null?"ไม่จำกัด":f(x.quota)))+'</td>'+
+    '<td class="num">'+(wr?'<button class="tog" data-rt="'+i+'">'+
+      (x.active!==false?'<span style="color:var(--ok);font-weight:700">เปิด</span>'
+                       :'<span style="color:var(--ink3)">ปิด</span>')+'</button>'
+      :(x.active!==false?"เปิด":"ปิด"))+'</td>'+
+    (wr?'<td><button class="rowdel" data-rx="'+i+'">ลบ</button></td>':'')+'</tr>').join("")
+   :'<tr><td colspan="11" style="color:var(--ink3)">ยังไม่มีกฎ</td></tr>')+
+   '</tbody></table></div>';
+  if(wr)h+='<div class="addbar" style="justify-content:flex-start;gap:10px;flex-wrap:wrap">'+
+   '<button id="mradd">+ เพิ่มสิทธิ์</button>'+
+   '<button id="mrsave" class="btn">บันทึกกฎ</button>'+
+   '<button id="mrprev">ดูว่าใครเข้าเกณฑ์</button>'+
+   '<span id="mrmsg" style="color:var(--ink3)"></span></div>';
+
+  if(mrPreview){
+    const total=mrPreview.reduce((s,x)=>s+x.cost,0);
+    h+='<h3 style="margin:22px 0 8px">ถ้าใช้เกณฑ์นี้</h3>'+
+     '<div class="tw"><table><thead><tr><th>สิทธิ์</th><th class="num">คน</th>'+
+     '<th class="num">หน่วย</th><th class="num">ต้นทุน</th><th>ใคร</th></tr></thead><tbody>'+
+     mrPreview.map(x=>'<tr><td>'+esc(x.name)+(x.overQuota?
+       ' <span style="color:'+cv("--risk")+'">เกินโควตา</span>':"")+'</td>'+
+      '<td class="num">'+f(x.buyers)+'</td><td class="num">'+f(x.units)+
+      (x.unit?" "+esc(x.unit):"")+'</td>'+
+      '<td class="num">'+f(x.cost)+'</td>'+
+      '<td><small style="color:var(--ink3)">'+
+      esc(x.names.slice(0,6).map(n=>n.name).join(", "))+
+      (x.names.length>6?" และอีก "+(x.names.length-6)+" คน":"")+'</small></td></tr>').join("")+
+     '<tr><td colspan="3"><b>รวม</b></td><td class="num"><b>'+f(total)+'</b></td><td></td></tr>'+
+     '</tbody></table></div>'+
+     '<p class="rdonly" style="margin-top:8px">ตัวเลขนี้คำนวณสดจากนัดที่ยืนยันแล้วในระบบ '+
+     'ยังไม่ได้ออกสิทธิ์ให้ใคร การออกสิทธิ์จริงอยู่ในขั้นถัดไป</p>';
+  }
+  $("#page").innerHTML=h;
+  if(!wr)return;
+  const P2=$("#page");
+  const redraw=()=>drawPerkRules(wr);
+  const edit=(sel,fn)=>P2.querySelectorAll(sel).forEach(el=>{
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); el.blur() } });
+    el.addEventListener("blur",()=>{ fn(el); redraw() });
+  });
+  const int=el=>el.textContent.replace(/[^0-9]/g,"");
+  edit("[data-rn]",el=>{ const v=el.textContent.trim(); if(v)R[+el.dataset.rn].name=v });
+  edit("[data-rm]",el=>{ R[+el.dataset.rm].minMeetings=+int(el)||0 });
+  edit("[data-ra]",el=>{ R[+el.dataset.ra].minAttended=int(el)===""?null:+int(el) });
+  edit("[data-rq]",el=>{ R[+el.dataset.rq].qty=+int(el)||1 });
+  edit("[data-ru]",el=>{ R[+el.dataset.ru].unit=el.textContent.trim()||null });
+  edit("[data-rc]",el=>{ R[+el.dataset.rc].unitCost=+int(el)||0 });
+  edit("[data-rz]",el=>{ R[+el.dataset.rz].quota=int(el)===""?null:+int(el) });
+  edit("[data-rp]",el=>{ R[+el.dataset.rp].provinces=el.textContent.split(",")
+    .map(s=>s.trim()).filter(Boolean) });
+  P2.querySelectorAll("[data-rk]").forEach(el=>el.addEventListener("change",()=>{
+    R[+el.dataset.rk].kind=el.value; redraw() }));
+  P2.querySelectorAll("[data-rv]").forEach(el=>el.addEventListener("change",()=>{
+    R[+el.dataset.rv].provinceMode=el.value; redraw() }));
+  P2.querySelectorAll("[data-rt]").forEach(b=>b.addEventListener("click",()=>{
+    const x=R[+b.dataset.rt]; x.active=x.active===false; redraw() }));
+  P2.querySelectorAll("[data-rx]").forEach(b=>armDel(b,()=>{ R.splice(+b.dataset.rx,1); redraw() }));
+  P2.querySelector("#mradd").addEventListener("click",()=>{
+    R.push({name:"สิทธิ์ใหม่ "+(R.length+1),kind:"meal",minMeetings:6,minAttended:null,
+      provinceMode:"any",provinces:[],qty:1,unit:"ใบ",unitCost:0,quota:null,active:true});
+    redraw();
+  });
+  P2.querySelector("#mrsave").addEventListener("click",async()=>{
+    const msg=P2.querySelector("#mrmsg"); msg.textContent="กำลังบันทึก…";
+    try{
+      MT.rules=await api("/api/events/"+encodeURIComponent(EV.id)+"/match/rules",
+        {method:"PUT",body:JSON.stringify({rules:R})});
+      toastTL("บันทึกกฎแล้ว"); redraw();
+    }catch(err){ msg.textContent="บันทึกไม่สำเร็จ · "+(err.message||"") }
+  });
+  P2.querySelector("#mrprev").addEventListener("click",async()=>{
+    const msg=P2.querySelector("#mrmsg"); msg.textContent="กำลังคำนวณ…";
+    try{
+      mrPreview=await api("/api/events/"+encodeURIComponent(EV.id)+"/match/perk-preview");
+      redraw();
+    }catch(err){ msg.textContent="คำนวณไม่สำเร็จ · "+(err.message||"") }
+  });
+}
+
 function pExh(){
   const list=DEALS.filter(mine), T=EV.tasks;
   const own=T.filter(t=>t.by==="exhibitor");

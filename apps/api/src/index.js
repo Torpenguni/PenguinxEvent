@@ -18,6 +18,7 @@ import dealMailRoutes from './routes/dealMail.js'
 import mailRoutes, { cronReminders, cronDigest } from './routes/mail.js'
 import backupRoutes, { takeBackup } from './routes/backup.js'
 import buyerRoutes from './routes/buyers.js'
+import meetingRoutes from './routes/meetings.js'
 import { fetchFull } from './routes/full.js'
 import timelineRoutes from './routes/timeline.js'
 import exhibitorRoutes from './routes/exhibitors.js'
@@ -64,6 +65,10 @@ if (isPortal) {
   // ทะเบียนผู้ซื้อ แยก endpoint ของตัวเอง ไม่ผ่านการบันทึกทั้งงาน
   app.use('/api/events', buyerRoutes)
   app.use('/api', buyerRoutes)
+  /* ตารางนัดเจรจา เส้นทางเดียวกันสองที่ด้วยเหตุผลเดียวกับทะเบียนผู้ซื้อ
+     รายการทั้งชุดอ่านผ่าน /api/events/:code/match ส่วนการแก้ทีละรายการอยู่ที่ /api/match/... */
+  app.use('/api/events', meetingRoutes)
+  app.use('/api', meetingRoutes)
   /* สำรองข้อมูลรายวัน ยืนยันตัวด้วย CRON_SECRET เหมือนกัน */
   app.get('/api/cron/backup', async (req, res, next) => {
     try {
