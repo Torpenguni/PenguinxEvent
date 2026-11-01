@@ -1717,10 +1717,17 @@ const NAV=[
 /* โมดูลที่เปิดใช้ในงานนี้ ปิดแล้วแค่ซ่อนเมนู ไม่ลบข้อมูล เปิดกลับมาข้อมูลอยู่ครบ
    ภาพรวมกับตั้งค่าปิดไม่ได้ ไม่งั้นจะไม่มีทางเปิดโมดูลอื่นกลับมา
    การปิดโมดูลไม่ใช่การให้สิทธิ์ สิทธิ์ยังบังคับที่เซิร์ฟเวอร์เหมือนเดิม */
-const MODULES=[["sales","Sales"],["plan","Floor plan"],["money","Finance"],
+const MODULES=[["plan","Floor plan"],["money","Finance"],
  ["stage","Stage"],["exh","Exhibitor"],["tl","Timeline"]];
 const FIXED=["dash","set"];
+/* ปิดทั้งแพลตฟอร์มชั่วคราว ทุกงาน ทุกบทบาท
+   Sales จะย้ายไปอยู่แพลตฟอร์มขายอีกตัว ส่วน Buyer matching พักไว้ก่อน
+   ซ่อนแค่หน้าจอ ข้อมูลดีลและผู้ซื้อยังอยู่ครบ API ยังทำงานเหมือนเดิม
+   ผังบูธ การเงิน และดูแลผู้ออกบูธยังอ่านดีลได้ตามปกติ
+   จะเปิดกลับ ลบชื่อออกจากรายการนี้ (และใส่ Sales กลับใน MODULES ถ้าอยากให้ปิดเปิดรายงานได้) */
+const OFF_ALL=["sales","buyer"];
 function modOn(id){
+  if(OFF_ALL.includes(id))return false;
   if(FIXED.includes(id))return true;
   const m=EV.modules||{};
   return m[id]!==false;
@@ -3033,7 +3040,7 @@ function pDash(){
              ["Deposit paid",B.filter(b=>["deposit","paid"].includes(b.st)).length],
              ["Paid in full",B.filter(b=>b.st==="paid").length]];
   const conv=FUN[0][1]?Math.round(FUN[FUN.length-1][1]/FUN[0][1]*100):0;
-  h+=w('Booth sales funnel','w6',funnel(FUN,conv));
+  h+=w('Booth sales funnel',modOn("sales")?'w6':'w12',funnel(FUN,conv));
 
   // บูธรายเซลล์ แท่งซ้อน
   const reps=[...new Set(DEALS.map(d=>d.sales||"—"))]
@@ -3041,7 +3048,7 @@ function pDash(){
       DEALS.filter(d=>(d.sales||"—")===n&&d.st===k).reduce((s,d)=>s+d.booths.length,0))}))
     .filter(r=>r.segs.some(x=>x))
     .sort((a,b)=>b.segs.reduce((x,y)=>x+y,0)-a.segs.reduce((x,y)=>x+y,0)).slice(0,7);
-  h+=w('Booths sold, by rep','w6',
+  if(modOn("sales"))h+=w('Booths sold, by rep','w6',
     stacked(reps,[cv("--s-booked"),cv("--s-deposit"),cv("--s-paid")])+
     '<ul class="klist" style="margin-top:12px;flex-direction:row;gap:16px;flex-wrap:wrap">'+
     [["Booked","--s-booked"],["Deposit paid","--s-deposit"],["Paid in full","--s-paid"]].map(x=>
